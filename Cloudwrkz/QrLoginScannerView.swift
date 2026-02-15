@@ -37,32 +37,64 @@ struct QrLoginScannerView: View {
         case failure
     }
 
+    /// Visible window: max 3 items; when third is done drop top; 2 or 1 left at end.
+    private var checklistVisibleIndices: [Int] {
+        let count = completedStepsCount
+        let start: Int
+        let num: Int
+        switch count {
+        case 0: start = 0; num = 2
+        case 1, 2: start = 0; num = 3
+        case 3: start = 1; num = 3
+        case 4: start = 3; num = 2
+        default: start = 4; num = 1  // 5
+        }
+        return (0..<num).map { start + $0 }
+    }
+
     private var checklistView: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            ForEach(Array(Self.checklistSteps.enumerated()), id: \.offset) { index, title in
-                HStack(spacing: 12) {
-                    if index < completedStepsCount {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 20))
-                            .foregroundStyle(CloudwrkzColors.success500)
-                            .transition(.scale.combined(with: .opacity))
-                    } else if index == completedStepsCount {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: CloudwrkzColors.primary400))
-                            .scaleEffect(0.9)
-                    } else {
-                        Image(systemName: "circle")
-                            .font(.system(size: 20))
-                            .foregroundStyle(CloudwrkzColors.neutral600)
-                    }
-                    Text(title)
-                        .font(.system(size: 15, weight: index <= completedStepsCount ? .medium : .regular))
-                        .foregroundStyle(index <= completedStepsCount ? CloudwrkzColors.neutral100 : CloudwrkzColors.neutral500)
-                }
-                .animation(.easeOut(duration: 0.25), value: completedStepsCount)
+        VStack(alignment: .center, spacing: 10) {
+            ForEach(checklistVisibleIndices, id: \.self) { index in
+                let title = Self.checklistSteps[index]
+                let isCompleted = index < completedStepsCount
+                let isCurrent = index == completedStepsCount
+                let isNext = index == completedStepsCount + 1
+                let isNormalSize = isCurrent
+                checklistRow(index: index, title: title, isCompleted: isCompleted, isCurrent: isCurrent, isNext: isNext)
+                    .scaleEffect(isNormalSize ? 1.0 : 0.82)
+                    .opacity(isNormalSize ? 1.0 : 0.88)
+                    .transition(.asymmetric(
+                        insertion: .opacity.combined(with: .move(edge: .bottom)),
+                        removal: .opacity.combined(with: .move(edge: .top))
+                    ))
             }
         }
+        .frame(maxWidth: .infinity)
+        .frame(height: 120)
         .padding(.horizontal, 8)
+        .animation(.easeOut(duration: 0.3), value: completedStepsCount)
+    }
+
+    private func checklistRow(index: Int, title: String, isCompleted: Bool, isCurrent: Bool, isNext: Bool) -> some View {
+        HStack(spacing: 12) {
+            if isCompleted {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 20))
+                    .foregroundStyle(CloudwrkzColors.success500)
+                    .transition(.scale.combined(with: .opacity))
+            } else if isCurrent {
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: CloudwrkzColors.primary400))
+                    .scaleEffect(0.9)
+            } else {
+                Image(systemName: "circle")
+                    .font(.system(size: 20))
+                    .foregroundStyle(CloudwrkzColors.neutral600)
+            }
+            Text(title)
+                .font(.system(size: 15, weight: isCompleted || isCurrent ? .medium : .regular))
+                .foregroundStyle(isCompleted || isCurrent ? CloudwrkzColors.neutral100 : CloudwrkzColors.neutral500)
+        }
     }
 
     private func runChecklistAnimation() async {
@@ -103,6 +135,8 @@ struct QrLoginScannerView: View {
                         )
                         .id(scannerKey)
                         .frame(height: 320)
+                        .frame(maxWidth: .infinity)
+                        .clipped()
                         .clipShape(RoundedRectangle(cornerRadius: 16))
                         .overlay(
                             RoundedRectangle(cornerRadius: 16)
@@ -112,6 +146,7 @@ struct QrLoginScannerView: View {
 
                         if status == .processing {
                             checklistView
+                                .padding(.top, 20)
                                 .task(id: status) {
                                     await runChecklistAnimation()
                                 }
