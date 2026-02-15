@@ -211,6 +211,8 @@ struct DashboardSearchView: View {
         case .success(let response):
             results = response.results
             total = response.total
+        case .failure(.cancelled):
+            break
         case .failure:
             results = []
             total = 0

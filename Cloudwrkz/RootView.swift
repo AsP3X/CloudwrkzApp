@@ -22,6 +22,8 @@ struct RootView: View {
     @State private var serverConfig = ServerConfig.load()
     @State private var showServerConfig = false
     @State private var showHealthStatus = false
+    @State private var pendingServerConfigAfterDismiss = false
+    @State private var pendingHealthStatusAfterDismiss = false
 
     private let pushPopAnimation = Animation.easeInOut(duration: 0.32)
 
@@ -94,11 +96,11 @@ struct RootView: View {
                             .contentShape(Rectangle())
                             .allowsHitTesting(false)
                     }
-                    TenantStatusView(config: serverConfig, onTap: { showHealthStatus = true })
+                    TenantStatusView(config: serverConfig, onTap: { requestHealthStatus() })
                         .padding(.leading, 12)
                         .padding(.top, 12)
                     Spacer()
-                    Button(action: { showServerConfig = true }) {
+                    Button(action: { requestServerConfig() }) {
                         Image(systemName: "gearshape.fill")
                             .font(.system(size: 22))
                             .foregroundStyle(CloudwrkzColors.neutral100)
@@ -113,11 +115,39 @@ struct RootView: View {
             .opacity(screen == .main ? 0 : 1)
         }
         .animation(pushPopAnimation, value: screen)
-        .sheet(isPresented: $showServerConfig) {
+        .sheet(isPresented: $showServerConfig, onDismiss: {
+            if pendingHealthStatusAfterDismiss {
+                pendingHealthStatusAfterDismiss = false
+                showHealthStatus = true
+            }
+        }) {
             ServerConfigView(config: $serverConfig)
         }
-        .sheet(isPresented: $showHealthStatus) {
+        .sheet(isPresented: $showHealthStatus, onDismiss: {
+            if pendingServerConfigAfterDismiss {
+                pendingServerConfigAfterDismiss = false
+                showServerConfig = true
+            }
+        }) {
             ServerHealthStatusView(config: serverConfig)
+        }
+    }
+
+    private func requestServerConfig() {
+        if showHealthStatus {
+            pendingServerConfigAfterDismiss = true
+            showHealthStatus = false
+        } else {
+            showServerConfig = true
+        }
+    }
+
+    private func requestHealthStatus() {
+        if showServerConfig {
+            pendingHealthStatusAfterDismiss = true
+            showServerConfig = false
+        } else {
+            showHealthStatus = true
         }
     }
 }

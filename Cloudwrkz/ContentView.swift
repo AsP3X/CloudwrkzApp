@@ -30,6 +30,8 @@ struct ContentView: View {
     @State private var showProfileMenu = false
     /// Present search overlay when user swipes down and holds on dashboard (or taps toolbar search).
     @State private var showSearch = false
+    /// When true, show search after the current sheet/fullScreenCover has finished dismissing (avoids "already presenting").
+    @State private var pendingSearchAfterDismiss = false
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -51,7 +53,7 @@ struct ContentView: View {
                     .padding(.bottom, 32)
                 }
                 .overlay {
-                    PullDownToSearchView(onTrigger: { showSearch = true })
+                    PullDownToSearchView(onTrigger: { requestSearch() })
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .allowsHitTesting(true)
                 }
@@ -101,7 +103,7 @@ struct ContentView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button {
-                        showSearch = true
+                        requestSearch()
                     } label: {
                         Image(systemName: "magnifyingglass")
                     }
@@ -132,7 +134,10 @@ struct ContentView: View {
                             profileImageData: profileImageData,
                             onViewProfile: {
                                 showProfileMenu = false
-                                showProfileSheet = true
+                                // Defer sheet so it presents after the popover has fully dismissed (avoids "already presenting").
+                                DispatchQueue.main.async {
+                                    showProfileSheet = true
+                                }
                             },
                             onLogout: onLogout != nil ? {
                                 showProfileMenu = false
@@ -142,7 +147,12 @@ struct ContentView: View {
                     }
                 }
             }
-            .sheet(isPresented: $showProfileSheet) {
+            .sheet(isPresented: $showProfileSheet, onDismiss: {
+                if pendingSearchAfterDismiss {
+                    pendingSearchAfterDismiss = false
+                    showSearch = true
+                }
+            }) {
                 ProfileView(
                     firstName: profileFirstName,
                     lastName: profileLastName,
@@ -231,6 +241,16 @@ struct ContentView: View {
         profileEmail = UserProfileStorage.email
         profileUsername = UserProfileStorage.username
         profileImageData = UserProfileStorage.profileImageData
+    }
+
+    /// Presents search, or defers it until profile sheet has dismissed to avoid "already presenting".
+    private func requestSearch() {
+        if showProfileSheet {
+            pendingSearchAfterDismiss = true
+            showProfileSheet = false
+        } else {
+            showSearch = true
+        }
     }
 
 }
