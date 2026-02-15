@@ -66,6 +66,8 @@ struct TodoFilters: Equatable {
     var priority: TodoPriorityFilter = .all
     var sort: TodoSortOption = .newestFirst
     var archive: TodoArchiveFilter = .unarchived
+    /// When false (default), list shows only top-level todos. When true, includes subtodos.
+    var includeSubtodos: Bool = false
 
     enum TodoStatusFilter: String, CaseIterable, Identifiable {
         case all = "ALL"

@@ -30,7 +30,7 @@ struct TodoFiltersView: View {
                     .font(.system(size: 22, weight: .bold))
                     .foregroundStyle(CloudwrkzColors.neutral100)
             }
-            Text("Narrow the list by status, priority, sort, and archive.")
+            Text("Narrow the list by scope, status, priority, sort, and archive.")
                 .font(.system(size: 15, weight: .regular))
                 .foregroundStyle(CloudwrkzColors.neutral400)
         }
@@ -52,6 +52,7 @@ struct TodoFiltersView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 28) {
                         headerSection
+                        scopeSection
                         statusSection
                         prioritySection
                         sortSection
@@ -74,6 +75,28 @@ struct TodoFiltersView: View {
                     .foregroundStyle(CloudwrkzColors.primary400)
                 }
             }
+        }
+    }
+
+    private var scopeSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionHeader("Scope")
+            VStack(spacing: 10) {
+                filterRow(
+                    title: "Top-level only",
+                    isSelected: !filters.includeSubtodos
+                ) {
+                    filters.includeSubtodos = false
+                }
+                filterRow(
+                    title: "Include subtodos",
+                    isSelected: filters.includeSubtodos
+                ) {
+                    filters.includeSubtodos = true
+                }
+            }
+            .padding(20)
+            .glassPanel(cornerRadius: 20, tint: CloudwrkzColors.primary500, tintOpacity: 0.04)
         }
     }
 

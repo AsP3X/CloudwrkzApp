@@ -8,8 +8,13 @@
 import SwiftUI
 
 struct TodoDetailView: View {
-    let todo: Todo
+    @State private var todo: Todo
     @State private var showTodoInfoSidebar = false
+    @State private var showAddTodo = false
+
+    init(todo: Todo) {
+        _todo = State(initialValue: todo)
+    }
 
     private static let dateFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -36,18 +41,43 @@ struct TodoDetailView: View {
         .toolbarBackground(CloudwrkzColors.neutral950.opacity(0.95), for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button {
-                    showTodoInfoSidebar = true
-                } label: {
-                    Image(systemName: "info.circle")
-                        .font(.system(size: 20))
+                HStack(spacing: 16) {
+                    Button {
+                        showAddTodo = true
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 22))
+                    }
+                    Button {
+                        showTodoInfoSidebar = true
+                    } label: {
+                        Image(systemName: "info.circle")
+                            .font(.system(size: 20))
+                    }
                 }
             }
         }
         .sheet(isPresented: $showTodoInfoSidebar) {
             TodoInfoSidebarView(todo: todo)
         }
+        .sheet(isPresented: $showAddTodo) {
+            AddTodoView(
+                parentTodoId: todo.id,
+                parentTodoTitle: todo.title,
+                onSaved: { Task { await loadTodo() } }
+            )
+        }
         .tint(CloudwrkzColors.primary400)
+        .task { await loadTodo() }
+    }
+
+    private func loadTodo() async {
+        let result = await TodoService.fetchTodo(config: ServerConfig.load(), id: todo.id)
+        await MainActor.run {
+            if case .success(let updated) = result {
+                todo = updated
+            }
+        }
     }
 
     private var background: some View {
@@ -155,93 +185,87 @@ struct TodoDetailView: View {
     }
 
     private var subtodosSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 10) {
-                Image(systemName: "list.bullet.indent")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(CloudwrkzColors.primary400)
-                Text("Subtodos")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(CloudwrkzColors.neutral100)
-                if let count = todo.subtodos?.count, count > 0 {
-                    Text("\(count)")
-                        .font(.system(size: 13, weight: .semibold, design: .rounded))
-                        .foregroundStyle(CloudwrkzColors.neutral400)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(CloudwrkzColors.neutral700.opacity(0.6), in: Capsule())
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.bottom, 16)
-
-            if let subtodos = todo.subtodos, !subtodos.isEmpty {
-                VStack(spacing: 10) {
-                    ForEach(subtodos) { subtodo in
-                        subtodoRow(subtodo)
+        VStack(alignment: .leading, spacing: 12) {
+            sectionLabel("Subtodos")
+            VStack(spacing: 0) {
+                if let subtodos = todo.subtodos, !subtodos.isEmpty {
+                    ForEach(Array(subtodos.enumerated()), id: \.element.id) { index, subtodo in
+                        subtodoSettingsRow(subtodo)
+                        if index < subtodos.count - 1 {
+                            settingsDivider
+                        }
                     }
+                } else {
+                    subtodoPlaceholderRow
                 }
-            } else {
-                HStack(spacing: 10) {
-                    Image(systemName: "checkmark.circle")
-                        .font(.system(size: 16))
-                        .foregroundStyle(CloudwrkzColors.neutral500)
-                    Text("No subtodos")
-                        .font(.system(size: 15, weight: .regular))
-                        .foregroundStyle(CloudwrkzColors.neutral500)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, 14)
-                .padding(.horizontal, 16)
-                .background(subtodoRowGlass)
             }
+            .padding(16)
+            .glassPanel(cornerRadius: 20, tint: CloudwrkzColors.primary500, tintOpacity: 0.04)
         }
-        .padding(22)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(detailGlassPanel)
     }
 
-    private func subtodoRow(_ subtodo: Todo.TodoSubtask) -> some View {
-        HStack(spacing: 12) {
-            RoundedRectangle(cornerRadius: 4)
-                .fill(statusColor(subtodo.status).opacity(0.6))
-                .frame(width: 4, height: 28)
-            VStack(alignment: .leading, spacing: 6) {
+    private func sectionLabel(_ text: String) -> some View {
+        Text(text.uppercased())
+            .font(.system(size: 11, weight: .bold))
+            .tracking(0.8)
+            .foregroundStyle(CloudwrkzColors.neutral500)
+            .padding(.bottom, 8)
+    }
+
+    private var settingsDivider: some View {
+        Rectangle()
+            .fill(.white.opacity(0.12))
+            .frame(height: 1)
+    }
+
+    /// One subtodo as a row matching Account Settings (Change password) style: icon, title, subtitle.
+    private func subtodoSettingsRow(_ subtodo: Todo.TodoSubtask) -> some View {
+        HStack(spacing: 14) {
+            Image(systemName: "list.bullet.indent")
+                .font(.system(size: 20))
+                .foregroundStyle(CloudwrkzColors.primary400)
+                .frame(width: 28, height: 28)
+            VStack(alignment: .leading, spacing: 2) {
                 Text(subtodo.title)
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(CloudwrkzColors.neutral100)
                     .lineLimit(2)
-                HStack(spacing: 8) {
-                    statusPill(subtodo.status)
-                    priorityPill(subtodo.priority)
-                }
+                Text(subtodoStatusSubtitle(subtodo))
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundStyle(CloudwrkzColors.neutral500)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(16)
+        .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(subtodoRowGlass)
+        .contentShape(Rectangle())
     }
 
-    private var subtodoRowGlass: some View {
-        Group {
-            if #available(iOS 26.0, *) {
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(.clear)
-                    .glassEffect(.regular.tint(.white.opacity(0.04)), in: RoundedRectangle(cornerRadius: 14))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(.white.opacity(0.12), lineWidth: 1)
-                    )
-            } else {
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(.white.opacity(0.04))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(.white.opacity(0.12), lineWidth: 1)
-                    )
+    private func subtodoStatusSubtitle(_ subtodo: Todo.TodoSubtask) -> String {
+        let status = subtodo.status.replacingOccurrences(of: "_", with: " ").lowercased()
+        let priority = subtodo.priority
+        return "\(status) · \(priority)"
+    }
+
+    private var subtodoPlaceholderRow: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "checkmark.circle")
+                .font(.system(size: 20))
+                .foregroundStyle(CloudwrkzColors.neutral500)
+                .frame(width: 28, height: 28)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("No subtodos")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(CloudwrkzColors.neutral100)
+                Text("Tap + to add one")
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundStyle(CloudwrkzColors.neutral500)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var detailGlassPanel: some View {

@@ -13,6 +13,7 @@ struct TodosOverviewView: View {
     @State private var errorMessage: String?
     @State private var filters = TodoFilters()
     @State private var showFilters = false
+    @State private var showAddTodo = false
 
     private let config = ServerConfig.load()
 
@@ -32,6 +33,11 @@ struct TodosOverviewView: View {
         .navigationTitle("ToDo")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(CloudwrkzColors.neutral950.opacity(0.95), for: .navigationBar)
+        .overlay(alignment: .bottomTrailing) {
+            if !isLoading || !todos.isEmpty {
+                addTodoButton
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
@@ -48,7 +54,35 @@ struct TodosOverviewView: View {
             TodoFiltersView(filters: $filters)
                 .onDisappear { Task { await loadTodos() } }
         }
+        .sheet(isPresented: $showAddTodo) {
+            AddTodoView(
+                parentTodoId: nil,
+                parentTodoTitle: nil,
+                onSaved: { Task { await loadTodos() } }
+            )
+        }
         .onAppear { Task { await loadTodos() } }
+    }
+
+    /// Floating add-todo button, bottom right. Liquid glass style (matches Links).
+    private var addTodoButton: some View {
+        Button {
+            showAddTodo = true
+        } label: {
+            Image(systemName: "plus")
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundStyle(CloudwrkzColors.neutral950)
+                .frame(width: 56, height: 56)
+                .background(CloudwrkzColors.primary400, in: Circle())
+                .overlay(
+                    Circle()
+                        .stroke(.white.opacity(0.3), lineWidth: 1)
+                )
+                .shadow(color: .black.opacity(0.25), radius: 8, x: 0, y: 4)
+        }
+        .buttonStyle(.plain)
+        .padding(.trailing, 20)
+        .padding(.bottom, 24)
     }
 
     private var background: some View {
@@ -101,7 +135,7 @@ struct TodosOverviewView: View {
             Text("No todos")
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(CloudwrkzColors.neutral100)
-            Text("Change filters or create a todo in the web app.")
+            Text("Change filters or tap + to add a todo.")
                 .font(.system(size: 14, weight: .regular))
                 .foregroundStyle(CloudwrkzColors.neutral500)
                 .multilineTextAlignment(.center)
