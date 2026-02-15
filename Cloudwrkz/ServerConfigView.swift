@@ -31,7 +31,7 @@ struct ServerConfigView: View {
     @FocusState private var focusedField: Field?
     @State private var portText: String = ""
 
-    enum Field { case domain, port }
+    enum Field { case domain, port, loginPath }
 
     private var portBinding: Binding<String> {
         Binding(
@@ -58,6 +58,7 @@ struct ServerConfigView: View {
                         if config.tenant != .official {
                             connectionSection
                         }
+                        loginPathSection
                         if let url = config.baseURL?.absoluteString {
                             resolvedURLSection(url)
                         }
@@ -199,6 +200,23 @@ struct ServerConfigView: View {
                     field: .port,
                     keyboard: .numberPad
                 )
+
+                HStack(spacing: 12) {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(CloudwrkzColors.neutral500)
+                    Toggle("Use HTTPS", isOn: $config.useHTTPS)
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(CloudwrkzColors.neutral100)
+                        .tint(CloudwrkzColors.primary400)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(CloudwrkzColors.neutral900.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(.white.opacity(0.12), lineWidth: 1)
+                )
             }
             .padding(20)
             .glassPanel(cornerRadius: 20, tint: CloudwrkzColors.primary500, tintOpacity: 0.04)
@@ -233,6 +251,40 @@ struct ServerConfigView: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 14)
                 .glassField(cornerRadius: 12)
+        }
+    }
+
+    // MARK: - Login API path
+
+    private var loginPathSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            sectionHeader("Login API path")
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: "key.fill")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(CloudwrkzColors.neutral500)
+                    Text("Path (no leading slash)")
+                        .font(.system(size: 12, weight: .semibold))
+                        .tracking(0.4)
+                        .foregroundStyle(CloudwrkzColors.neutral400)
+                }
+                TextField("api/login", text: $config.loginPath)
+                    .keyboardType(.URL)
+                    .textContentType(.URL)
+                    .autocapitalization(.none)
+                    .autocorrectionDisabled()
+                    .focused($focusedField, equals: .loginPath)
+                    .foregroundStyle(CloudwrkzColors.neutral100)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 14)
+                    .glassField(cornerRadius: 12)
+                Text("If login returns 404, set this to the path your website uses (e.g. api/login).")
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundStyle(CloudwrkzColors.neutral500)
+            }
+            .padding(20)
+            .glassPanel(cornerRadius: 20, tint: CloudwrkzColors.primary500, tintOpacity: 0.04)
         }
     }
 

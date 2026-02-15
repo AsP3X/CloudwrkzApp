@@ -14,6 +14,7 @@ struct LoginView: View {
     @State private var errorMessage: String?
     @FocusState private var focusedField: Field?
 
+    var serverConfig: ServerConfig = ServerConfig.load()
     var onSuccess: () -> Void = {}
     var onBack: () -> Void = {}
 
@@ -123,6 +124,7 @@ struct LoginView: View {
                     Text(error)
                         .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(CloudwrkzColors.error500)
+                        .textSelection(.enabled)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(12)
@@ -138,14 +140,40 @@ struct LoginView: View {
     private func submit() {
         errorMessage = nil
         focusedField = nil
+        if email.isEmpty || password.isEmpty {
+            errorMessage = "Please enter email and password."
+            return
+        }
+        if serverConfig.baseURL == nil {
+            errorMessage = "Configure server in settings."
+            return
+        }
         isLoading = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            isLoading = false
-            if email.isEmpty || password.isEmpty {
-                errorMessage = "Please enter email and password."
-                return
+        Task {
+            let result = await AuthService.login(email: email, password: password, config: serverConfig)
+            await MainActor.run {
+                isLoading = false
+                switch result {
+                case .success(let token):
+                    AuthTokenStorage.save(token: token)
+                    onSuccess()
+                case .failure(let failure):
+                    errorMessage = message(for: failure)
+                }
             }
-            onSuccess()
+        }
+    }
+
+    private func message(for failure: AuthLoginFailure) -> String {
+        switch failure {
+        case .noServerURL:
+            return "Configure server in settings."
+        case .invalidCredentials:
+            return "Invalid email or password."
+        case .serverError(let message):
+            return message
+        case .networkError:
+            return "Could not reach server."
         }
     }
 }

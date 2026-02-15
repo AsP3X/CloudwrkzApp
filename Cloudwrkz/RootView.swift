@@ -16,7 +16,7 @@ enum AuthScreen {
 }
 
 struct RootView: View {
-    @State private var screen: AuthScreen = .splash
+    @State private var screen: AuthScreen = AuthTokenStorage.getToken() != nil ? .main : .splash
     /// Used for WhatsApp/Telegram-style push (forward) vs pop (back) transitions.
     @State private var isGoingBack = false
     @State private var serverConfig = ServerConfig.load()
@@ -54,6 +54,7 @@ struct RootView: View {
                 ))
             case .login:
                 LoginView(
+                    serverConfig: serverConfig,
                     onSuccess: { goForward(to: .main) },
                     onBack: { goBack(to: .splash) }
                 )

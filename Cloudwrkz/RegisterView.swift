@@ -160,6 +160,7 @@ struct RegisterView: View {
                     Text(error)
                         .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(CloudwrkzColors.error500)
+                        .textSelection(.enabled)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(12)
