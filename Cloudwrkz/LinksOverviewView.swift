@@ -16,6 +16,7 @@ struct LinksOverviewView: View {
     @State private var refreshErrorMessage: String?
     @State private var filters = LinkFilters()
     @State private var showFilters = false
+    @State private var showAddLink = false
 
     private let config = ServerConfig.load()
 
@@ -45,6 +46,11 @@ struct LinksOverviewView: View {
         .navigationTitle("Links")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(CloudwrkzColors.neutral950.opacity(0.95), for: .navigationBar)
+        .overlay(alignment: .bottomTrailing) {
+            if !isLoading || !links.isEmpty {
+                addLinkButton
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
@@ -61,6 +67,18 @@ struct LinksOverviewView: View {
             LinkFiltersView(filters: $filters, collections: collections)
                 .onDisappear { Task { await loadLinks() } }
         }
+        .sheet(isPresented: $showAddLink) {
+            AddLinkView(
+                collections: collections,
+                currentCollectionId: filters.collectionId,
+                onSaved: {
+                    Task {
+                        await loadCollections()
+                        await loadLinks()
+                    }
+                }
+            )
+        }
         .onChange(of: showFilters) { _, isOpen in
             if isOpen { Task { await loadCollections() } }
         }
@@ -68,6 +86,27 @@ struct LinksOverviewView: View {
             Task { await loadCollections() }
             Task { await loadLinks() }
         }
+    }
+
+    /// Floating add-link button, bottom right. Liquid glass style.
+    private var addLinkButton: some View {
+        Button {
+            showAddLink = true
+        } label: {
+            Image(systemName: "plus")
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundStyle(CloudwrkzColors.neutral950)
+                .frame(width: 56, height: 56)
+                .background(CloudwrkzColors.primary400, in: Circle())
+                .overlay(
+                    Circle()
+                        .stroke(.white.opacity(0.3), lineWidth: 1)
+                )
+                .shadow(color: .black.opacity(0.25), radius: 8, x: 0, y: 4)
+        }
+        .buttonStyle(.plain)
+        .padding(.trailing, 20)
+        .padding(.bottom, 24)
     }
 
     /// Horizontal scroll of "All" + collection chips. Liquid glass style.

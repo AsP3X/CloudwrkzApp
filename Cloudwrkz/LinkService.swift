@@ -102,6 +102,134 @@ enum LinkService {
             return .failure(.networkError(description: description))
         }
     }
+
+    /// POST /api/links — create a link. Returns the new link id on success.
+    static func createLink(
+        config: ServerConfig,
+        url: String,
+        title: String? = nil,
+        description: String? = nil,
+        collectionIds: [String]? = nil
+    ) async -> Result<String, LinkServiceError> {
+        guard let base = config.baseURL else {
+            return .failure(.noServerURL)
+        }
+        guard let token = AuthTokenStorage.getToken(), !token.isEmpty else {
+            return .failure(.noToken)
+        }
+        let pathSegments = linksPathSegments(loginPath: config.loginPath)
+        guard !pathSegments.isEmpty else {
+            return .failure(.noServerURL)
+        }
+        var requestURL = base
+        for segment in pathSegments {
+            requestURL = requestURL.appending(path: segment)
+        }
+        var request = URLRequest(url: requestURL)
+        request.httpMethod = "POST"
+        request.timeoutInterval = timeout
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        let body: [String: Any] = {
+            var b: [String: Any] = ["url": url.trimmingCharacters(in: .whitespacesAndNewlines)]
+            if let t = title?.trimmingCharacters(in: .whitespacesAndNewlines), !t.isEmpty {
+                b["title"] = t
+            }
+            if let d = description?.trimmingCharacters(in: .whitespacesAndNewlines), !d.isEmpty {
+                b["description"] = d
+            }
+            if let ids = collectionIds, !ids.isEmpty {
+                b["collectionIds"] = ids
+            }
+            return b
+        }()
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: body) else {
+            return .failure(.serverError(message: "Invalid request"))
+        }
+        request.httpBody = jsonData
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse else {
+                return .failure(.serverError(message: "Invalid response"))
+            }
+            switch http.statusCode {
+            case 201:
+                struct CreateResponse: Decodable { let id: String }
+                let decoded = try JSONDecoder().decode(CreateResponse.self, from: data)
+                return .success(decoded.id)
+            case 401:
+                return .failure(.unauthorized)
+            case 403:
+                let msg = (try? JSONDecoder().decode(MessageResponse.self, from: data))?.message ?? "You can't create links."
+                return .failure(.serverError(message: msg))
+            case 400...599:
+                let message = (try? JSONDecoder().decode(MessageResponse.self, from: data))?.message
+                    ?? "Server error (\(http.statusCode))"
+                return .failure(.serverError(message: message))
+            default:
+                return .failure(.serverError(message: "Unexpected status \(http.statusCode)"))
+            }
+        } catch {
+            let description = (error as? URLError)?.localizedDescription ?? error.localizedDescription
+            return .failure(.networkError(description: description))
+        }
+    }
+
+    /// POST .../metadata — extract title, description, favicon from URL for Add Link form.
+    static func fetchMetadata(config: ServerConfig, url: String) async -> Result<LinkMetadata, LinkServiceError> {
+        guard let base = config.baseURL else {
+            return .failure(.noServerURL)
+        }
+        guard let token = AuthTokenStorage.getToken(), !token.isEmpty else {
+            return .failure(.noToken)
+        }
+        let pathSegments = linksPathSegments(loginPath: config.loginPath)
+        guard !pathSegments.isEmpty else {
+            return .failure(.noServerURL)
+        }
+        var requestURL = base
+        for segment in pathSegments {
+            requestURL = requestURL.appending(path: segment)
+        }
+        requestURL = requestURL.appending(path: "metadata")
+        var request = URLRequest(url: requestURL)
+        request.httpMethod = "POST"
+        request.timeoutInterval = timeout
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.httpBody = (try? JSONSerialization.data(withJSONObject: ["url": url])) ?? Data()
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse else {
+                return .failure(.serverError(message: "Invalid response"))
+            }
+            switch http.statusCode {
+            case 200:
+                let decoded = try JSONDecoder().decode(LinkMetadata.self, from: data)
+                return .success(decoded)
+            case 401:
+                return .failure(.unauthorized)
+            case 400...599:
+                let message = (try? JSONDecoder().decode(MessageResponse.self, from: data))?.message
+                    ?? "Server error (\(http.statusCode))"
+                return .failure(.serverError(message: message))
+            default:
+                return .failure(.serverError(message: "Unexpected status \(http.statusCode)"))
+            }
+        } catch {
+            let description = (error as? URLError)?.localizedDescription ?? error.localizedDescription
+            return .failure(.networkError(description: description))
+        }
+    }
+}
+
+struct LinkMetadata: Decodable {
+    let title: String?
+    let description: String?
+    let favicon: String?
 }
 
 private struct MessageResponse: Decodable {
