@@ -20,6 +20,7 @@ struct ProfileView: View {
     var onProfileUpdated: (() -> Void)?
 
     @State private var showEditSheet = false
+    @State private var showAccountSettings = false
 
     private var displayName: String {
         let first = firstName?.trimmingCharacters(in: .whitespaces) ?? ""
@@ -86,6 +87,9 @@ struct ProfileView: View {
                     showEditSheet = false
                     onProfileUpdated?()
                 })
+            }
+            .sheet(isPresented: $showAccountSettings) {
+                AccountSettingsView()
             }
         }
     }
@@ -163,8 +167,10 @@ struct ProfileView: View {
                 subtitle: "Preferences and security",
                 isDestructive: false
             ) {
-                // Placeholder: future AccountSettingsView or URL
+                showAccountSettings = true
             }
+            .accessibilityLabel("Account settings")
+            .accessibilityHint("Opens account settings")
 
             ProfileGlassRowButton(
                 icon: "bell.fill",
