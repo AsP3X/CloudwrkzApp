@@ -14,6 +14,8 @@ struct UserProfileStorage {
     private static let emailKey = "cloudwrkz.userProfile.email"
     private static let usernameKey = "cloudwrkz.userProfile.username"
     private static let profileImageKey = "cloudwrkz.userProfile.imageData"
+    private static let firstLoginAtKey = "cloudwrkz.userProfile.firstLoginAt"
+    private static let lastSignedInAtKey = "cloudwrkz.userProfile.lastSignedInAt"
 
     static var firstName: String? {
         get { UserDefaults.standard.string(forKey: firstNameKey) }
@@ -43,6 +45,24 @@ struct UserProfileStorage {
         set { UserDefaults.standard.set(newValue, forKey: profileImageKey) }
     }
 
+    /// Set once on first successful login. Shown as "Member since" in profile.
+    static var firstLoginAt: Date? {
+        get {
+            let t = UserDefaults.standard.double(forKey: firstLoginAtKey)
+            return t > 0 ? Date(timeIntervalSince1970: t) : nil
+        }
+        set { UserDefaults.standard.set(newValue?.timeIntervalSince1970 ?? 0, forKey: firstLoginAtKey) }
+    }
+
+    /// Updated on every successful login. Shown as "Last signed in" in profile.
+    static var lastSignedInAt: Date? {
+        get {
+            let t = UserDefaults.standard.double(forKey: lastSignedInAtKey)
+            return t > 0 ? Date(timeIntervalSince1970: t) : nil
+        }
+        set { UserDefaults.standard.set(newValue?.timeIntervalSince1970 ?? 0, forKey: lastSignedInAtKey) }
+    }
+
     /// Clears profile when user logs out so the next account doesn’t show previous avatar.
     static func clear() {
         firstName = nil
@@ -50,5 +70,8 @@ struct UserProfileStorage {
         email = nil
         username = nil
         profileImageData = nil
+        firstLoginAt = nil
+        lastSignedInAt = nil
     }
 }
+

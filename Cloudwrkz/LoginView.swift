@@ -160,6 +160,11 @@ struct LoginView: View {
                 }
                 UserProfileStorage.email = user?.email?.trimmingCharacters(in: .whitespaces)
                     ?? email.trimmingCharacters(in: .whitespaces)
+                let now = Date()
+                if UserProfileStorage.firstLoginAt == nil {
+                    UserProfileStorage.firstLoginAt = now
+                }
+                UserProfileStorage.lastSignedInAt = now
                 onSuccess()
             case .failure(let failure):
                 errorMessage = message(for: failure)

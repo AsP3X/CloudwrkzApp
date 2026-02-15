@@ -60,6 +60,16 @@ struct ProfileAvatarView: View {
                 .stroke(CloudwrkzColors.primary400.opacity(0.6), lineWidth: 1.5)
         )
         .contentShape(Circle())
+        .accessibilityLabel(accessibilityLabel)
+    }
+
+    private var accessibilityLabel: String {
+        let firstLast = [firstName, lastName].compactMap { $0?.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }.joined(separator: " ")
+        let name = !firstLast.isEmpty ? firstLast : (username?.trimmingCharacters(in: .whitespaces) ?? "")
+        if !name.isEmpty {
+            return "Profile photo for \(name)"
+        }
+        return "Profile photo"
     }
 }
 

@@ -157,7 +157,13 @@ struct ContentView: View {
                     firstName: profileFirstName,
                     lastName: profileLastName,
                     username: profileUsername,
-                    profileImageData: profileImageData
+                    email: profileEmail,
+                    profileImageData: profileImageData,
+                    onLogout: onLogout != nil ? {
+                        showProfileSheet = false
+                        onLogout?()
+                    } : nil,
+                    onProfileUpdated: { refreshProfileFromStorage() }
                 )
             }
             .fullScreenCover(isPresented: $showSearch) {
