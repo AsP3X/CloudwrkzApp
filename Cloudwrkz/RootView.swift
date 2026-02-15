@@ -73,9 +73,12 @@ struct RootView: View {
                 EmptyView()
             }
 
-            // Gear on top so it stays visible over splash/login/register
+            // Tenant status (top-left) and gear (top-right) so they stay visible over splash/login/register
             VStack {
                 HStack {
+                    TenantStatusView(config: serverConfig)
+                        .padding(.leading, 12)
+                        .padding(.top, 12)
                     Spacer()
                     Button(action: { showServerConfig = true }) {
                         Image(systemName: "gearshape.fill")

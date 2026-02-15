@@ -1,0 +1,88 @@
+//
+//  TenantStatusView.swift
+//  Cloudwrkz
+//
+//  Small status element showing whether the configured tenant is healthy and reachable.
+//
+
+import SwiftUI
+
+struct TenantStatusView: View {
+    let config: ServerConfig
+
+    @State private var result: TenantHealthResult = .checking
+
+    var body: some View {
+        HStack(spacing: 6) {
+            statusIcon
+            Text(statusLabel)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(statusColor)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .glassPanel(cornerRadius: 20, tint: statusColor, tintOpacity: 0.12)
+        .onAppear { performCheck() }
+        .onChange(of: config) { _, _ in performCheck() }
+    }
+
+    private var statusIcon: some View {
+        Group {
+            switch result {
+            case .checking:
+                ProgressView()
+                    .scaleEffect(0.7)
+                    .tint(CloudwrkzColors.neutral400)
+            case .healthy:
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 12))
+                    .foregroundStyle(CloudwrkzColors.primary400)
+            case .degraded:
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 12))
+                    .foregroundStyle(CloudwrkzColors.primary400)
+            case .unreachable:
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 12))
+                    .foregroundStyle(CloudwrkzColors.error500)
+            }
+        }
+    }
+
+    private var statusLabel: String {
+        switch result {
+        case .checking: return "Checking…"
+        case .healthy: return "Healthy"
+        case .degraded: return "Degraded"
+        case .unreachable: return "Unreachable"
+        }
+    }
+
+    private var statusColor: Color {
+        switch result {
+        case .checking: return CloudwrkzColors.neutral400
+        case .healthy, .degraded: return CloudwrkzColors.primary400
+        case .unreachable: return CloudwrkzColors.error500
+        }
+    }
+
+    private func performCheck() {
+        Task { @MainActor in
+            result = .checking
+            let r = await TenantHealthChecker.check(config: config)
+            result = r
+        }
+    }
+}
+
+#Preview {
+    ZStack {
+        LinearGradient(
+            colors: [CloudwrkzColors.primary950, CloudwrkzColors.neutral950],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .ignoresSafeArea()
+        TenantStatusView(config: ServerConfig.load())
+    }
+}

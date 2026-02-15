@@ -15,7 +15,7 @@ enum TenantType: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 
     /// Default host for official tenant; ignored when onprem.
-    static let officialDomain = "app.cloudwrkz.com"
+    static let officialDomain = "cloudwrkz.com"
     static let officialPort: Int? = nil
 }
 
@@ -30,7 +30,7 @@ struct ServerConfig: Equatable {
         serverPort: TenantType.officialPort
     )
 
-    /// Base URL for API requests (e.g. https://app.cloudwrkz.com or https://mycompany.com:8443).
+    /// Base URL for API requests (e.g. https://cloudwrkz.com or https://mycompany.com:8443).
     var baseURL: URL? {
         let host = tenant == .official ? TenantType.officialDomain : serverDomain
         let scheme = "https"
