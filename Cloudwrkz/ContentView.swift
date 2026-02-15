@@ -52,7 +52,11 @@ struct ContentView: View {
             .navigationTitle("Dashboard")
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: DashboardSection.self) { section in
-                DashboardSectionPlaceholderView(section: section)
+                if section == .tickets {
+                    TicketsOverviewView()
+                } else {
+                    DashboardSectionPlaceholderView(section: section)
+                }
             }
             .onAppear {
                 refreshProfileFromStorage()
@@ -165,6 +169,8 @@ struct ContentView: View {
                                 .foregroundStyle(CloudwrkzColors.neutral500)
                         }
                         .padding(16)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
                         .background(menuCardGlass)
                     }
                     .buttonStyle(.plain)
