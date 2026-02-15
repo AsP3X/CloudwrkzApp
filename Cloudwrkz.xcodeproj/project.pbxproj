@@ -409,6 +409,17 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/References/cloudwrkz/.next/standalone/node_modules/.pnpm/@img+sharp-libvips-darwin-arm64@1.2.4/node_modules/@img/sharp-libvips-darwin-arm64/lib",
+					"$(PROJECT_DIR)/References/cloudwrkz/.next/standalone/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client",
+					"$(PROJECT_DIR)/References/cloudwrkz/node_modules/.pnpm/@img+sharp-libvips-darwin-arm64@1.2.4/node_modules/@img/sharp-libvips-darwin-arm64/lib",
+					"$(PROJECT_DIR)/References/cloudwrkz/node_modules/.pnpm/@next+swc-darwin-arm64@16.1.5/node_modules/@next/swc-darwin-arm64",
+					"$(PROJECT_DIR)/References/cloudwrkz/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client",
+					"$(PROJECT_DIR)/References/cloudwrkz/node_modules/.pnpm/@prisma+engines@5.22.0/node_modules/@prisma/engines",
+					"$(PROJECT_DIR)/References/cloudwrkz/node_modules/.pnpm/@unrs+resolver-binding-darwin-arm64@1.11.1/node_modules/@unrs/resolver-binding-darwin-arm64",
+					"$(PROJECT_DIR)/References/cloudwrkz/node_modules/.pnpm/prisma@5.22.0/node_modules/prisma",
+				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.cloudwrkz.Cloudwrkz;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -440,6 +451,17 @@
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/References/cloudwrkz/.next/standalone/node_modules/.pnpm/@img+sharp-libvips-darwin-arm64@1.2.4/node_modules/@img/sharp-libvips-darwin-arm64/lib",
+					"$(PROJECT_DIR)/References/cloudwrkz/.next/standalone/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client",
+					"$(PROJECT_DIR)/References/cloudwrkz/node_modules/.pnpm/@img+sharp-libvips-darwin-arm64@1.2.4/node_modules/@img/sharp-libvips-darwin-arm64/lib",
+					"$(PROJECT_DIR)/References/cloudwrkz/node_modules/.pnpm/@next+swc-darwin-arm64@16.1.5/node_modules/@next/swc-darwin-arm64",
+					"$(PROJECT_DIR)/References/cloudwrkz/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client",
+					"$(PROJECT_DIR)/References/cloudwrkz/node_modules/.pnpm/@prisma+engines@5.22.0/node_modules/@prisma/engines",
+					"$(PROJECT_DIR)/References/cloudwrkz/node_modules/.pnpm/@unrs+resolver-binding-darwin-arm64@1.11.1/node_modules/@unrs/resolver-binding-darwin-arm64",
+					"$(PROJECT_DIR)/References/cloudwrkz/node_modules/.pnpm/prisma@5.22.0/node_modules/prisma",
 				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.cloudwrkz.Cloudwrkz;
