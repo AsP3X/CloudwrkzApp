@@ -54,12 +54,17 @@ struct ContentView: View {
             .navigationDestination(for: DashboardSection.self) { section in
                 if section == .tickets {
                     TicketsOverviewView()
+                } else if section == .todos {
+                    TodosOverviewView()
                 } else {
                     DashboardSectionPlaceholderView(section: section)
                 }
             }
             .navigationDestination(for: Ticket.self) { ticket in
                 TicketDetailView(ticket: ticket)
+            }
+            .navigationDestination(for: Todo.self) { todo in
+                TodoDetailView(todo: todo)
             }
             .onAppear {
                 refreshProfileFromStorage()

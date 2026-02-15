@@ -1,17 +1,17 @@
 //
-//  TicketsOverviewView.swift
+//  TodosOverviewView.swift
 //  Cloudwrkz
 //
-//  Enterprise ticket list with filter sheet. Matches cloudwrkz ticket list design.
+//  Enterprise todo list with filter sheet. Matches cloudwrkz todo list design.
 //
 
 import SwiftUI
 
-struct TicketsOverviewView: View {
-    @State private var tickets: [Ticket] = []
+struct TodosOverviewView: View {
+    @State private var todos: [Todo] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
-    @State private var filters = TicketFilters()
+    @State private var filters = TodoFilters()
     @State private var showFilters = false
 
     private let config = ServerConfig.load()
@@ -19,17 +19,17 @@ struct TicketsOverviewView: View {
     var body: some View {
         ZStack {
             background
-            if isLoading && tickets.isEmpty {
+            if isLoading && todos.isEmpty {
                 loadingView
             } else if let error = errorMessage {
                 errorView(error)
-            } else if tickets.isEmpty {
+            } else if todos.isEmpty {
                 emptyView
             } else {
-                ticketList
+                todoList
             }
         }
-        .navigationTitle("Tickets")
+        .navigationTitle("ToDo")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(CloudwrkzColors.neutral950.opacity(0.95), for: .navigationBar)
         .toolbar {
@@ -45,10 +45,10 @@ struct TicketsOverviewView: View {
         }
         .tint(CloudwrkzColors.primary400)
         .sheet(isPresented: $showFilters) {
-            TicketFiltersView(filters: $filters)
-                .onDisappear { Task { await loadTickets() } }
+            TodoFiltersView(filters: $filters)
+                .onDisappear { Task { await loadTodos() } }
         }
-        .onAppear { Task { await loadTickets() } }
+        .onAppear { Task { await loadTodos() } }
     }
 
     private var background: some View {
@@ -65,7 +65,7 @@ struct TicketsOverviewView: View {
             ProgressView()
                 .scaleEffect(1.2)
                 .tint(CloudwrkzColors.primary400)
-            Text("Loading tickets…")
+            Text("Loading todos…")
                 .font(.system(size: 15, weight: .medium))
                 .foregroundStyle(CloudwrkzColors.neutral400)
         }
@@ -77,7 +77,7 @@ struct TicketsOverviewView: View {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.system(size: 44))
                 .foregroundStyle(CloudwrkzColors.warning500)
-            Text("Couldn’t load tickets")
+            Text("Couldn't load todos")
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(CloudwrkzColors.neutral100)
             Text(message)
@@ -85,7 +85,7 @@ struct TicketsOverviewView: View {
                 .foregroundStyle(CloudwrkzColors.neutral400)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
-            Button("Retry") { Task { await loadTickets() } }
+            Button("Retry") { Task { await loadTodos() } }
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(CloudwrkzColors.primary400)
                 .padding(.top, 8)
@@ -95,13 +95,13 @@ struct TicketsOverviewView: View {
 
     private var emptyView: some View {
         VStack(spacing: 16) {
-            Image(systemName: "ticket.fill")
+            Image(systemName: "checklist")
                 .font(.system(size: 48))
                 .foregroundStyle(CloudwrkzColors.neutral500)
-            Text("No tickets")
+            Text("No todos")
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(CloudwrkzColors.neutral100)
-            Text("Change filters or create a ticket in the web app.")
+            Text("Change filters or create a todo in the web app.")
                 .font(.system(size: 14, weight: .regular))
                 .foregroundStyle(CloudwrkzColors.neutral500)
                 .multilineTextAlignment(.center)
@@ -110,12 +110,12 @@ struct TicketsOverviewView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private var ticketList: some View {
+    private var todoList: some View {
         ScrollView {
             LazyVStack(spacing: 14) {
-                ForEach(tickets) { ticket in
-                    NavigationLink(value: ticket) {
-                        TicketRowView(ticket: ticket)
+                ForEach(todos) { todo in
+                    NavigationLink(value: todo) {
+                        TodoRowView(todo: todo)
                     }
                     .buttonStyle(.plain)
                 }
@@ -125,29 +125,29 @@ struct TicketsOverviewView: View {
             .padding(.bottom, 32)
         }
         .refreshable {
-            await loadTickets()
+            await loadTodos()
         }
     }
 
-    /// Load tickets; supports pull-to-refresh (async) and onAppear. Keeps refresh indicator visible until load finishes.
-    private func loadTickets() async {
+    /// Load todos; supports pull-to-refresh (async) and onAppear. Keeps refresh indicator visible until load finishes.
+    private func loadTodos() async {
         errorMessage = nil
         isLoading = true
-        let result = await TicketService.fetchTickets(config: config, filters: filters)
+        let result = await TodoService.fetchTodos(config: config, filters: filters)
         await MainActor.run {
             switch result {
             case .success(let list):
-                tickets = list
+                todos = list
                 errorMessage = nil
             case .failure(let err):
-                tickets = []
+                todos = []
                 errorMessage = message(for: err)
             }
             isLoading = false
         }
     }
 
-    private func message(for error: TicketServiceError) -> String {
+    private func message(for error: TodoServiceError) -> String {
         switch error {
         case .noServerURL: return "No server configured."
         case .noToken: return "Please sign in again."
@@ -158,33 +158,34 @@ struct TicketsOverviewView: View {
     }
 }
 
-// MARK: - Ticket row (glass card, status/priority badges)
+// MARK: - Todo row (glass card, status/priority badges)
 
-private struct TicketRowView: View {
-    let ticket: Ticket
+private struct TodoRowView: View {
+    let todo: Todo
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 10) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(ticket.ticketNumber)
-                        .font(.system(size: 13, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(CloudwrkzColors.primary400)
+                    if let num = todo.todoNumber, !num.isEmpty {
+                        Text(num)
+                            .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(CloudwrkzColors.primary400)
+                    }
                     HStack(spacing: 6) {
-                        statusPill(ticket.status)
-                        priorityPill(ticket.priority)
-                        typePill(ticket.type)
+                        statusPill(todo.status)
+                        priorityPill(todo.priority)
                     }
                 }
                 Spacer(minLength: 8)
             }
 
-            Text(ticket.title)
+            Text(todo.title)
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(CloudwrkzColors.neutral100)
                 .lineLimit(2)
 
-            if let desc = ticket.description, !desc.isEmpty {
+            if let desc = todo.descriptionPlain ?? todo.description, !desc.isEmpty {
                 Text(desc)
                     .font(.system(size: 13, weight: .regular))
                     .foregroundStyle(CloudwrkzColors.neutral400)
@@ -192,19 +193,26 @@ private struct TicketRowView: View {
             }
 
             HStack(spacing: 16) {
-                if let assignee = ticket.assignedTo {
+                if let assignee = todo.assignedTo {
                     labelValue("Assigned", formatUser(assignee))
-                } else if let group = ticket.assignedToGroup {
-                    labelValue("Group", group.name)
                 } else {
                     labelValue("Assigned", "Unassigned")
                 }
-                labelValue("Created", formatted(ticket.createdAt))
-                if (ticket._count?.comments ?? 0) > 0 {
+                labelValue("Created", formatted(todo.createdAt))
+                if let ticket = todo.ticket {
                     HStack(spacing: 4) {
-                        Image(systemName: "bubble.left.and.bubble.right")
+                        Image(systemName: "ticket")
                             .font(.system(size: 12))
-                        Text("\(ticket._count!.comments)")
+                        Text(ticket.ticketNumber)
+                            .font(.system(size: 12, weight: .medium))
+                    }
+                    .foregroundStyle(CloudwrkzColors.neutral200)
+                }
+                if (todo._count?.subtodos ?? 0) > 0 {
+                    HStack(spacing: 4) {
+                        Image(systemName: "list.bullet.indent")
+                            .font(.system(size: 12))
+                        Text("\(todo._count!.subtodos)")
                             .font(.system(size: 12, weight: .medium))
                     }
                     .foregroundStyle(CloudwrkzColors.neutral200)
@@ -216,10 +224,10 @@ private struct TicketRowView: View {
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
-        .background(ticketRowGlass)
+        .background(todoRowGlass)
     }
 
-    private var ticketRowGlass: some View {
+    private var todoRowGlass: some View {
         Group {
             if #available(iOS 26.0, *) {
                 RoundedRectangle(cornerRadius: 16)
@@ -258,21 +266,12 @@ private struct TicketRowView: View {
             .background(priorityColor(priority).opacity(0.2), in: Capsule())
     }
 
-    private func typePill(_ type: String) -> some View {
-        Text(type)
-            .font(.system(size: 10, weight: .medium))
-            .foregroundStyle(CloudwrkzColors.neutral200)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(CloudwrkzColors.neutral700.opacity(0.8), in: Capsule())
-    }
-
     private func statusColor(_ status: String) -> Color {
         switch status.uppercased() {
-        case "OPEN": return CloudwrkzColors.primary400
-        case "IN_PROGRESS": return CloudwrkzColors.warning500
-        case "PENDING": return CloudwrkzColors.warning400
-        case "RESOLVED", "CLOSED": return CloudwrkzColors.success500
+        case "NOT_STARTED": return CloudwrkzColors.neutral400
+        case "IN_PROGRESS": return CloudwrkzColors.primary400
+        case "BLOCKED": return CloudwrkzColors.warning500
+        case "COMPLETED": return CloudwrkzColors.success500
         case "CANCELLED": return CloudwrkzColors.neutral500
         default: return CloudwrkzColors.neutral400
         }
@@ -296,7 +295,7 @@ private struct TicketRowView: View {
         }
     }
 
-    private func formatUser(_ u: Ticket.TicketUser) -> String {
+    private func formatUser(_ u: Todo.TodoUser) -> String {
         if let n = u.name, !n.isEmpty { return n }
         return String(u.email.prefix(upTo: u.email.firstIndex(of: "@") ?? u.email.endIndex))
     }
@@ -311,6 +310,6 @@ private struct TicketRowView: View {
 
 #Preview {
     NavigationStack {
-        TicketsOverviewView()
+        TodosOverviewView()
     }
 }
