@@ -16,7 +16,8 @@ struct AddLinkView: View {
     @State private var urlText = ""
     @State private var titleText = ""
     @State private var descriptionText = ""
-    @State private var selectedCollectionId: String?
+    @State private var selectedCollectionIds: Set<String> = []
+    @State private var showCollectionChooser = false
     @State private var isSaving = false
     @State private var isExtractingMetadata = false
     @State private var errorMessage: String?
@@ -113,12 +114,24 @@ struct AddLinkView: View {
                             .glassField(cornerRadius: 12)
 
                         if !collections.isEmpty {
-                            sectionLabel("Add to collection")
-                            VStack(spacing: 10) {
-                                addLinkCollectionRow(name: "None", id: nil)
-                                ForEach(collections) { collection in
-                                    addLinkCollectionRow(name: collection.name, id: collection.id)
+                            sectionLabel("Collections")
+                            VStack(alignment: .leading, spacing: 12) {
+                                selectedCollectionsSummary
+                                Button {
+                                    showCollectionChooser = true
+                                } label: {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "folder.badge.plus")
+                                            .font(.system(size: 16))
+                                        Text(selectedCollectionIds.isEmpty ? "Choose collections…" : "Change collections…")
+                                            .font(.system(size: 15, weight: .semibold))
+                                    }
+                                    .foregroundStyle(CloudwrkzColors.primary400)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .glassButtonSecondary(cornerRadius: 12)
                                 }
+                                .buttonStyle(.plain)
                             }
                             .padding(20)
                             .glassPanel(cornerRadius: 20, tint: CloudwrkzColors.primary500, tintOpacity: 0.04)
@@ -162,8 +175,13 @@ struct AddLinkView: View {
                 }
             }
             .tint(CloudwrkzColors.primary400)
+            .sheet(isPresented: $showCollectionChooser) {
+                AddLinkCollectionChooserView(collections: collections, selectedIds: $selectedCollectionIds)
+            }
             .onAppear {
-                selectedCollectionId = currentCollectionId
+                if let current = currentCollectionId {
+                    selectedCollectionIds = [current]
+                }
                 if urlText.isEmpty {
                     focusedField = .url
                 }
@@ -171,26 +189,41 @@ struct AddLinkView: View {
         }
     }
 
-    private func addLinkCollectionRow(name: String, id: String?) -> some View {
-        let isSelected = (selectedCollectionId == nil && id == nil) || (selectedCollectionId == id)
-        return Button {
-            selectedCollectionId = id
-        } label: {
-            HStack {
-                Text(name)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(CloudwrkzColors.neutral100)
-                Spacer()
-                if isSelected {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 20))
-                        .foregroundStyle(CloudwrkzColors.primary400)
+    /// Selected collections only, as chips; empty state when none selected.
+    @ViewBuilder
+    private var selectedCollectionsSummary: some View {
+        let selected = collections.filter { selectedCollectionIds.contains($0.id) }
+        if selected.isEmpty {
+            Text("No collections selected")
+                .font(.system(size: 15, weight: .regular))
+                .foregroundStyle(CloudwrkzColors.neutral500)
+        } else {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(selected) { collection in
+                        collectionChip(collection: collection)
+                    }
                 }
+                .padding(.vertical, 2)
             }
-            .padding(.vertical, 4)
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+    }
+
+    private func collectionChip(collection: Collection) -> some View {
+        let hasColor = collection.color.flatMap { c in c.count == 7 && c.hasPrefix("#") } == true
+        return HStack(spacing: 6) {
+            if hasColor, let color = collection.color {
+                Circle()
+                    .fill(Color(hex: color))
+                    .frame(width: 8, height: 8)
+            }
+            Text(collection.name)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(CloudwrkzColors.neutral100)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(CloudwrkzColors.neutral800.opacity(0.8), in: Capsule())
     }
 
     private func fetchMetadata() async {
@@ -225,7 +258,7 @@ struct AddLinkView: View {
         if !url.isEmpty && !url.hasPrefix("http://") && !url.hasPrefix("https://") {
             url = "https://" + url
         }
-        let collectionIds: [String]? = selectedCollectionId.map { [$0] }
+        let collectionIds: [String]? = selectedCollectionIds.isEmpty ? nil : Array(selectedCollectionIds)
         let result = await LinkService.createLink(
             config: config,
             url: url,
