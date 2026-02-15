@@ -115,7 +115,10 @@ struct TicketsOverviewView: View {
         ScrollView {
             LazyVStack(spacing: 14) {
                 ForEach(tickets) { ticket in
-                    TicketRowView(ticket: ticket)
+                    NavigationLink(value: ticket) {
+                        TicketRowView(ticket: ticket)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             .padding(.horizontal, 20)
@@ -209,6 +212,7 @@ private struct TicketRowView: View {
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
         .background(ticketRowGlass)
     }
 

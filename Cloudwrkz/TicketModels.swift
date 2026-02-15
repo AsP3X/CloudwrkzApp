@@ -13,7 +13,7 @@ struct TicketsResponse: Decodable {
     let tickets: [Ticket]
 }
 
-struct Ticket: Identifiable, Decodable {
+struct Ticket: Identifiable, Decodable, Hashable {
     let id: String
     let ticketNumber: String
     let title: String
@@ -28,19 +28,19 @@ struct Ticket: Identifiable, Decodable {
     let assignedToGroup: TicketGroup?
     let _count: TicketCount?
 
-    struct TicketUser: Decodable {
+    struct TicketUser: Decodable, Hashable {
         let id: String
         let name: String?
         let email: String
     }
 
-    struct TicketGroup: Decodable {
+    struct TicketGroup: Decodable, Hashable {
         let id: String
         let name: String
         let description: String?
     }
 
-    struct TicketCount: Decodable {
+    struct TicketCount: Decodable, Hashable {
         let comments: Int
     }
 }

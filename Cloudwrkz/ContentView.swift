@@ -58,6 +58,9 @@ struct ContentView: View {
                     DashboardSectionPlaceholderView(section: section)
                 }
             }
+            .navigationDestination(for: Ticket.self) { ticket in
+                TicketDetailView(ticket: ticket)
+            }
             .onAppear {
                 refreshProfileFromStorage()
                 if AuthTokenStorage.getToken() != nil {
