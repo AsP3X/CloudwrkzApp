@@ -77,25 +77,19 @@ struct ContentView: View {
                     .frame(width: 36, height: 36)
                     .fixedSize(horizontal: true, vertical: true)
                     .popover(isPresented: $showProfileMenu) {
-                        VStack(alignment: .leading, spacing: 0) {
-                            Button {
+                        ProfileMenuPopoverView(
+                            firstName: profileFirstName,
+                            lastName: profileLastName,
+                            profileImageData: profileImageData,
+                            onViewProfile: {
                                 showProfileMenu = false
                                 showProfileSheet = true
-                            } label: {
-                                Label("View Profile", systemImage: "person.circle")
-                            }
-                            if onLogout != nil {
-                                Button(role: .destructive) {
-                                    showProfileMenu = false
-                                    onLogout?()
-                                } label: {
-                                    Label("Log out", systemImage: "rectangle.portrait.and.arrow.right")
-                                }
-                            }
-                        }
-                        .padding()
-                        .frame(minWidth: 200)
-                        .presentationCompactAdaptation(.popover)
+                            },
+                            onLogout: onLogout != nil ? {
+                                showProfileMenu = false
+                                onLogout?()
+                            } : nil
+                        )
                     }
                 }
             }
