@@ -134,7 +134,6 @@ struct ContentView: View {
                             profileImageData: profileImageData,
                             onViewProfile: {
                                 showProfileMenu = false
-                                // Defer sheet so it presents after the popover has fully dismissed (avoids "already presenting").
                                 DispatchQueue.main.async {
                                     showProfileSheet = true
                                 }
