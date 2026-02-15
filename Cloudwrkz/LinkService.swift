@@ -1,0 +1,106 @@
+//
+//  LinkService.swift
+//  Cloudwrkz
+//
+//  Fetches links from GET /api/links. Uses Bearer token and ServerConfig.
+//
+
+import Foundation
+
+enum LinkServiceError: Equatable, Error {
+    case noServerURL
+    case noToken
+    case unauthorized
+    case serverError(message: String)
+    case networkError(description: String)
+}
+
+enum LinkService {
+    private static let timeout: TimeInterval = 20
+
+    /// Path for GET links: derived from login path (api/auth/login → api/auth/links, api/login → api/links).
+    private static func linksPathSegments(loginPath: String) -> [String] {
+        let path = loginPath.trimmingCharacters(in: .whitespacesAndNewlines)
+        let linksPath = path.isEmpty ? "api/links" : path.replacingOccurrences(of: "login", with: "links", options: .caseInsensitive)
+        return linksPath.split(separator: "/", omittingEmptySubsequences: true).map(String.init)
+    }
+
+    private static var dateDecoder: JSONDecoder {
+        let d = JSONDecoder()
+        d.dateDecodingStrategy = .custom { decoder in
+            let c = try decoder.singleValueContainer()
+            let s = try c.decode(String.self)
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let date = formatter.date(from: s) { return date }
+            formatter.formatOptions = [.withInternetDateTime]
+            if let date = formatter.date(from: s) { return date }
+            throw DecodingError.dataCorruptedError(in: c, debugDescription: "Invalid date: \(s)")
+        }
+        return d
+    }
+
+    /// GET /api/links with optional query params. Returns links response or error.
+    static func fetchLinks(config: ServerConfig, filters: LinkFilters, page: Int = 1, limit: Int = 50) async -> Result<LinksResponse, LinkServiceError> {
+        guard let base = config.baseURL else {
+            return .failure(.noServerURL)
+        }
+        guard let token = AuthTokenStorage.getToken(), !token.isEmpty else {
+            return .failure(.noToken)
+        }
+        let pathSegments = linksPathSegments(loginPath: config.loginPath)
+        guard !pathSegments.isEmpty else {
+            return .failure(.noServerURL)
+        }
+        var url = base
+        for segment in pathSegments {
+            url = url.appending(path: segment)
+        }
+        var components = URLComponents(url: url, resolvingAgainstBaseURL: false)!
+        var queryItems: [URLQueryItem] = []
+        queryItems.append(URLQueryItem(name: "sort", value: filters.sort.rawValue))
+        queryItems.append(URLQueryItem(name: "page", value: String(page)))
+        queryItems.append(URLQueryItem(name: "limit", value: String(limit)))
+        if filters.isFavorite != .all {
+            queryItems.append(URLQueryItem(name: "isFavorite", value: filters.isFavorite.rawValue))
+        }
+        if !queryItems.isEmpty {
+            components.queryItems = queryItems
+        }
+        guard let finalURL = components.url else {
+            return .failure(.noServerURL)
+        }
+        var request = URLRequest(url: finalURL)
+        request.httpMethod = "GET"
+        request.timeoutInterval = timeout
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse else {
+                return .failure(.serverError(message: "Invalid response"))
+            }
+            switch http.statusCode {
+            case 200:
+                let decoded = try dateDecoder.decode(LinksResponse.self, from: data)
+                return .success(decoded)
+            case 401:
+                return .failure(.unauthorized)
+            case 400...599:
+                let message = (try? JSONDecoder().decode(MessageResponse.self, from: data))?.message
+                    ?? "Server error (\(http.statusCode))"
+                return .failure(.serverError(message: message))
+            default:
+                return .failure(.serverError(message: "Unexpected status \(http.statusCode)"))
+            }
+        } catch {
+            let description = (error as? URLError)?.localizedDescription ?? error.localizedDescription
+            return .failure(.networkError(description: description))
+        }
+    }
+}
+
+private struct MessageResponse: Decodable {
+    let message: String?
+}

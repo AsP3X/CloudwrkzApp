@@ -67,6 +67,8 @@ struct ContentView: View {
                     TicketsOverviewView()
                 } else if section == .todos {
                     TodosOverviewView()
+                } else if section == .links {
+                    LinksOverviewView()
                 } else {
                     DashboardSectionPlaceholderView(section: section)
                 }
