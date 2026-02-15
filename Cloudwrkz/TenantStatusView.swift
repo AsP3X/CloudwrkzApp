@@ -9,11 +9,12 @@ import SwiftUI
 
 struct TenantStatusView: View {
     let config: ServerConfig
+    var onTap: (() -> Void)? = nil
 
     @State private var result: TenantHealthResult = .checking
 
     var body: some View {
-        HStack(spacing: 6) {
+        let content = HStack(spacing: 6) {
             statusIcon
             Text(statusLabel)
                 .font(.system(size: 12, weight: .medium))
@@ -22,6 +23,17 @@ struct TenantStatusView: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
         .glassPanel(cornerRadius: 20, tint: statusColor, tintOpacity: 0.12)
+
+        Group {
+            if let onTap {
+                Button(action: onTap) {
+                    content
+                }
+                .buttonStyle(.plain)
+            } else {
+                content
+            }
+        }
         .onAppear { performCheck() }
         .onChange(of: config) { _, _ in performCheck() }
     }

@@ -21,6 +21,7 @@ struct RootView: View {
     @State private var isGoingBack = false
     @State private var serverConfig = ServerConfig.load()
     @State private var showServerConfig = false
+    @State private var showHealthStatus = false
 
     private let pushPopAnimation = Animation.easeInOut(duration: 0.32)
 
@@ -76,7 +77,7 @@ struct RootView: View {
             // Tenant status (top-left) and gear (top-right) so they stay visible over splash/login/register
             VStack {
                 HStack {
-                    TenantStatusView(config: serverConfig)
+                    TenantStatusView(config: serverConfig, onTap: { showHealthStatus = true })
                         .padding(.leading, 12)
                         .padding(.top, 12)
                     Spacer()
@@ -97,6 +98,9 @@ struct RootView: View {
         .animation(pushPopAnimation, value: screen)
         .sheet(isPresented: $showServerConfig) {
             ServerConfigView(config: $serverConfig)
+        }
+        .sheet(isPresented: $showHealthStatus) {
+            ServerHealthStatusView(config: serverConfig)
         }
     }
 }

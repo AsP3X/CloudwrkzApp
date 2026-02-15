@@ -30,10 +30,14 @@ enum CloudwrkzColors {
     static let neutral900 = Color(red: 28/255, green: 25/255, blue: 23/255)
     static let neutral950 = Color(red: 12/255, green: 10/255, blue: 9/255)
 
-    // Semantic
+    // Semantic (health status, alerts)
     static let error50 = Color(red: 254/255, green: 242/255, blue: 242/255)
     static let error500 = Color(red: 239/255, green: 68/255, blue: 68/255)
     static let error700 = Color(red: 185/255, green: 28/255, blue: 28/255)
+    static let success500 = Color(red: 34/255, green: 197/255, blue: 94/255)
+    static let success400 = Color(red: 74/255, green: 222/255, blue: 128/255)
+    static let warning500 = Color(red: 234/255, green: 179/255, blue: 8/255)
+    static let warning400 = Color(red: 250/255, green: 204/255, blue: 21/255)
 }
 
 // MARK: - Liquid glass only (no tint; glass + highlight edge)
