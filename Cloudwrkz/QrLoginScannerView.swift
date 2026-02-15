@@ -17,14 +17,70 @@ struct QrLoginScannerView: View {
     @State private var errorMessage: String?
     @State private var successMessage: String?
     @State private var scannerKey = 0
+    @State private var completedStepsCount = 0
+    @State private var apiSucceeded = false
 
     private let config = ServerConfig.load()
+
+    private static let checklistSteps = [
+        "Validating request",
+        "Generating keys",
+        "Exchanging keys",
+        "Validating…",
+        "Logged in",
+    ]
 
     enum Status {
         case scanning
         case processing
         case success
         case failure
+    }
+
+    private var checklistView: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            ForEach(Array(Self.checklistSteps.enumerated()), id: \.offset) { index, title in
+                HStack(spacing: 12) {
+                    if index < completedStepsCount {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 20))
+                            .foregroundStyle(CloudwrkzColors.success500)
+                            .transition(.scale.combined(with: .opacity))
+                    } else if index == completedStepsCount {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: CloudwrkzColors.primary400))
+                            .scaleEffect(0.9)
+                    } else {
+                        Image(systemName: "circle")
+                            .font(.system(size: 20))
+                            .foregroundStyle(CloudwrkzColors.neutral600)
+                    }
+                    Text(title)
+                        .font(.system(size: 15, weight: index <= completedStepsCount ? .medium : .regular))
+                        .foregroundStyle(index <= completedStepsCount ? CloudwrkzColors.neutral100 : CloudwrkzColors.neutral500)
+                }
+                .animation(.easeOut(duration: 0.25), value: completedStepsCount)
+            }
+        }
+        .padding(.horizontal, 8)
+    }
+
+    private func runChecklistAnimation() async {
+        guard status == .processing else { return }
+        for step in 1...Self.checklistSteps.count {
+            try? await Task.sleep(nanoseconds: 480_000_000)
+            await MainActor.run {
+                guard status == .processing else { return }
+                completedStepsCount = step
+                if step == Self.checklistSteps.count && apiSucceeded {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                        withAnimation(.easeOut(duration: 0.35)) {
+                            status = .success
+                        }
+                    }
+                }
+            }
+        }
     }
 
     var body: some View {
@@ -55,12 +111,10 @@ struct QrLoginScannerView: View {
                         .padding(.horizontal, 24)
 
                         if status == .processing {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: CloudwrkzColors.primary400))
-                                .scaleEffect(1.2)
-                            Text("Signing in…")
-                                .font(.subheadline)
-                                .foregroundStyle(CloudwrkzColors.neutral400)
+                            checklistView
+                                .task(id: status) {
+                                    await runChecklistAnimation()
+                                }
                         } else {
                             Text("Point your camera at the QR code on the website")
                                 .font(.subheadline)
@@ -69,20 +123,28 @@ struct QrLoginScannerView: View {
                                 .padding(.horizontal)
                         }
                     } else if status == .success {
-                        Group {
+                        VStack(spacing: 20) {
                             Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 64))
+                                .font(.system(size: 80))
                                 .foregroundStyle(CloudwrkzColors.success500)
+                                .symbolEffect(.bounce, value: status)
+                            Text("You're signed in")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(CloudwrkzColors.neutral100)
                             if let msg = successMessage {
                                 Text(msg)
-                                    .font(.headline)
-                                    .foregroundStyle(CloudwrkzColors.neutral100)
+                                    .font(.subheadline)
+                                    .foregroundStyle(CloudwrkzColors.neutral400)
                                     .multilineTextAlignment(.center)
                             }
                         }
+                        .padding(.vertical, 24)
+                        .animation(.easeOut(duration: 0.35), value: status)
+                        .transition(.scale(scale: 0.92).combined(with: .opacity))
                         .onAppear {
                             onSuccess?()
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
                                 dismiss()
                             }
                         }
@@ -123,6 +185,8 @@ struct QrLoginScannerView: View {
     }
 
     private func handleScannedCode(_ urlString: String) {
+        completedStepsCount = 0
+        apiSucceeded = false
         status = .processing
 
         guard let requestId = requestIdFromQrPayload(urlString) else {
@@ -134,8 +198,15 @@ struct QrLoginScannerView: View {
         Task { @MainActor in
             switch await QrLoginService.approve(requestId: requestId, config: config) {
             case .success:
-                status = .success
                 successMessage = "The browser will sign you in shortly."
+                apiSucceeded = true
+                if completedStepsCount == Self.checklistSteps.count {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                        withAnimation(.easeOut(duration: 0.35)) {
+                            status = .success
+                        }
+                    }
+                }
             case .failure(let err):
                 status = .failure
                 errorMessage = messageForFailure(err)
@@ -210,6 +281,18 @@ private final class QrCameraViewController: UIViewController {
             return
         }
         session.addInput(input)
+
+        // Zoom in so the QR code fills the frame (Telegram-style: camera shows mainly what you point at)
+        do {
+            try device.lockForConfiguration()
+            let maxZoom = min(device.activeFormat.videoMaxZoomFactor, 2.5)
+            if maxZoom >= 1.5 {
+                device.videoZoomFactor = maxZoom
+            }
+            device.unlockForConfiguration()
+        } catch {
+            // Ignore; run without zoom
+        }
 
         let output = AVCaptureMetadataOutput()
         guard session.canAddOutput(output) else { return }
