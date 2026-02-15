@@ -9,6 +9,7 @@ import SwiftUI
 
 struct TicketDetailView: View {
     let ticket: Ticket
+    @State private var showTicketInfoSidebar = false
 
     private static let dateFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -33,6 +34,19 @@ struct TicketDetailView: View {
         .navigationTitle(ticket.ticketNumber)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(CloudwrkzColors.neutral950.opacity(0.95), for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    showTicketInfoSidebar = true
+                } label: {
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 20))
+                }
+            }
+        }
+        .sheet(isPresented: $showTicketInfoSidebar) {
+            TicketInfoSidebarView(ticket: ticket)
+        }
         .tint(CloudwrkzColors.primary400)
     }
 
@@ -74,21 +88,7 @@ struct TicketDetailView: View {
     }
 
     private var contentGrid: some View {
-        Group {
-            if UIDevice.current.userInterfaceIdiom == .pad {
-                HStack(alignment: .top, spacing: 20) {
-                    mainColumn
-                        .frame(maxWidth: .infinity)
-                    sidebarColumn
-                        .frame(width: 320)
-                }
-            } else {
-                VStack(alignment: .leading, spacing: 20) {
-                    mainColumn
-                    sidebarColumn
-                }
-            }
-        }
+        mainColumn
     }
 
     private var mainColumn: some View {
@@ -145,73 +145,6 @@ struct TicketDetailView: View {
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(detailGlassPanel)
-    }
-
-    private var sidebarColumn: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            ticketInfoCard
-        }
-    }
-
-    private var ticketInfoCard: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            HStack(spacing: 8) {
-                Image(systemName: "info.circle.fill")
-                    .font(.system(size: 16))
-                    .foregroundStyle(CloudwrkzColors.primary400)
-                Text("Ticket information")
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundStyle(CloudwrkzColors.neutral100)
-            }
-            VStack(alignment: .leading, spacing: 14) {
-                infoRow(label: "Ticket ID", value: ticket.ticketNumber, mono: true)
-                infoRow(label: "Type", value: ticket.type)
-                divider
-                infoRow(label: "Status", value: ticket.status.replacingOccurrences(of: "_", with: " "))
-                infoRow(label: "Priority", value: ticket.priority)
-                divider
-                infoRow(label: "Created by", value: formatCreatedBy())
-                infoRow(label: "Assigned to", value: formatAssignedTo())
-                divider
-                infoRow(label: "Created", value: Self.dateFormatter.string(from: ticket.createdAt))
-                if ticket.updatedAt != ticket.createdAt {
-                    infoRow(label: "Last updated", value: Self.dateFormatter.string(from: ticket.updatedAt))
-                }
-                if (ticket._count?.comments ?? 0) > 0 {
-                    divider
-                    HStack(spacing: 6) {
-                        Image(systemName: "bubble.left.and.bubble.right")
-                            .font(.system(size: 12))
-                            .foregroundStyle(CloudwrkzColors.neutral400)
-                        Text("\(ticket._count!.comments) comment\(ticket._count!.comments == 1 ? "" : "s")")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(CloudwrkzColors.neutral200)
-                    }
-                }
-            }
-        }
-        .padding(22)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(detailGlassPanel)
-    }
-
-    private func infoRow(label: String, value: String, mono: Bool = false) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label.uppercased())
-                .font(.system(size: 10, weight: .semibold))
-                .tracking(0.6)
-                .foregroundStyle(CloudwrkzColors.neutral500)
-            Text(value)
-                .font(.system(size: 14, weight: mono ? .semibold : .regular, design: mono ? .monospaced : .default))
-                .foregroundStyle(CloudwrkzColors.neutral100)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var divider: some View {
-        Rectangle()
-            .fill(CloudwrkzColors.neutral700.opacity(0.6))
-            .frame(height: 1)
     }
 
     private var detailGlassPanel: some View {
@@ -279,6 +212,148 @@ struct TicketDetailView: View {
         case "HIGH": return CloudwrkzColors.warning500
         case "MEDIUM": return CloudwrkzColors.warning400
         default: return CloudwrkzColors.neutral400
+        }
+    }
+
+    private func formatCreatedBy() -> String {
+        guard let createdBy = ticket.createdBy else { return "—" }
+        if let n = createdBy.name, !n.isEmpty { return n }
+        return String(createdBy.email.prefix(upTo: createdBy.email.firstIndex(of: "@") ?? createdBy.email.endIndex))
+    }
+
+    private func formatAssignedTo() -> String {
+        if let assignee = ticket.assignedTo {
+            if let n = assignee.name, !n.isEmpty { return n }
+            return String(assignee.email.prefix(upTo: assignee.email.firstIndex(of: "@") ?? assignee.email.endIndex))
+        }
+        if let group = ticket.assignedToGroup { return group.name }
+        return "Unassigned"
+    }
+}
+
+// MARK: - Ticket info sidebar (sheet)
+
+private struct TicketInfoSidebarView: View {
+    let ticket: Ticket
+    @Environment(\.dismiss) private var dismiss
+
+    private static let dateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateStyle = .medium
+        f.timeStyle = .short
+        return f
+    }()
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                LinearGradient(
+                    colors: [CloudwrkzColors.primary950, CloudwrkzColors.neutral950],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
+                ScrollView {
+                    ticketInfoContent
+                        .padding(20)
+                        .padding(.bottom, 32)
+                }
+            }
+            .navigationTitle("Ticket information")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(CloudwrkzColors.neutral950.opacity(0.95), for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(CloudwrkzColors.primary400)
+                }
+            }
+            .tint(CloudwrkzColors.primary400)
+        }
+    }
+
+    private var ticketInfoContent: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(spacing: 8) {
+                Image(systemName: "info.circle.fill")
+                    .font(.system(size: 16))
+                    .foregroundStyle(CloudwrkzColors.primary400)
+                Text("Ticket information")
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundStyle(CloudwrkzColors.neutral100)
+            }
+            VStack(alignment: .leading, spacing: 14) {
+                infoRow(label: "Ticket ID", value: ticket.ticketNumber, mono: true)
+                infoRow(label: "Type", value: ticket.type)
+                sidebarDivider
+                infoRow(label: "Status", value: ticket.status.replacingOccurrences(of: "_", with: " "))
+                infoRow(label: "Priority", value: ticket.priority)
+                sidebarDivider
+                infoRow(label: "Created by", value: formatCreatedBy())
+                infoRow(label: "Assigned to", value: formatAssignedTo())
+                sidebarDivider
+                infoRow(label: "Created", value: Self.dateFormatter.string(from: ticket.createdAt))
+                if ticket.updatedAt != ticket.createdAt {
+                    infoRow(label: "Last updated", value: Self.dateFormatter.string(from: ticket.updatedAt))
+                }
+                if (ticket._count?.comments ?? 0) > 0 {
+                    sidebarDivider
+                    HStack(spacing: 6) {
+                        Image(systemName: "bubble.left.and.bubble.right")
+                            .font(.system(size: 12))
+                            .foregroundStyle(CloudwrkzColors.neutral400)
+                        Text("\(ticket._count!.comments) comment\(ticket._count!.comments == 1 ? "" : "s")")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(CloudwrkzColors.neutral200)
+                    }
+                }
+            }
+        }
+        .padding(22)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(sidebarGlassPanel)
+    }
+
+    private func infoRow(label: String, value: String, mono: Bool = false) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label.uppercased())
+                .font(.system(size: 10, weight: .semibold))
+                .tracking(0.6)
+                .foregroundStyle(CloudwrkzColors.neutral500)
+            Text(value)
+                .font(.system(size: 14, weight: mono ? .semibold : .regular, design: mono ? .monospaced : .default))
+                .foregroundStyle(CloudwrkzColors.neutral100)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var sidebarDivider: some View {
+        Rectangle()
+            .fill(CloudwrkzColors.neutral700.opacity(0.6))
+            .frame(height: 1)
+    }
+
+    private var sidebarGlassPanel: some View {
+        Group {
+            if #available(iOS 26.0, *) {
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(.clear)
+                    .glassEffect(.regular.tint(.white.opacity(0.06)), in: RoundedRectangle(cornerRadius: 20))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(.white.opacity(0.18), lineWidth: 1)
+                    )
+            } else {
+                Color.clear
+                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 20))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(.white.opacity(0.18), lineWidth: 1)
+                    )
+            }
         }
     }
 
