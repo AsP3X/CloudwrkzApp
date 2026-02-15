@@ -12,13 +12,18 @@ struct ProfileView: View {
 
     var firstName: String?
     var lastName: String?
+    var username: String?
     var profileImageData: Data?
 
     private var displayName: String {
         let first = firstName?.trimmingCharacters(in: .whitespaces) ?? ""
         let last = lastName?.trimmingCharacters(in: .whitespaces) ?? ""
-        if first.isEmpty && last.isEmpty { return "Profile" }
-        return [first, last].filter { !$0.isEmpty }.joined(separator: " ")
+        if !first.isEmpty || !last.isEmpty {
+            return [first, last].filter { !$0.isEmpty }.joined(separator: " ")
+        }
+        let trimmed = username?.trimmingCharacters(in: .whitespaces) ?? ""
+        if !trimmed.isEmpty { return trimmed }
+        return "Profile"
     }
 
     var body: some View {
@@ -35,6 +40,7 @@ struct ProfileView: View {
                     ProfileAvatarView(
                         firstName: firstName,
                         lastName: lastName,
+                        username: username,
                         profileImageData: profileImageData,
                         size: 100
                     )
@@ -68,6 +74,7 @@ struct ProfileView: View {
     ProfileView(
         firstName: "Jane",
         lastName: "Doe",
+        username: nil,
         profileImageData: nil
     )
 }

@@ -10,15 +10,37 @@ import SwiftUI
 struct ProfileMenuPopoverView: View {
     var firstName: String?
     var lastName: String?
+    var username: String?
+    var email: String?
     var profileImageData: Data?
     var onViewProfile: () -> Void
     var onLogout: (() -> Void)?
 
+    /// Display order: first+last name (profile) → username (API user.name) → email prefix → "Profile".
+    /// Matches cloudwrkz formatUserName: show name, or email.split("@")[0], never full email as display name.
+    /// Falls back to UserProfileStorage when passed-in values are nil (e.g. menu opened before state refreshed).
     private var displayName: String {
         let first = firstName?.trimmingCharacters(in: .whitespaces) ?? ""
         let last = lastName?.trimmingCharacters(in: .whitespaces) ?? ""
-        if first.isEmpty && last.isEmpty { return "Account" }
-        return [first, last].filter { !$0.isEmpty }.joined(separator: " ")
+        if !first.isEmpty || !last.isEmpty {
+            return [first, last].filter { !$0.isEmpty }.joined(separator: " ")
+        }
+        let trimmedUsername = username?.trimmingCharacters(in: .whitespaces)
+            ?? UserProfileStorage.username?.trimmingCharacters(in: .whitespaces)
+            ?? ""
+        if !trimmedUsername.isEmpty { return trimmedUsername }
+        let emailForPrefix = email?.trimmingCharacters(in: .whitespaces)
+            ?? UserProfileStorage.email?.trimmingCharacters(in: .whitespaces)
+            ?? ""
+        let emailPrefix = emailPrefix(from: emailForPrefix)
+        if !emailPrefix.isEmpty { return emailPrefix }
+        return "Profile"
+    }
+
+    /// Part before @ (matches cloudwrkz formatUserName fallback).
+    private func emailPrefix(from email: String) -> String {
+        guard let at = email.firstIndex(of: "@") else { return email }
+        return String(email[..<at]).trimmingCharacters(in: .whitespaces)
     }
 
     var body: some View {
@@ -53,6 +75,7 @@ struct ProfileMenuPopoverView: View {
             ProfileAvatarView(
                 firstName: firstName,
                 lastName: lastName,
+                username: username ?? UserProfileStorage.username,
                 profileImageData: profileImageData,
                 size: 44
             )
@@ -180,6 +203,8 @@ private struct ProfileMenuRowButtonStyle: ButtonStyle {
     ProfileMenuPopoverView(
         firstName: "Jane",
         lastName: "Doe",
+        username: nil,
+        email: "jane@company.com",
         profileImageData: nil,
         onViewProfile: {},
         onLogout: {}

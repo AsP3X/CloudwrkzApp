@@ -224,6 +224,7 @@ struct RegisterView: View {
                 let parts = trimmedName.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: true)
                 UserProfileStorage.firstName = parts.first.map(String.init)
                 UserProfileStorage.lastName = (parts.count > 1) ? String(parts[1]) : nil
+                UserProfileStorage.email = email.trimmingCharacters(in: .whitespaces)
                 onSuccess()
             case .failure(let failure):
                 errorMessage = message(for: failure)

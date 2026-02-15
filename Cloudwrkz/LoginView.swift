@@ -153,8 +153,13 @@ struct LoginView: View {
             defer { isLoading = false }
             let result = await AuthService.login(email: email, password: password, config: serverConfig)
             switch result {
-            case .success(let token):
+            case .success((let token, let user)):
                 AuthTokenStorage.save(token: token)
+                if let name = user?.name, !name.trimmingCharacters(in: .whitespaces).isEmpty {
+                    UserProfileStorage.username = name.trimmingCharacters(in: .whitespaces)
+                }
+                UserProfileStorage.email = user?.email?.trimmingCharacters(in: .whitespaces)
+                    ?? email.trimmingCharacters(in: .whitespaces)
                 onSuccess()
             case .failure(let failure):
                 errorMessage = message(for: failure)

@@ -11,6 +11,8 @@ import UIKit
 struct UserProfileStorage {
     private static let firstNameKey = "cloudwrkz.userProfile.firstName"
     private static let lastNameKey = "cloudwrkz.userProfile.lastName"
+    private static let emailKey = "cloudwrkz.userProfile.email"
+    private static let usernameKey = "cloudwrkz.userProfile.username"
     private static let profileImageKey = "cloudwrkz.userProfile.imageData"
 
     static var firstName: String? {
@@ -23,6 +25,18 @@ struct UserProfileStorage {
         set { UserDefaults.standard.set(newValue, forKey: lastNameKey) }
     }
 
+    /// Email used to sign in. Fallback for display when name/username are not set.
+    static var email: String? {
+        get { UserDefaults.standard.string(forKey: emailKey) }
+        set { UserDefaults.standard.set(newValue, forKey: emailKey) }
+    }
+
+    /// Display name from login API (user.name). Shown in profile menu when set.
+    static var username: String? {
+        get { UserDefaults.standard.string(forKey: usernameKey) }
+        set { UserDefaults.standard.set(newValue, forKey: usernameKey) }
+    }
+
     /// JPEG/PNG data for the profile image. Nil = use initials.
     static var profileImageData: Data? {
         get { UserDefaults.standard.data(forKey: profileImageKey) }
@@ -33,6 +47,8 @@ struct UserProfileStorage {
     static func clear() {
         firstName = nil
         lastName = nil
+        email = nil
+        username = nil
         profileImageData = nil
     }
 }

@@ -40,6 +40,7 @@ struct RootView: View {
     var body: some View {
         ZStack {
             ContentView(
+                isMainVisible: screen == .main,
                 showServerConfig: $showServerConfig,
                 onLogout: {
                     AuthTokenStorage.clear()

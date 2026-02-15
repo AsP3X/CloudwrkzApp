@@ -12,14 +12,18 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var items: [Item]
 
+    /// True when the main (dashboard) screen is shown. When this flips to true after login, we refresh profile so the avatar shows the new user.
+    var isMainVisible: Bool = true
     /// Binding so the menu can open server config after dismissing. RootView owns the sheet.
     var showServerConfig: Binding<Bool> = .constant(false)
     /// Called when user taps Log out in the menu. RootView should clear token and navigate to splash.
     var onLogout: (() -> Void)? = nil
 
-    /// Profile for avatar; refreshed on appear so edits elsewhere update the toolbar.
+    /// Profile for avatar and menu; refreshed on appear so edits elsewhere update the toolbar.
     @State private var profileFirstName: String? = UserProfileStorage.firstName
     @State private var profileLastName: String? = UserProfileStorage.lastName
+    @State private var profileEmail: String? = UserProfileStorage.email
+    @State private var profileUsername: String? = UserProfileStorage.username
     @State private var profileImageData: Data? = UserProfileStorage.profileImageData
 
     /// Present profile sheet when "View Profile" is chosen from context menu.
@@ -57,21 +61,45 @@ struct ContentView: View {
             .navigationTitle("Dashboard")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
-                profileFirstName = UserProfileStorage.firstName
-                profileLastName = UserProfileStorage.lastName
-                profileImageData = UserProfileStorage.profileImageData
+                refreshProfileFromStorage()
+                // Always refresh profile from server when we have a token so we show the account name (e.g. "Niklas Vorberg"), not email prefix
+                if AuthTokenStorage.getToken() != nil {
+                    Task { @MainActor in
+                        let config = ServerConfig.load()
+                        switch await AuthService.fetchCurrentUser(config: config) {
+                        case .success((let name, let email)):
+                            if let n = name?.trimmingCharacters(in: .whitespaces), !n.isEmpty {
+                                UserProfileStorage.username = n
+                            }
+                            if let e = email?.trimmingCharacters(in: .whitespaces), !e.isEmpty {
+                                UserProfileStorage.email = e
+                            }
+                            refreshProfileFromStorage()
+                        case .failure:
+                            break
+                        }
+                    }
+                }
+            }
+            .onChange(of: isMainVisible) { _, visible in
+                if visible {
+                    refreshProfileFromStorage()
+                }
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
+                        refreshProfileFromStorage()
                         showProfileMenu = true
                     } label: {
                         ProfileAvatarView(
-                            firstName: profileFirstName,
-                            lastName: profileLastName,
-                            profileImageData: profileImageData,
+                            firstName: profileFirstName ?? UserProfileStorage.firstName,
+                            lastName: profileLastName ?? UserProfileStorage.lastName,
+                            username: profileUsername ?? UserProfileStorage.username,
+                            profileImageData: profileImageData ?? UserProfileStorage.profileImageData,
                             size: 36
                         )
+                        .id(profileUsername ?? UserProfileStorage.username ?? profileFirstName ?? profileLastName ?? "avatar")
                     }
                     .buttonStyle(.plain)
                     .frame(width: 36, height: 36)
@@ -80,6 +108,8 @@ struct ContentView: View {
                         ProfileMenuPopoverView(
                             firstName: profileFirstName,
                             lastName: profileLastName,
+                            username: profileUsername,
+                            email: profileEmail,
                             profileImageData: profileImageData,
                             onViewProfile: {
                                 showProfileMenu = false
@@ -97,6 +127,7 @@ struct ContentView: View {
                 ProfileView(
                     firstName: profileFirstName,
                     lastName: profileLastName,
+                    username: profileUsername,
                     profileImageData: profileImageData
                 )
             }
@@ -138,6 +169,14 @@ struct ContentView: View {
                 .glassPanel(cornerRadius: 20)
                 .padding(20)
         }
+    }
+
+    private func refreshProfileFromStorage() {
+        profileFirstName = UserProfileStorage.firstName
+        profileLastName = UserProfileStorage.lastName
+        profileEmail = UserProfileStorage.email
+        profileUsername = UserProfileStorage.username
+        profileImageData = UserProfileStorage.profileImageData
     }
 
     private var listRowGlass: some View {

@@ -5,7 +5,7 @@
 //  Login API client. Matches References/cloudwrkz when available.
 //
 //  API contract:
-//  - Login: POST {baseURL}/{loginPath} body { email, password }, 200 { token }
+//  - Login: POST {baseURL}/{loginPath} body { email, password }, 200 { token, user?: { name, email } }
 //  - Register: POST {baseURL}/api/register body { name, email, password, confirmPassword }, 201 { message }
 //
 
@@ -26,14 +26,21 @@ private struct RegisterRequest: Encodable {
 }
 
 /// Success response from POST /api/auth/login (References/cloudwrkz).
-/// Supports both "token" and "accessToken" for backend flexibility.
+/// Supports both "token" and "accessToken"; optional user with name and email.
 private struct LoginSuccessResponse: Decodable {
     let token: String?
     let accessToken: String?
+    let user: LoginUserInfo?
 
     var storedToken: String? {
         token ?? accessToken
     }
+}
+
+/// User object returned by cloudwrkz login API (user.name, user.email).
+private struct LoginUserInfo: Decodable {
+    let name: String?
+    let email: String?
 }
 
 /// Error body from login endpoint when status is 4xx/5xx.
@@ -71,11 +78,25 @@ enum AuthRegisterFailure: Equatable, Error {
     case networkError(description: String)
 }
 
+enum AuthMeFailure: Equatable, Error {
+    case noServerURL
+    case noToken
+    case unauthorized
+    case serverError(message: String)
+    case networkError(description: String)
+}
+
+private struct MeResponse: Decodable {
+    let name: String?
+    let email: String?
+}
+
 enum AuthService {
     private static let timeout: TimeInterval = 15
 
     /// Performs POST baseURL/{config.loginPath}. Does not store the token; caller must use AuthTokenStorage.
-    static func login(email: String, password: String, config: ServerConfig) async -> Result<String, AuthLoginFailure> {
+    /// On success returns (token, user) where user contains name and email from the API when available.
+    static func login(email: String, password: String, config: ServerConfig) async -> Result<(token: String, user: (name: String?, email: String?)?), AuthLoginFailure> {
         guard let base = config.baseURL else {
             return .failure(.noServerURL)
         }
@@ -121,7 +142,8 @@ enum AuthService {
                 guard let token = decoded.storedToken, !token.isEmpty else {
                     return .failure(.serverError(message: "No token in response"))
                 }
-                return .success(token)
+                let user: (name: String?, email: String?)? = decoded.user.map { u in (name: u.name, email: u.email) }
+                return .success((token: token, user: user))
             case 401:
                 return .failure(.invalidCredentials)
             case 400...599:
@@ -137,6 +159,53 @@ enum AuthService {
     }
 
     private static let registerPathSegments = ["api", "register"]
+
+    /// GET current user with Bearer token. Path derived from login path (api/login → api/me, api/auth/login → api/auth/me).
+    static func fetchCurrentUser(config: ServerConfig) async -> Result<(name: String?, email: String?), AuthMeFailure> {
+        guard let base = config.baseURL else {
+            return .failure(.noServerURL)
+        }
+        guard let token = AuthTokenStorage.getToken(), !token.isEmpty else {
+            return .failure(.noToken)
+        }
+        let path = config.loginPath.trimmingCharacters(in: .whitespacesAndNewlines)
+        let mePath = path.isEmpty ? "api/me" : path.replacingOccurrences(of: "login", with: "me", options: .caseInsensitive)
+        let pathSegments = mePath.split(separator: "/", omittingEmptySubsequences: true).map(String.init)
+        guard !pathSegments.isEmpty else {
+            return .failure(.noServerURL)
+        }
+        var url = base
+        for segment in pathSegments {
+            url = url.appending(path: segment)
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.timeoutInterval = timeout
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse else {
+                return .failure(.serverError(message: "Invalid response"))
+            }
+            switch http.statusCode {
+            case 200:
+                let decoded = try JSONDecoder().decode(MeResponse.self, from: data)
+                return .success((name: decoded.name, email: decoded.email))
+            case 401:
+                return .failure(.unauthorized)
+            case 400...599:
+                let message = extractServerErrorMessage(data: data, statusCode: http.statusCode, requestURL: request.url)
+                return .failure(.serverError(message: message))
+            default:
+                return .failure(.serverError(message: "Unexpected status \(http.statusCode)"))
+            }
+        } catch {
+            let description = (error as? URLError)?.localizedDescription ?? error.localizedDescription
+            return .failure(.networkError(description: description))
+        }
+    }
 
     /// Performs POST baseURL/api/register. On success the user account exists; caller typically navigates to login.
     static func register(name: String, email: String, password: String, confirmPassword: String, config: ServerConfig) async -> Result<Void, AuthRegisterFailure> {
