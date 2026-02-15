@@ -12,6 +12,7 @@ struct AccountSettingsView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var showServerConfig = false
+    @State private var showChangePassword = false
 
     @State private var notificationsEnabled = AccountSettingsStorage.notificationsEnabled
     @State private var emailDigestEnabled = AccountSettingsStorage.emailDigestEnabled
@@ -65,6 +66,9 @@ struct AccountSettingsView: View {
             .onChange(of: biometricLockEnabled) { _, v in AccountSettingsStorage.biometricLockEnabled = v }
             .sheet(isPresented: $showServerConfig) {
                 ServerConfigView(config: $serverConfig)
+            }
+            .sheet(isPresented: $showChangePassword) {
+                ChangePasswordView(onSuccess: nil)
             }
         }
     }
@@ -156,7 +160,7 @@ struct AccountSettingsView: View {
                     title: "Change password",
                     subtitle: "Update your password"
                 ) {
-                    // Placeholder: open change-password flow or URL
+                    showChangePassword = true
                 }
                 settingsDivider
                 settingsToggleRow(

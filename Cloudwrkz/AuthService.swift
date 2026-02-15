@@ -25,6 +25,12 @@ private struct RegisterRequest: Encodable {
     let confirmPassword: String
 }
 
+private struct ChangePasswordRequest: Encodable {
+    let currentPassword: String
+    let newPassword: String
+    let confirmPassword: String
+}
+
 /// Success response from POST /api/auth/login (References/cloudwrkz).
 /// Supports both "token" and "accessToken"; optional user with name and email.
 private struct LoginSuccessResponse: Decodable {
@@ -82,6 +88,14 @@ enum AuthMeFailure: Equatable, Error {
     case noServerURL
     case noToken
     case unauthorized
+    case serverError(message: String)
+    case networkError(description: String)
+}
+
+enum AuthChangePasswordFailure: Equatable, Error {
+    case noServerURL
+    case noToken
+    case invalidCurrentPassword
     case serverError(message: String)
     case networkError(description: String)
 }
@@ -146,6 +160,67 @@ enum AuthService {
                 return .success((token: token, user: user))
             case 401:
                 return .failure(.invalidCredentials)
+            case 400...599:
+                let message = extractServerErrorMessage(data: data, statusCode: http.statusCode, requestURL: request.url)
+                return .failure(.serverError(message: message))
+            default:
+                return .failure(.serverError(message: "Unexpected status \(http.statusCode)"))
+            }
+        } catch {
+            let description = (error as? URLError)?.localizedDescription ?? error.localizedDescription
+            return .failure(.networkError(description: description))
+        }
+    }
+
+    /// Path for change password: derived from login path (api/login → api/change-password, api/auth/login → api/auth/change-password).
+    private static func changePasswordPathSegments(loginPath: String) -> [String] {
+        let path = loginPath.trimmingCharacters(in: .whitespacesAndNewlines)
+        let changePath = path.isEmpty ? "api/change-password" : path.replacingOccurrences(of: "login", with: "change-password", options: .caseInsensitive)
+        return changePath.split(separator: "/", omittingEmptySubsequences: true).map(String.init)
+    }
+
+    /// POST change-password with Bearer token. Body: currentPassword, newPassword, confirmPassword. 200 = success.
+    static func changePassword(currentPassword: String, newPassword: String, confirmPassword: String, config: ServerConfig) async -> Result<Void, AuthChangePasswordFailure> {
+        guard let base = config.baseURL else {
+            return .failure(.noServerURL)
+        }
+        guard let token = AuthTokenStorage.getToken(), !token.isEmpty else {
+            return .failure(.noToken)
+        }
+        let pathSegments = changePasswordPathSegments(loginPath: config.loginPath)
+        guard !pathSegments.isEmpty else {
+            return .failure(.noServerURL)
+        }
+        var url = base
+        for segment in pathSegments {
+            url = url.appending(path: segment)
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = timeout
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        let body = ChangePasswordRequest(currentPassword: currentPassword, newPassword: newPassword, confirmPassword: confirmPassword)
+        do {
+            request.httpBody = try JSONEncoder().encode(body)
+        } catch {
+            return .failure(.networkError(description: error.localizedDescription))
+        }
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse else {
+                return .failure(.serverError(message: "Invalid response"))
+            }
+            switch http.statusCode {
+            case 200...299:
+                if isHTMLData(data) {
+                    return .failure(.serverError(message: "Server returned a web page instead of a response. No route at: \(request.url?.absoluteString ?? "")"))
+                }
+                return .success(())
+            case 401:
+                return .failure(.invalidCurrentPassword)
             case 400...599:
                 let message = extractServerErrorMessage(data: data, statusCode: http.statusCode, requestURL: request.url)
                 return .failure(.serverError(message: message))
