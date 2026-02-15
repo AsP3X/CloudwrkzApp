@@ -2,15 +2,13 @@
 //  ContentView.swift
 //  Cloudwrkz
 //
-//  Liquid glass only. Enterprise main content.
+//  Single-column dashboard: menu (same row design) as main content, tap pushes to section.
 //
 
 import SwiftUI
-import SwiftData
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
+    @State private var path = NavigationPath()
 
     /// True when the main (dashboard) screen is shown. When this flips to true after login, we refresh profile so the avatar shows the new user.
     var isMainVisible: Bool = true
@@ -32,37 +30,32 @@ struct ContentView: View {
     @State private var showProfileMenu = false
 
     var body: some View {
-        NavigationSplitView {
+        NavigationStack(path: $path) {
             ZStack {
                 LinearGradient(
                     colors: [CloudwrkzColors.primary950, CloudwrkzColors.neutral950],
-                    startPoint: .top,
-                    endPoint: .bottom
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
                 )
                 .ignoresSafeArea()
 
-                List {
-                    ForEach(items) { item in
-                        NavigationLink {
-                            detailContent(for: item)
-                        } label: {
-                            Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundStyle(CloudwrkzColors.neutral100)
-                        }
-                        .listRowBackground(listRowGlass)
-                        .listRowSeparatorTint(.white.opacity(0.12))
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 24) {
+                        welcomeSection
+                        menuSection
                     }
-                    .onDelete(perform: deleteItems)
+                    .padding(.horizontal, 24)
+                    .padding(.top, 20)
+                    .padding(.bottom, 32)
                 }
-                .listStyle(.insetGrouped)
-                .scrollContentBackground(.hidden)
             }
             .navigationTitle("Dashboard")
             .navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(for: DashboardSection.self) { section in
+                DashboardSectionPlaceholderView(section: section)
+            }
             .onAppear {
                 refreshProfileFromStorage()
-                // Always refresh profile from server when we have a token so we show the account name (e.g. "Niklas Vorberg"), not email prefix
                 if AuthTokenStorage.getToken() != nil {
                     Task { @MainActor in
                         let config = ServerConfig.load()
@@ -133,41 +126,71 @@ struct ContentView: View {
             }
             .tint(CloudwrkzColors.primary400)
             .toolbarBackground(CloudwrkzColors.neutral950.opacity(0.95), for: .navigationBar)
-        } detail: {
-            ZStack {
-                LinearGradient(
-                    colors: [CloudwrkzColors.primary950, CloudwrkzColors.neutral950],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
-            }
-            .toolbarBackground(CloudwrkzColors.neutral950.opacity(0.95), for: .navigationBar)
-            .overlay {
-                Text("Select an item")
-                    .font(.system(size: 17, weight: .medium))
-                    .foregroundStyle(CloudwrkzColors.neutral500)
+        }
+    }
+
+    private var welcomeSection: some View {
+        Text("Welcome back. Choose a section from the menu or use the shortcuts below.")
+            .font(.system(size: 15, weight: .regular))
+            .foregroundStyle(CloudwrkzColors.neutral400)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var menuSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("QUICK ACCESS")
+                .font(.system(size: 11, weight: .bold))
+                .tracking(0.8)
+                .foregroundStyle(CloudwrkzColors.neutral500)
+
+            VStack(spacing: 10) {
+                ForEach(DashboardSection.allCases.filter { $0 != .home }) { section in
+                    NavigationLink(value: section) {
+                        HStack(spacing: 16) {
+                            Image(systemName: section.iconName)
+                                .font(.system(size: 20))
+                                .foregroundStyle(CloudwrkzColors.primary400)
+                                .frame(width: 32, height: 32)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(section.title)
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundStyle(CloudwrkzColors.neutral100)
+                                Text(section.subtitle)
+                                    .font(.system(size: 13, weight: .regular))
+                                    .foregroundStyle(CloudwrkzColors.neutral500)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(CloudwrkzColors.neutral500)
+                        }
+                        .padding(16)
+                        .background(menuCardGlass)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
         }
     }
 
-    @ViewBuilder
-    private func detailContent(for item: Item) -> some View {
-        ZStack {
-            LinearGradient(
-                colors: [CloudwrkzColors.primary950, CloudwrkzColors.neutral950],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-
-            Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                .font(.system(size: 20, weight: .medium))
-                .foregroundStyle(CloudwrkzColors.neutral100)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .padding(28)
-                .glassPanel(cornerRadius: 20)
-                .padding(20)
+    private var menuCardGlass: some View {
+        Group {
+            if #available(iOS 26.0, *) {
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(.clear)
+                    .glassEffect(.regular.tint(.white.opacity(0.04)), in: RoundedRectangle(cornerRadius: 16))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(.white.opacity(0.12), lineWidth: 1)
+                    )
+            } else {
+                Color.clear
+                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(.white.opacity(0.12), lineWidth: 1)
+                    )
+            }
         }
     }
 
@@ -179,37 +202,8 @@ struct ContentView: View {
         profileImageData = UserProfileStorage.profileImageData
     }
 
-    private var listRowGlass: some View {
-        Group {
-            if #available(iOS 26.0, *) {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(.clear)
-                    .glassEffect(.regular.tint(.white.opacity(0.04)), in: RoundedRectangle(cornerRadius: 12))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(.white.opacity(0.12), lineWidth: 1)
-                    )
-            } else {
-                Color.clear
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(.white.opacity(0.12), lineWidth: 1)
-                    )
-            }
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
-            }
-        }
-    }
 }
 
 #Preview {
     ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
 }
