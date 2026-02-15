@@ -113,7 +113,7 @@ struct TicketsOverviewView: View {
 
     private var ticketList: some View {
         ScrollView {
-            LazyVStack(spacing: 12) {
+            LazyVStack(spacing: 14) {
                 ForEach(tickets) { ticket in
                     TicketRowView(ticket: ticket)
                 }
@@ -181,7 +181,7 @@ private struct TicketRowView: View {
             if let desc = ticket.description, !desc.isEmpty {
                 Text(desc)
                     .font(.system(size: 13, weight: .regular))
-                    .foregroundStyle(CloudwrkzColors.neutral500)
+                    .foregroundStyle(CloudwrkzColors.neutral400)
                     .lineLimit(2)
             }
 
@@ -201,13 +201,13 @@ private struct TicketRowView: View {
                         Text("\(ticket._count!.comments)")
                             .font(.system(size: 12, weight: .medium))
                     }
-                    .foregroundStyle(CloudwrkzColors.neutral400)
+                    .foregroundStyle(CloudwrkzColors.neutral200)
                 }
             }
             .font(.system(size: 12, weight: .regular))
             .foregroundStyle(CloudwrkzColors.neutral400)
         }
-        .padding(16)
+        .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(ticketRowGlass)
     }
@@ -217,17 +217,17 @@ private struct TicketRowView: View {
             if #available(iOS 26.0, *) {
                 RoundedRectangle(cornerRadius: 16)
                     .fill(.clear)
-                    .glassEffect(.regular.tint(.white.opacity(0.04)), in: RoundedRectangle(cornerRadius: 16))
+                    .glassEffect(.regular.tint(.white.opacity(0.08)), in: RoundedRectangle(cornerRadius: 16))
                     .overlay(
                         RoundedRectangle(cornerRadius: 16)
-                            .stroke(.white.opacity(0.12), lineWidth: 1)
+                            .stroke(.white.opacity(0.2), lineWidth: 1)
                     )
             } else {
                 Color.clear
                     .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
                     .overlay(
                         RoundedRectangle(cornerRadius: 16)
-                            .stroke(.white.opacity(0.12), lineWidth: 1)
+                            .stroke(.white.opacity(0.2), lineWidth: 1)
                     )
             }
         }
@@ -254,10 +254,10 @@ private struct TicketRowView: View {
     private func typePill(_ type: String) -> some View {
         Text(type)
             .font(.system(size: 10, weight: .medium))
-            .foregroundStyle(CloudwrkzColors.neutral400)
+            .foregroundStyle(CloudwrkzColors.neutral200)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(CloudwrkzColors.neutral800.opacity(0.6), in: Capsule())
+            .background(CloudwrkzColors.neutral700.opacity(0.8), in: Capsule())
     }
 
     private func statusColor(_ status: String) -> Color {
@@ -283,9 +283,9 @@ private struct TicketRowView: View {
     private func labelValue(_ label: String, _ value: String) -> some View {
         HStack(spacing: 4) {
             Text("\(label):")
-                .foregroundStyle(CloudwrkzColors.neutral500)
+                .foregroundStyle(CloudwrkzColors.neutral400)
             Text(value)
-                .foregroundStyle(CloudwrkzColors.neutral200)
+                .foregroundStyle(CloudwrkzColors.neutral100)
         }
     }
 
