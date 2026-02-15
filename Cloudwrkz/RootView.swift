@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import UIKit
 
 enum AuthScreen {
     case splash
@@ -16,6 +17,7 @@ enum AuthScreen {
 }
 
 struct RootView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @State private var screen: AuthScreen = AuthTokenStorage.getToken() != nil ? .main : .splash
     /// Used for WhatsApp/Telegram-style push (forward) vs pop (back) transitions.
     @State private var isGoingBack = false
@@ -24,6 +26,9 @@ struct RootView: View {
     @State private var showHealthStatus = false
     @State private var pendingServerConfigAfterDismiss = false
     @State private var pendingHealthStatusAfterDismiss = false
+    /// When true, main content is covered by biometric lock overlay until Face ID / Touch ID succeeds.
+    @State private var isAppLocked = false
+    @State private var isEvaluatingBiometric = false
 
     private let pushPopAnimation = Animation.easeInOut(duration: 0.32)
 
@@ -113,8 +118,33 @@ struct RootView: View {
             }
             .allowsHitTesting(screen != .main)
             .opacity(screen == .main ? 0 : 1)
+
+            // Biometric lock overlay when app returned from background and user is on main.
+            if screen == .main, isAppLocked {
+                BiometricLockOverlayView(
+                    onRetry: { await tryUnlockWithBiometric() },
+                    isEvaluating: isEvaluatingBiometric
+                )
+                .transition(.opacity)
+                .zIndex(1)
+                .task { await tryUnlockWithBiometric() }
+            }
         }
         .animation(pushPopAnimation, value: screen)
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .background, screen == .main, AccountSettingsStorage.biometricLockEnabled {
+                isAppLocked = true
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
+            // Fallback: scenePhase can be unreliable; ensure we lock when app actually enters background
+            if screen == .main, AccountSettingsStorage.biometricLockEnabled {
+                isAppLocked = true
+            }
+        }
+        .onChange(of: screen) { _, newScreen in
+            if newScreen != .main { isAppLocked = false }
+        }
         .sheet(isPresented: $showServerConfig, onDismiss: {
             if pendingHealthStatusAfterDismiss {
                 pendingHealthStatusAfterDismiss = false
@@ -148,6 +178,22 @@ struct RootView: View {
             showServerConfig = false
         } else {
             showHealthStatus = true
+        }
+    }
+
+    /// Runs Face ID / Touch ID. On success, clears app lock. Call when overlay appears or user taps Unlock.
+    private func tryUnlockWithBiometric() async {
+        guard AccountSettingsStorage.biometricLockEnabled, BiometricService.isAvailable else {
+            await MainActor.run { isAppLocked = false }
+            return
+        }
+        await MainActor.run { isEvaluatingBiometric = true }
+        // Brief delay so overlay is fully presented before system Face ID UI appears
+        try? await Task.sleep(nanoseconds: 300_000_000) // 0.3s
+        let success = await BiometricService.evaluate(reason: "Unlock Cloudwrkz")
+        await MainActor.run {
+            isEvaluatingBiometric = false
+            if success { isAppLocked = false }
         }
     }
 }

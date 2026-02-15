@@ -162,11 +162,12 @@ struct AccountSettingsView: View {
                 settingsToggleRow(
                     icon: "faceid",
                     title: "Biometric lock",
-                    subtitle: "Face ID or Touch ID"
+                    subtitle: BiometricService.isAvailable ? "\(BiometricService.biometricTypeName) required when returning to app" : "Not available on this device"
                 ) {
                     Toggle("", isOn: $biometricLockEnabled)
                         .labelsHidden()
                         .tint(CloudwrkzColors.primary400)
+                        .disabled(!BiometricService.isAvailable)
                 }
             }
             .padding(16)
