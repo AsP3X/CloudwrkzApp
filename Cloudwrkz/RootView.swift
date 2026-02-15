@@ -19,6 +19,8 @@ struct RootView: View {
     @State private var screen: AuthScreen = .splash
     /// Used for WhatsApp/Telegram-style push (forward) vs pop (back) transitions.
     @State private var isGoingBack = false
+    @State private var serverConfig = ServerConfig.load()
+    @State private var showServerConfig = false
 
     private let pushPopAnimation = Animation.easeInOut(duration: 0.32)
 
@@ -70,8 +72,29 @@ struct RootView: View {
             case .main:
                 EmptyView()
             }
+
+            // Gear on top so it stays visible over splash/login/register
+            VStack {
+                HStack {
+                    Spacer()
+                    Button(action: { showServerConfig = true }) {
+                        Image(systemName: "gearshape.fill")
+                            .font(.system(size: 22))
+                            .foregroundStyle(CloudwrkzColors.neutral100)
+                            .frame(width: 44, height: 44)
+                    }
+                    .padding(.trailing, 12)
+                    .padding(.top, 12)
+                }
+                Spacer()
+            }
+            .allowsHitTesting(screen != .main)
+            .opacity(screen == .main ? 0 : 1)
         }
         .animation(pushPopAnimation, value: screen)
+        .sheet(isPresented: $showServerConfig) {
+            ServerConfigView(config: $serverConfig)
+        }
     }
 }
 
