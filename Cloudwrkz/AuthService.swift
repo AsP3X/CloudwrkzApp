@@ -5,10 +5,8 @@
 //  Login API client. Matches References/cloudwrkz when available.
 //
 //  API contract:
-//  - Endpoint: POST {baseURL}/api/login (or configurable via ServerConfig.loginPath)
-//  - Request body: { "email": string, "password": string }
-//  - Success (200): { "token": string } or { "accessToken": string, "refreshToken"?: string }
-//  - Error (401/4xx/5xx): { "message"?: string } or similar
+//  - Login: POST {baseURL}/{loginPath} body { email, password }, 200 { token }
+//  - Register: POST {baseURL}/api/register body { name, email, password, confirmPassword }, 201 { message }
 //
 
 import Foundation
@@ -18,6 +16,13 @@ import Foundation
 private struct LoginRequest: Encodable {
     let email: String
     let password: String
+}
+
+private struct RegisterRequest: Encodable {
+    let name: String
+    let email: String
+    let password: String
+    let confirmPassword: String
 }
 
 /// Success response from POST /api/auth/login (References/cloudwrkz).
@@ -56,6 +61,12 @@ private struct LoginErrorResponse: Decodable {
 enum AuthLoginFailure: Equatable, Error {
     case noServerURL
     case invalidCredentials
+    case serverError(message: String)
+    case networkError(description: String)
+}
+
+enum AuthRegisterFailure: Equatable, Error {
+    case noServerURL
     case serverError(message: String)
     case networkError(description: String)
 }
@@ -103,6 +114,9 @@ enum AuthService {
 
             switch http.statusCode {
             case 200...299:
+                if isHTMLData(data) {
+                    return .failure(.serverError(message: "Server returned a web page instead of a response. The login endpoint may not be available. No route at: \(request.url?.absoluteString ?? "")"))
+                }
                 let decoded = try JSONDecoder().decode(LoginSuccessResponse.self, from: data)
                 guard let token = decoded.storedToken, !token.isEmpty else {
                     return .failure(.serverError(message: "No token in response"))
@@ -120,6 +134,62 @@ enum AuthService {
             let description = (error as? URLError)?.localizedDescription ?? error.localizedDescription
             return .failure(.networkError(description: description))
         }
+    }
+
+    private static let registerPathSegments = ["api", "register"]
+
+    /// Performs POST baseURL/api/register. On success the user account exists; caller typically navigates to login.
+    static func register(name: String, email: String, password: String, confirmPassword: String, config: ServerConfig) async -> Result<Void, AuthRegisterFailure> {
+        guard let base = config.baseURL else {
+            return .failure(.noServerURL)
+        }
+        var url = base
+        for segment in registerPathSegments {
+            url = url.appending(path: segment)
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = timeout
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        let body = RegisterRequest(name: name, email: email, password: password, confirmPassword: confirmPassword)
+        do {
+            request.httpBody = try JSONEncoder().encode(body)
+        } catch {
+            return .failure(.networkError(description: error.localizedDescription))
+        }
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse else {
+                return .failure(.serverError(message: "Invalid response"))
+            }
+
+            switch http.statusCode {
+            case 200...299:
+                if isHTMLData(data) {
+                    return .failure(.serverError(message: "Server returned a web page instead of a response. The register endpoint may not be available. No route at: \(request.url?.absoluteString ?? "")"))
+                }
+                return .success(())
+            case 400...599:
+                let message = extractServerErrorMessage(data: data, statusCode: http.statusCode, requestURL: request.url)
+                return .failure(.serverError(message: message))
+            default:
+                return .failure(.serverError(message: "Unexpected status \(http.statusCode)"))
+            }
+        } catch {
+            let description = (error as? URLError)?.localizedDescription ?? error.localizedDescription
+            return .failure(.networkError(description: description))
+        }
+    }
+
+    private static func isHTMLData(_ data: Data) -> Bool {
+        guard !data.isEmpty, let s = String(data: data, encoding: .utf8) else { return false }
+        let lower = s.prefix(200).lowercased()
+        return lower.contains("<!doctype") || lower.contains("<html") || lower.contains("</html>")
     }
 
     /// Extracts a user-visible message from 4xx/5xx response body, or returns a fallback including status code.

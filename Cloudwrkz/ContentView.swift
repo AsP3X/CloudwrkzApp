@@ -12,6 +12,20 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var items: [Item]
 
+    /// Binding so the menu can open server config after dismissing. RootView owns the sheet.
+    var showServerConfig: Binding<Bool> = .constant(false)
+    /// Called when user taps Log out in the menu. RootView should clear token and navigate to splash.
+    var onLogout: (() -> Void)? = nil
+
+    /// 0 = closed, 1 = fully open. Drives the pull-up menu position.
+    @State private var menuPullFraction: CGFloat = 0
+    @State private var menuDragStartFraction: CGFloat?
+
+    /// Profile for avatar; refreshed on appear so edits elsewhere update the toolbar.
+    @State private var profileFirstName: String? = UserProfileStorage.firstName
+    @State private var profileLastName: String? = UserProfileStorage.lastName
+    @State private var profileImageData: Data? = UserProfileStorage.profileImageData
+
     var body: some View {
         NavigationSplitView {
             ZStack {
@@ -38,18 +52,33 @@ struct ContentView: View {
                 }
                 .listStyle(.insetGrouped)
                 .scrollContentBackground(.hidden)
+
+                pullUpMenuOverlay
+
+                VStack {
+                    Spacer(minLength: 0)
+                    bottomSwipeArea
+                }
+            }
+            .navigationTitle("Dashboard")
+            .onAppear {
+                profileFirstName = UserProfileStorage.firstName
+                profileLastName = UserProfileStorage.lastName
+                profileImageData = UserProfileStorage.profileImageData
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                        .fontWeight(.medium)
-                        .foregroundStyle(CloudwrkzColors.primary400)
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
+                    Button(action: {
+                        withAnimation(.easeOut(duration: 0.28)) { menuPullFraction = 1 }
+                    }) {
+                        ProfileAvatarView(
+                            firstName: profileFirstName,
+                            lastName: profileLastName,
+                            profileImageData: profileImageData,
+                            size: 36
+                        )
                     }
-                    .foregroundStyle(CloudwrkzColors.primary400)
+                    .buttonStyle(.plain)
                 }
             }
             .tint(CloudwrkzColors.primary400)
@@ -92,6 +121,124 @@ struct ContentView: View {
         }
     }
 
+    /// Overlay: dim + menu panel that slides up with the gesture.
+    private var pullUpMenuOverlay: some View {
+        GeometryReader { geo in
+            let menuHeight = geo.size.height * 0.72
+            ZStack(alignment: .bottom) {
+                Color.black.opacity(0.4 * min(1, menuPullFraction))
+                    .ignoresSafeArea()
+                    .onTapGesture { closeMenu() }
+                    .allowsHitTesting(menuPullFraction > 0.01)
+
+                VStack(spacing: 0) {
+                    RoundedRectangle(cornerRadius: 2.5)
+                        .fill(CloudwrkzColors.neutral400.opacity(0.8))
+                        .frame(width: 36, height: 5)
+                        .padding(.top, 10)
+                        .padding(.bottom, 6)
+
+                    DashboardMenuView(
+                        onDismiss: { closeMenu() },
+                        onOpenServerConfig: {
+                            closeMenu()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                                showServerConfig.wrappedValue = true
+                            }
+                        },
+                        onLogout: {
+                            closeMenu()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                                onLogout?()
+                            }
+                        }
+                    )
+                    .frame(maxHeight: .infinity)
+                }
+                .frame(height: menuHeight)
+                .offset(y: (1 - menuPullFraction) * menuHeight)
+                .gesture(
+                    DragGesture(minimumDistance: 8)
+                        .onChanged { value in
+                            if menuDragStartFraction == nil { menuDragStartFraction = menuPullFraction }
+                            let start = menuDragStartFraction ?? menuPullFraction
+                            let deltaFraction = -value.translation.height / menuHeight
+                            menuPullFraction = min(1, max(0, start + deltaFraction))
+                        }
+                        .onEnded { value in
+                            let velocity = value.predictedEndTranslation.height - value.translation.height
+                            let shouldOpen = menuPullFraction > 0.4 || -velocity > 200
+                            menuDragStartFraction = nil
+                            withAnimation(.easeOut(duration: 0.28)) {
+                                menuPullFraction = shouldOpen ? 1 : 0
+                            }
+                        }
+                )
+            }
+        }
+        .allowsHitTesting(true)
+    }
+
+    private func closeMenu() {
+        menuDragStartFraction = nil
+        withAnimation(.easeOut(duration: 0.28)) {
+            menuPullFraction = 0
+        }
+    }
+
+    /// Bottom area: invisible when menu closed; shows indicator (same design) when swiping or open. Tap + swipe work in both states.
+    private var bottomSwipeArea: some View {
+        Group {
+            if menuPullFraction > 0 {
+                VStack(spacing: 8) {
+                    RoundedRectangle(cornerRadius: 2.5)
+                        .fill(CloudwrkzColors.neutral400.opacity(0.8))
+                        .frame(width: 36, height: 5)
+
+                    Text("Swipe up for menu")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(CloudwrkzColors.neutral400)
+                }
+                .padding(.top, 12)
+                .padding(.bottom, 8)
+                .frame(maxWidth: .infinity)
+                .background(
+                    LinearGradient(
+                        colors: [CloudwrkzColors.neutral950.opacity(0), CloudwrkzColors.neutral950.opacity(0.85)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+            } else {
+                Color.clear
+            }
+        }
+        .frame(height: 56)
+        .frame(maxWidth: .infinity)
+        .padding(.bottom, 20)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            withAnimation(.easeOut(duration: 0.28)) { menuPullFraction = 1 }
+        }
+        .gesture(
+            DragGesture(minimumDistance: 8)
+                .onChanged { value in
+                    if menuDragStartFraction == nil { menuDragStartFraction = menuPullFraction }
+                    let start = menuDragStartFraction ?? menuPullFraction
+                    let deltaFraction = -value.translation.height / 450
+                    menuPullFraction = min(1, max(0, start + deltaFraction))
+                }
+                .onEnded { value in
+                    let velocity = value.predictedEndTranslation.height - value.translation.height
+                    let shouldOpen = menuPullFraction > 0.4 || -velocity > 200
+                    menuDragStartFraction = nil
+                    withAnimation(.easeOut(duration: 0.28)) {
+                        menuPullFraction = shouldOpen ? 1 : 0
+                    }
+                }
+        )
+    }
+
     private var listRowGlass: some View {
         Group {
             if #available(iOS 26.0, *) {
@@ -110,13 +257,6 @@ struct ContentView: View {
                             .stroke(.white.opacity(0.12), lineWidth: 1)
                     )
             }
-        }
-    }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
         }
     }
 

@@ -16,6 +16,7 @@ struct RegisterView: View {
     @State private var errorMessage: String?
     @FocusState private var focusedField: Field?
 
+    var serverConfig: ServerConfig = ServerConfig.load()
     var onSuccess: () -> Void = {}
     var onBack: () -> Void = {}
 
@@ -182,6 +183,10 @@ struct RegisterView: View {
             errorMessage = "Please enter your name."
             return
         }
+        if trimmedName.count < 2 {
+            errorMessage = "Name must be at least 2 characters."
+            return
+        }
         if email.isEmpty {
             errorMessage = "Please enter your email."
             return
@@ -199,10 +204,41 @@ struct RegisterView: View {
             return
         }
 
+        if serverConfig.baseURL == nil {
+            errorMessage = "Configure server in settings."
+            return
+        }
+
         isLoading = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            isLoading = false
-            onSuccess()
+        Task { @MainActor in
+            defer { isLoading = false }
+            let result = await AuthService.register(
+                name: trimmedName,
+                email: email,
+                password: password,
+                confirmPassword: confirmPassword,
+                config: serverConfig
+            )
+            switch result {
+            case .success:
+                let parts = trimmedName.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: true)
+                UserProfileStorage.firstName = parts.first.map(String.init)
+                UserProfileStorage.lastName = (parts.count > 1) ? String(parts[1]) : nil
+                onSuccess()
+            case .failure(let failure):
+                errorMessage = message(for: failure)
+            }
+        }
+    }
+
+    private func message(for failure: AuthRegisterFailure) -> String {
+        switch failure {
+        case .noServerURL:
+            return "Configure server in settings."
+        case .serverError(let message):
+            return message
+        case .networkError:
+            return "Could not reach server."
         }
     }
 }

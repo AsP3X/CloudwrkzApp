@@ -39,8 +39,15 @@ struct RootView: View {
 
     var body: some View {
         ZStack {
-            ContentView()
-                .opacity(screen == .main ? 1 : 0)
+            ContentView(
+                showServerConfig: $showServerConfig,
+                onLogout: {
+                    AuthTokenStorage.clear()
+                    UserProfileStorage.clear()
+                    withAnimation(pushPopAnimation) { screen = .splash }
+                }
+            )
+            .opacity(screen == .main ? 1 : 0)
 
             switch screen {
             case .splash:
@@ -64,7 +71,8 @@ struct RootView: View {
                 ))
             case .register:
                 RegisterView(
-                    onSuccess: { goForward(to: .main) },
+                    serverConfig: serverConfig,
+                    onSuccess: { goForward(to: .login) },
                     onBack: { goBack(to: .splash) }
                 )
                 .transition(.asymmetric(
@@ -75,9 +83,16 @@ struct RootView: View {
                 EmptyView()
             }
 
-            // Tenant status (top-left) and gear (top-right) so they stay visible over splash/login/register
+            // Tenant status and gear over splash/login/register.
+            // When back arrow is visible (login/register), leave 44pt for it and put health to the right; otherwise health on the left.
             VStack {
-                HStack {
+                HStack(spacing: 0) {
+                    if screen == .login || screen == .register {
+                        Color.clear
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
+                            .allowsHitTesting(false)
+                    }
                     TenantStatusView(config: serverConfig, onTap: { showHealthStatus = true })
                         .padding(.leading, 12)
                         .padding(.top, 12)

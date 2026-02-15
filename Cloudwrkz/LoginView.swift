@@ -149,17 +149,15 @@ struct LoginView: View {
             return
         }
         isLoading = true
-        Task {
+        Task { @MainActor in
+            defer { isLoading = false }
             let result = await AuthService.login(email: email, password: password, config: serverConfig)
-            await MainActor.run {
-                isLoading = false
-                switch result {
-                case .success(let token):
-                    AuthTokenStorage.save(token: token)
-                    onSuccess()
-                case .failure(let failure):
-                    errorMessage = message(for: failure)
-                }
+            switch result {
+            case .success(let token):
+                AuthTokenStorage.save(token: token)
+                onSuccess()
+            case .failure(let failure):
+                errorMessage = message(for: failure)
             }
         }
     }
