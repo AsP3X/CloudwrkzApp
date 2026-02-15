@@ -190,7 +190,10 @@ struct TodoDetailView: View {
             VStack(spacing: 0) {
                 if let subtodos = todo.subtodos, !subtodos.isEmpty {
                     ForEach(Array(subtodos.enumerated()), id: \.element.id) { index, subtodo in
-                        subtodoSettingsRow(subtodo)
+                        NavigationLink(destination: TodoDetailLoaderView(todoId: subtodo.id)) {
+                            subtodoSettingsRow(subtodo)
+                        }
+                        .buttonStyle(.plain)
                         if index < subtodos.count - 1 {
                             settingsDivider
                         }
@@ -219,7 +222,7 @@ struct TodoDetailView: View {
             .frame(height: 1)
     }
 
-    /// One subtodo as a row matching Account Settings (Change password) style: icon, title, subtitle.
+    /// One subtodo as a row matching Account Settings (Change password) style: icon, title, subtitle, chevron.
     private func subtodoSettingsRow(_ subtodo: Todo.TodoSubtask) -> some View {
         HStack(spacing: 14) {
             Image(systemName: "list.bullet.indent")
@@ -236,6 +239,9 @@ struct TodoDetailView: View {
                     .foregroundStyle(CloudwrkzColors.neutral500)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            Image(systemName: "chevron.right")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(CloudwrkzColors.neutral500)
         }
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -468,6 +474,98 @@ private struct TodoInfoSidebarView: View {
         guard let assignee = todo.assignedTo else { return "Unassigned" }
         if let n = assignee.name, !n.isEmpty { return n }
         return String(assignee.email.prefix(upTo: assignee.email.firstIndex(of: "@") ?? assignee.email.endIndex))
+    }
+}
+
+// MARK: - Todo detail by ID (loads then shows detail; used when navigating from subtodo row)
+
+struct TodoDetailLoaderView: View {
+    let todoId: String
+    @State private var todo: Todo?
+    @State private var errorMessage: String?
+
+    private let config = ServerConfig.load()
+
+    var body: some View {
+        Group {
+            if let todo = todo {
+                TodoDetailView(todo: todo)
+            } else if let error = errorMessage {
+                errorView(error)
+            } else {
+                loadingView
+            }
+        }
+        .task { await loadTodo() }
+    }
+
+    private func loadTodo() async {
+        let result = await TodoService.fetchTodo(config: config, id: todoId)
+        await MainActor.run {
+            switch result {
+            case .success(let loaded):
+                todo = loaded
+                errorMessage = nil
+            case .failure(let err):
+                todo = nil
+                errorMessage = message(for: err)
+            }
+        }
+    }
+
+    private var loadingView: some View {
+        ZStack {
+            LinearGradient(
+                colors: [CloudwrkzColors.primary950, CloudwrkzColors.neutral950],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+            VStack(spacing: 16) {
+                ProgressView()
+                    .scaleEffect(1.2)
+                    .tint(CloudwrkzColors.primary400)
+                Text("Loading…")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(CloudwrkzColors.neutral400)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+
+    private func errorView(_ message: String) -> some View {
+        ZStack {
+            LinearGradient(
+                colors: [CloudwrkzColors.primary950, CloudwrkzColors.neutral950],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+            VStack(spacing: 16) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 44))
+                    .foregroundStyle(CloudwrkzColors.warning500)
+                Text("Couldn't load todo")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(CloudwrkzColors.neutral100)
+                Text(message)
+                    .font(.system(size: 14, weight: .regular))
+                    .foregroundStyle(CloudwrkzColors.neutral400)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+
+    private func message(for error: TodoServiceError) -> String {
+        switch error {
+        case .noServerURL: return "No server configured."
+        case .noToken: return "Please sign in again."
+        case .unauthorized: return "Session expired. Sign in again."
+        case .serverError(let m): return m
+        case .networkError: return "Could not reach server."
+        }
     }
 }
 
