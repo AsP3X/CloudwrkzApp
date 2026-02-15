@@ -69,18 +69,22 @@ struct QrLoginScannerView: View {
                                 .padding(.horizontal)
                         }
                     } else if status == .success {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 64))
-                            .foregroundStyle(CloudwrkzColors.success500)
-                        if let msg = successMessage {
-                            Text(msg)
-                                .font(.headline)
-                                .foregroundStyle(CloudwrkzColors.neutral100)
-                                .multilineTextAlignment(.center)
+                        Group {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 64))
+                                .foregroundStyle(CloudwrkzColors.success500)
+                            if let msg = successMessage {
+                                Text(msg)
+                                    .font(.headline)
+                                    .foregroundStyle(CloudwrkzColors.neutral100)
+                                    .multilineTextAlignment(.center)
+                            }
                         }
-                        onSuccess?()
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                            dismiss()
+                        .onAppear {
+                            onSuccess?()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                                dismiss()
+                            }
                         }
                     } else {
                         Image(systemName: "exclamationmark.triangle.fill")
@@ -89,7 +93,7 @@ struct QrLoginScannerView: View {
                         if let msg = errorMessage {
                             Text(msg)
                                 .font(.subheadline)
-                                .foregroundStyle(CloudwrkzColors.neutral300)
+                                .foregroundStyle(CloudwrkzColors.neutral400)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal)
                         }
