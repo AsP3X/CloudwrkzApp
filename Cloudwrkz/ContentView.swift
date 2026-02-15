@@ -28,6 +28,8 @@ struct ContentView: View {
     @State private var showProfileSheet = false
     /// Present profile menu (popover) when profile button is tapped.
     @State private var showProfileMenu = false
+    /// Present QR login scanner when user chooses "Login with QR code" from profile menu.
+    @State private var showQrScanner = false
     /// Present search overlay when user swipes down and holds on dashboard (or taps toolbar search).
     @State private var showSearch = false
     /// When true, show search after the current sheet/fullScreenCover has finished dismissing (avoids "already presenting").
@@ -138,6 +140,12 @@ struct ContentView: View {
                                     showProfileSheet = true
                                 }
                             },
+                            onQrLogin: {
+                                showProfileMenu = false
+                                DispatchQueue.main.async {
+                                    showQrScanner = true
+                                }
+                            },
                             onLogout: onLogout != nil ? {
                                 showProfileMenu = false
                                 onLogout?()
@@ -167,6 +175,9 @@ struct ContentView: View {
             }
             .fullScreenCover(isPresented: $showSearch) {
                 DashboardSearchView(onDismiss: { showSearch = false })
+            }
+            .fullScreenCover(isPresented: $showQrScanner) {
+                QrLoginScannerView(onDismiss: { showQrScanner = false })
             }
             .tint(CloudwrkzColors.primary400)
             .toolbarBackground(CloudwrkzColors.neutral950.opacity(0.95), for: .navigationBar)

@@ -14,6 +14,7 @@ struct ProfileMenuPopoverView: View {
     var email: String?
     var profileImageData: Data?
     var onViewProfile: () -> Void
+    var onQrLogin: (() -> Void)?
     var onLogout: (() -> Void)?
 
     /// Display order: first+last name (profile) → username (API user.name) → email prefix → "Profile".
@@ -57,6 +58,9 @@ struct ProfileMenuPopoverView: View {
                 divider
                 sectionLabel("ACCOUNT")
                 viewProfileRow
+                if onQrLogin != nil {
+                    qrLoginRow
+                }
                 if onLogout != nil {
                     sectionLabel("SESSION")
                     logOutRow
@@ -115,6 +119,16 @@ struct ProfileMenuPopoverView: View {
             subtitle: "Name, avatar, settings"
         ) {
             onViewProfile()
+        }
+    }
+
+    private var qrLoginRow: some View {
+        MenuRowButton(
+            icon: "qrcode",
+            title: "Login with QR code",
+            subtitle: "Sign in on the website by scanning"
+        ) {
+            onQrLogin?()
         }
     }
 
@@ -207,6 +221,7 @@ private struct ProfileMenuRowButtonStyle: ButtonStyle {
         email: "jane@company.com",
         profileImageData: nil,
         onViewProfile: {},
+        onQrLogin: {},
         onLogout: {}
     )
 }
