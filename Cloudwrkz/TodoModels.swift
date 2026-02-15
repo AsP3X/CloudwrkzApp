@@ -32,7 +32,15 @@ struct Todo: Identifiable, Decodable, Hashable {
     let assignedToId: String?
     let assignedTo: TodoUser?
     let ticket: TodoTicketRef?
+    let subtodos: [TodoSubtask]?
     let _count: TodoCount?
+
+    struct TodoSubtask: Decodable, Hashable, Identifiable {
+        let id: String
+        let title: String
+        let status: String
+        let priority: String
+    }
 
     struct TodoUser: Decodable, Hashable {
         let id: String

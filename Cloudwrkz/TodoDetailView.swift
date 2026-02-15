@@ -96,7 +96,7 @@ struct TodoDetailView: View {
         VStack(alignment: .leading, spacing: 16) {
             descriptionCard
             ticketLinkCard
-            subtodosPlaceholder
+            subtodosSection
         }
     }
 
@@ -154,24 +154,94 @@ struct TodoDetailView: View {
         }
     }
 
-    private var subtodosPlaceholder: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "list.bullet.indent")
-                .font(.system(size: 20))
-                .foregroundStyle(CloudwrkzColors.primary400.opacity(0.8))
-            VStack(alignment: .leading, spacing: 4) {
+    private var subtodosSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 10) {
+                Image(systemName: "list.bullet.indent")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(CloudwrkzColors.primary400)
                 Text("Subtodos")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 18, weight: .bold))
                     .foregroundStyle(CloudwrkzColors.neutral100)
-                Text("View and manage subtodos in the web app.")
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundStyle(CloudwrkzColors.neutral500)
+                if let count = todo.subtodos?.count, count > 0 {
+                    Text("\(count)")
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .foregroundStyle(CloudwrkzColors.neutral400)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(CloudwrkzColors.neutral700.opacity(0.6), in: Capsule())
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.bottom, 16)
+
+            if let subtodos = todo.subtodos, !subtodos.isEmpty {
+                VStack(spacing: 10) {
+                    ForEach(subtodos) { subtodo in
+                        subtodoRow(subtodo)
+                    }
+                }
+            } else {
+                HStack(spacing: 10) {
+                    Image(systemName: "checkmark.circle")
+                        .font(.system(size: 16))
+                        .foregroundStyle(CloudwrkzColors.neutral500)
+                    Text("No subtodos")
+                        .font(.system(size: 15, weight: .regular))
+                        .foregroundStyle(CloudwrkzColors.neutral500)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 14)
+                .padding(.horizontal, 16)
+                .background(subtodoRowGlass)
+            }
+        }
+        .padding(22)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(detailGlassPanel)
+    }
+
+    private func subtodoRow(_ subtodo: Todo.TodoSubtask) -> some View {
+        HStack(spacing: 12) {
+            RoundedRectangle(cornerRadius: 4)
+                .fill(statusColor(subtodo.status).opacity(0.6))
+                .frame(width: 4, height: 28)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(subtodo.title)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(CloudwrkzColors.neutral100)
+                    .lineLimit(2)
+                HStack(spacing: 8) {
+                    statusPill(subtodo.status)
+                    priorityPill(subtodo.priority)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(20)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(detailGlassPanel)
+        .background(subtodoRowGlass)
+    }
+
+    private var subtodoRowGlass: some View {
+        Group {
+            if #available(iOS 26.0, *) {
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(.clear)
+                    .glassEffect(.regular.tint(.white.opacity(0.04)), in: RoundedRectangle(cornerRadius: 14))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(.white.opacity(0.12), lineWidth: 1)
+                    )
+            } else {
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(.white.opacity(0.04))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(.white.opacity(0.12), lineWidth: 1)
+                    )
+            }
+        }
     }
 
     private var detailGlassPanel: some View {
@@ -379,7 +449,7 @@ private struct TodoInfoSidebarView: View {
 
 #Preview {
     let json = """
-    {"id":"preview-1","todoNumber":"#TDO-000042","title":"Implement todo view for the iOS app","description":"Add overview and detail matching ticket view.","descriptionPlain":"Add overview and detail matching ticket view.","status":"IN_PROGRESS","priority":"HIGH","estimatedHours":null,"startDate":null,"dueDate":null,"completedDate":null,"createdAt":"2025-01-15T12:00:00Z","updatedAt":"2025-01-15T12:00:00Z","parentTodoId":null,"ticketId":null,"assignedToId":"u1","assignedTo":{"id":"u1","name":"Jane Doe","email":"jane@example.com"},"ticket":{"id":"t1","ticketNumber":"TKT-001","title":"Sample ticket"},"_count":{"subtodos":2}}
+    {"id":"preview-1","todoNumber":"#TDO-000042","title":"Implement todo view for the iOS app","description":"Add overview and detail matching ticket view.","descriptionPlain":"Add overview and detail matching ticket view.","status":"IN_PROGRESS","priority":"HIGH","estimatedHours":null,"startDate":null,"dueDate":null,"completedDate":null,"createdAt":"2025-01-15T12:00:00Z","updatedAt":"2025-01-15T12:00:00Z","parentTodoId":null,"ticketId":null,"assignedToId":"u1","assignedTo":{"id":"u1","name":"Jane Doe","email":"jane@example.com"},"ticket":{"id":"t1","ticketNumber":"TKT-001","title":"Sample ticket"},"subtodos":[{"id":"st1","title":"Design detail layout","status":"COMPLETED","priority":"MEDIUM"},{"id":"st2","title":"Implement glass panels","status":"IN_PROGRESS","priority":"HIGH"}],"_count":{"subtodos":2}}
     """
     let data = Data(json.utf8)
     let decoder = JSONDecoder()
