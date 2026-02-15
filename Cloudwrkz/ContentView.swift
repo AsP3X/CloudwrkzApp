@@ -28,6 +28,8 @@ struct ContentView: View {
     @State private var showProfileSheet = false
     /// Present profile menu (popover) when profile button is tapped.
     @State private var showProfileMenu = false
+    /// Present search overlay when user swipes down and holds on dashboard (or taps toolbar search).
+    @State private var showSearch = false
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -47,6 +49,11 @@ struct ContentView: View {
                     .padding(.horizontal, 24)
                     .padding(.top, 20)
                     .padding(.bottom, 32)
+                }
+                .overlay {
+                    PullDownToSearchView(onTrigger: { showSearch = true })
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .allowsHitTesting(true)
                 }
             }
             .navigationTitle("Dashboard")
@@ -92,6 +99,13 @@ struct ContentView: View {
                 }
             }
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        showSearch = true
+                    } label: {
+                        Image(systemName: "magnifyingglass")
+                    }
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         refreshProfileFromStorage()
@@ -135,6 +149,9 @@ struct ContentView: View {
                     username: profileUsername,
                     profileImageData: profileImageData
                 )
+            }
+            .fullScreenCover(isPresented: $showSearch) {
+                DashboardSearchView(onDismiss: { showSearch = false })
             }
             .tint(CloudwrkzColors.primary400)
             .toolbarBackground(CloudwrkzColors.neutral950.opacity(0.95), for: .navigationBar)
