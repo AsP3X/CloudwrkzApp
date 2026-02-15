@@ -200,7 +200,7 @@ struct AccountSettingsView: View {
         VStack(alignment: .leading, spacing: 12) {
             sectionLabel("Data & Privacy")
             VStack(spacing: 0) {
-                AccountSettingsRow(
+                settingsActionRow(
                     icon: "trash",
                     title: "Clear local cache",
                     subtitle: "Free up space"
@@ -208,7 +208,7 @@ struct AccountSettingsView: View {
                     // Placeholder: clear caches
                 }
                 settingsDivider
-                AccountSettingsRow(
+                settingsActionRow(
                     icon: "hand.raised.fill",
                     title: "Privacy policy",
                     subtitle: "How we handle your data"
