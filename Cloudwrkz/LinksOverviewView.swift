@@ -9,8 +9,11 @@ import SwiftUI
 
 struct LinksOverviewView: View {
     @State private var links: [Link] = []
+    @State private var collections: [Collection] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
+    /// Shown as banner when pull-to-refresh fails but we keep the current list.
+    @State private var refreshErrorMessage: String?
     @State private var filters = LinkFilters()
     @State private var showFilters = false
 
@@ -23,10 +26,20 @@ struct LinksOverviewView: View {
                 loadingView
             } else if let error = errorMessage {
                 errorView(error)
-            } else if links.isEmpty {
-                emptyView
             } else {
-                linkList
+                VStack(spacing: 0) {
+                    if let refreshErr = refreshErrorMessage {
+                        refreshErrorBanner(message: refreshErr)
+                    }
+                    if !collections.isEmpty || filters.collectionId != nil {
+                        collectionPicker
+                    }
+                    if links.isEmpty {
+                        emptyView
+                    } else {
+                        linkList
+                    }
+                }
             }
         }
         .navigationTitle("Links")
@@ -45,10 +58,56 @@ struct LinksOverviewView: View {
         }
         .tint(CloudwrkzColors.primary400)
         .sheet(isPresented: $showFilters) {
-            LinkFiltersView(filters: $filters)
+            LinkFiltersView(filters: $filters, collections: collections)
                 .onDisappear { Task { await loadLinks() } }
         }
-        .onAppear { Task { await loadLinks() } }
+        .onChange(of: showFilters) { _, isOpen in
+            if isOpen { Task { await loadCollections() } }
+        }
+        .onAppear {
+            Task { await loadCollections() }
+            Task { await loadLinks() }
+        }
+    }
+
+    /// Horizontal scroll of "All" + collection chips. Liquid glass style.
+    private var collectionPicker: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                collectionChip(name: "All", id: nil)
+                ForEach(collections) { collection in
+                    collectionChip(name: collection.name, id: collection.id)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+        }
+        .background(CloudwrkzColors.neutral950.opacity(0.6))
+    }
+
+    private func collectionChip(name: String, id: String?) -> some View {
+        let isSelected = (filters.collectionId == nil && id == nil) || (filters.collectionId == id)
+        return Button {
+            filters.collectionId = id
+            Task { await loadLinks() }
+        } label: {
+            Text(name)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(isSelected ? CloudwrkzColors.neutral950 : CloudwrkzColors.neutral100)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(
+                    isSelected
+                        ? CloudwrkzColors.primary400
+                        : Color.clear,
+                    in: Capsule()
+                )
+                .overlay(
+                    Capsule()
+                        .stroke(.white.opacity(isSelected ? 0 : 0.25), lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
     }
 
     private var background: some View {
@@ -101,7 +160,9 @@ struct LinksOverviewView: View {
             Text("No links")
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(CloudwrkzColors.neutral100)
-            Text("Add and organize bookmarks in the web app.")
+            Text(filters.collectionId != nil
+                 ? "No links in this collection."
+                 : "Add and organize bookmarks in the web app.")
                 .font(.system(size: 14, weight: .regular))
                 .foregroundStyle(CloudwrkzColors.neutral500)
                 .multilineTextAlignment(.center)
@@ -122,22 +183,71 @@ struct LinksOverviewView: View {
             .padding(.bottom, 32)
         }
         .refreshable {
-            await loadLinks()
+            refreshErrorMessage = nil
+            await withTaskGroup(of: Void.self) { group in
+                group.addTask { await loadCollections() }
+                group.addTask { await loadLinks(isRefresh: true) }
+            }
         }
     }
 
-    private func loadLinks() async {
-        errorMessage = nil
-        isLoading = true
+    private func refreshErrorBanner(message: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "exclamationmark.circle.fill")
+                .foregroundStyle(CloudwrkzColors.warning500)
+            Text(message)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(CloudwrkzColors.neutral100)
+            Spacer()
+            Button("Dismiss") {
+                refreshErrorMessage = nil
+            }
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(CloudwrkzColors.primary400)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(CloudwrkzColors.neutral800.opacity(0.95))
+        .overlay(
+            Rectangle()
+                .frame(height: 1)
+                .foregroundStyle(.white.opacity(0.15)),
+            alignment: .bottom
+        )
+    }
+
+    private func loadCollections() async {
+        let result = await CollectionService.fetchCollections(config: config, archived: false)
+        await MainActor.run {
+            if case .success(let list) = result {
+                collections = list
+            }
+        }
+    }
+
+    /// When `isRefresh` is true and we already have links, failure shows a banner instead of clearing the list.
+    private func loadLinks(isRefresh: Bool = false) async {
+        let hadLinks = !links.isEmpty
+        if !isRefresh {
+            errorMessage = nil
+            isLoading = true
+        }
         let result = await LinkService.fetchLinks(config: config, filters: filters, page: 1, limit: 100)
         await MainActor.run {
             switch result {
             case .success(let response):
                 links = response.links
                 errorMessage = nil
+                refreshErrorMessage = nil
             case .failure(let err):
-                links = []
-                errorMessage = message(for: err)
+                let errText = message(for: err)
+                if isRefresh && hadLinks {
+                    refreshErrorMessage = errText
+                    // Keep existing links
+                } else {
+                    links = []
+                    errorMessage = errText
+                }
             }
             isLoading = false
         }
@@ -198,8 +308,9 @@ private struct LinkRowView: View {
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(CloudwrkzColors.primary400)
                         .lineLimit(1)
-                    if !link.collections.isEmpty {
-                        let names = link.collections.prefix(2).map { $0.collection.name }
+                    let linkCollections = link.collections ?? []
+                    if !linkCollections.isEmpty {
+                        let names = linkCollections.prefix(2).map { $0.collection.name }
                         Text(names.joined(separator: ", "))
                             .font(.system(size: 12, weight: .regular))
                             .foregroundStyle(CloudwrkzColors.neutral500)
@@ -292,6 +403,7 @@ private struct LinkRowView: View {
 
 struct LinkFiltersView: View {
     @Binding var filters: LinkFilters
+    var collections: [Collection] = []
     @Environment(\.dismiss) private var dismiss
 
     private var background: some View {
@@ -350,6 +462,30 @@ struct LinkFiltersView: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.top, 4)
+
+                        if !collections.isEmpty {
+                            VStack(alignment: .leading, spacing: 12) {
+                                sectionHeader("Collection")
+                                VStack(spacing: 10) {
+                                    filterRow(
+                                        title: "All links",
+                                        isSelected: filters.collectionId == nil
+                                    ) {
+                                        filters.collectionId = nil
+                                    }
+                                    ForEach(collections) { collection in
+                                        filterRow(
+                                            title: collection.name,
+                                            isSelected: filters.collectionId == collection.id
+                                        ) {
+                                            filters.collectionId = collection.id
+                                        }
+                                    }
+                                }
+                                .padding(20)
+                                .glassPanel(cornerRadius: 20, tint: CloudwrkzColors.primary500, tintOpacity: 0.04)
+                            }
+                        }
 
                         VStack(alignment: .leading, spacing: 12) {
                             sectionHeader("Show")

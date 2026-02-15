@@ -64,6 +64,9 @@ enum LinkService {
         if filters.isFavorite != .all {
             queryItems.append(URLQueryItem(name: "isFavorite", value: filters.isFavorite.rawValue))
         }
+        if let cid = filters.collectionId, !cid.isEmpty {
+            queryItems.append(URLQueryItem(name: "collectionId", value: cid))
+        }
         if !queryItems.isEmpty {
             components.queryItems = queryItems
         }

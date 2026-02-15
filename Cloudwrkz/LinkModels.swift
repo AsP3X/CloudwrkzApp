@@ -29,7 +29,8 @@ struct Link: Identifiable, Decodable, Hashable {
     let rating: Int?
     let createdAt: Date
     let updatedAt: Date
-    let collections: [LinkCollectionRef]
+    /// Optional for defensive decoding (server may omit in some responses).
+    let collections: [LinkCollectionRef]?
 
     struct LinkCollectionRef: Decodable, Hashable {
         let collection: LinkCollectionInfo
@@ -42,11 +43,31 @@ struct Link: Identifiable, Decodable, Hashable {
     }
 }
 
-// MARK: - Filter state (for future filter sheet)
+// MARK: - Collections (for picker and filter)
+
+struct CollectionsResponse: Decodable {
+    let collections: [Collection]
+}
+
+struct Collection: Identifiable, Decodable, Hashable {
+    let id: String
+    let name: String
+    let description: String?
+    let color: String?
+    let _count: CollectionLinkCount?
+
+    struct CollectionLinkCount: Decodable, Hashable {
+        let links: Int
+    }
+}
+
+// MARK: - Filter state (for filter sheet)
 
 struct LinkFilters: Equatable {
     var sort: LinkSortOption = .newestFirst
     var isFavorite: LinkFavoriteFilter = .all
+    /// When set, only show links in this collection; nil = all.
+    var collectionId: String?
 
     enum LinkSortOption: String, CaseIterable, Identifiable {
         case newestFirst = "createdAt-desc"
