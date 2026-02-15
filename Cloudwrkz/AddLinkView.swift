@@ -22,8 +22,11 @@ struct AddLinkView: View {
     @State private var isExtractingMetadata = false
     @State private var errorMessage: String?
     @FocusState private var focusedField: Field?
+    /// Cancellable task for debounced auto-fetch when URL is pasted or edited.
+    @State private var fetchMetadataTask: Task<Void, Never>?
 
     private let config = ServerConfig.load()
+    private let fetchMetadataDebounceSeconds: UInt64 = 600_000_000 // 0.6s in nanoseconds
 
     enum Field {
         case url, title, description
@@ -50,11 +53,6 @@ struct AddLinkView: View {
         return !trimmed.isEmpty && (trimmed.hasPrefix("http://") || trimmed.hasPrefix("https://") || trimmed.contains("."))
     }
 
-    private var canFetchMetadata: Bool {
-        let trimmed = urlText.trimmingCharacters(in: .whitespacesAndNewlines)
-        return !trimmed.isEmpty && (trimmed.hasPrefix("http://") || trimmed.hasPrefix("https://") || trimmed.contains(".")) && !isExtractingMetadata
-    }
-
     var body: some View {
         NavigationStack {
             ZStack {
@@ -72,28 +70,22 @@ struct AddLinkView: View {
                             .focused($focusedField, equals: .url)
                             .padding(14)
                             .glassField(cornerRadius: 12)
-
-                        Button {
-                            Task { await fetchMetadata() }
-                        } label: {
-                            HStack(spacing: 8) {
-                                if isExtractingMetadata {
-                                    ProgressView()
-                                        .scaleEffect(0.9)
-                                        .tint(CloudwrkzColors.neutral100)
-                                } else {
-                                    Image(systemName: "arrow.down.circle.fill")
-                                        .font(.system(size: 18))
-                                }
-                                Text(isExtractingMetadata ? "Extracting…" : "Fetch title & description")
-                                    .font(.system(size: 15, weight: .semibold))
+                            .onChange(of: urlText) { _, newValue in
+                                scheduleFetchMetadataIfValid(url: newValue)
                             }
-                            .foregroundStyle(canFetchMetadata ? CloudwrkzColors.primary400 : CloudwrkzColors.neutral500)
+
+                        if isExtractingMetadata {
+                            HStack(spacing: 8) {
+                                ProgressView()
+                                    .scaleEffect(0.9)
+                                    .tint(CloudwrkzColors.neutral100)
+                                Text("Extracting title & description…")
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundStyle(CloudwrkzColors.neutral400)
+                            }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
-                            .glassButtonSecondary(cornerRadius: 12)
                         }
-                        .disabled(!canFetchMetadata)
 
                         sectionLabel("Title (optional)")
                         TextField("Title", text: $titleText)
@@ -224,6 +216,20 @@ struct AddLinkView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(CloudwrkzColors.neutral800.opacity(0.8), in: Capsule())
+    }
+
+    /// Schedules a single metadata fetch after a short delay when the URL looks valid (e.g. after paste).
+    private func scheduleFetchMetadataIfValid(url: String) {
+        fetchMetadataTask?.cancel()
+        let trimmed = url.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty,
+              trimmed.hasPrefix("http://") || trimmed.hasPrefix("https://") || trimmed.contains("."),
+              !isExtractingMetadata else { return }
+        fetchMetadataTask = Task {
+            try? await Task.sleep(nanoseconds: fetchMetadataDebounceSeconds)
+            guard !Task.isCancelled else { return }
+            await fetchMetadata()
+        }
     }
 
     private func fetchMetadata() async {
