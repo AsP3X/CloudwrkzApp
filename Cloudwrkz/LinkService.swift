@@ -78,6 +78,7 @@ enum LinkService {
         request.timeoutInterval = timeout
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        AppIdentity.apply(to: &request)
 
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
@@ -133,6 +134,7 @@ enum LinkService {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        AppIdentity.apply(to: &request)
         let body: [String: Any] = {
             var b: [String: Any] = ["url": url.trimmingCharacters(in: .whitespacesAndNewlines)]
             if let t = title?.trimmingCharacters(in: .whitespacesAndNewlines), !t.isEmpty {
@@ -220,6 +222,7 @@ enum LinkService {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        AppIdentity.apply(to: &request)
 
         var body: [String: Any] = [:]
         if let url = url?.trimmingCharacters(in: .whitespacesAndNewlines), !url.isEmpty {
@@ -308,6 +311,7 @@ enum LinkService {
         request.timeoutInterval = timeout
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        AppIdentity.apply(to: &request)
 
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
@@ -358,6 +362,7 @@ enum LinkService {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        AppIdentity.apply(to: &request)
         request.httpBody = (try? JSONSerialization.data(withJSONObject: ["url": url])) ?? Data()
         do {
             let (data, response) = try await URLSession.shared.data(for: request)

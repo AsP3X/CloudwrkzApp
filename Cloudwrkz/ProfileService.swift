@@ -44,6 +44,7 @@ enum ProfileService {
         request.timeoutInterval = timeout
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        AppIdentity.apply(to: &request)
 
         var body = Data()
         body.append("--\(boundary)\r\n".data(using: .utf8)!)

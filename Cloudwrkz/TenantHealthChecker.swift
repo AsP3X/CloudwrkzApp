@@ -35,6 +35,7 @@ enum TenantHealthChecker {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.timeoutInterval = Self.timeout
+        AppIdentity.apply(to: &request)
 
         do {
             let (data, response) = try await URLSession.shared.data(for: request)

@@ -53,6 +53,7 @@ enum CollectionService {
         request.timeoutInterval = timeout
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        AppIdentity.apply(to: &request)
 
         do {
             let (data, response) = try await URLSession.shared.data(for: request)

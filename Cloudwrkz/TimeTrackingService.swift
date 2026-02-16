@@ -102,6 +102,7 @@ enum TimeTrackingService {
         request.timeoutInterval = timeout
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        AppIdentity.apply(to: &request)
 
         return await execute(request: request, decode: { data in
             let decoded = try dateDecoder.decode(TimeEntriesResponse.self, from: data)
@@ -120,6 +121,7 @@ enum TimeTrackingService {
         request.timeoutInterval = timeout
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        AppIdentity.apply(to: &request)
 
         return await execute(request: request, decode: { data in
             let decoded = try dateDecoder.decode(TimeEntriesResponse.self, from: data)
@@ -138,6 +140,7 @@ enum TimeTrackingService {
         request.timeoutInterval = timeout
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        AppIdentity.apply(to: &request)
 
         return await execute(request: request, decode: { data in
             let decoded = try dateDecoder.decode(SingleTimeEntryResponse.self, from: data)
@@ -166,6 +169,7 @@ enum TimeTrackingService {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        AppIdentity.apply(to: &request)
         request.httpBody = try? dateEncoder.encode(input)
 
         return await execute(request: request, decode: { data in
@@ -198,6 +202,7 @@ enum TimeTrackingService {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        AppIdentity.apply(to: &request)
         request.httpBody = try? dateEncoder.encode(input)
 
         return await execute(request: request, decode: { data in
@@ -228,6 +233,7 @@ enum TimeTrackingService {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        AppIdentity.apply(to: &request)
         request.httpBody = try? dateEncoder.encode(input)
 
         return await executeVoid(request: request)
@@ -244,6 +250,7 @@ enum TimeTrackingService {
         request.timeoutInterval = timeout
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        AppIdentity.apply(to: &request)
 
         return await executeVoid(request: request)
     }
@@ -283,6 +290,7 @@ enum TimeTrackingService {
         request.timeoutInterval = timeout
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        AppIdentity.apply(to: &request)
 
         return await executeVoid(request: request)
     }

@@ -74,6 +74,7 @@ enum TodoService {
         request.timeoutInterval = timeout
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        AppIdentity.apply(to: &request)
 
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
@@ -128,6 +129,7 @@ enum TodoService {
         request.timeoutInterval = timeout
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        AppIdentity.apply(to: &request)
 
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
@@ -191,6 +193,7 @@ enum TodoService {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        AppIdentity.apply(to: &request)
         var body: [String: Any] = ["title": title.trimmingCharacters(in: .whitespacesAndNewlines)]
         if let d = description?.trimmingCharacters(in: .whitespacesAndNewlines), !d.isEmpty {
             body["description"] = d

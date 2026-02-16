@@ -238,6 +238,7 @@ struct FaviconImageView: View {
                 } else {
                     hasToken = false
                 }
+                AppIdentity.apply(to: &request)
                 print("[FaviconImageView] fetching hasToken=\(hasToken) url=\(url.absoluteString)")
                 let (data, response) = try await Self.session.data(for: request)
                 guard !Task.isCancelled else {

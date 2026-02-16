@@ -16,6 +16,11 @@ import Foundation
 private struct LoginRequest: Encodable {
     let email: String
     let password: String
+    let deviceName: String?
+    let deviceType: String?
+    let deviceOs: String?
+    let deviceBrowser: String?
+    let userAgent: String?
 }
 
 private struct RegisterRequest: Encodable {
@@ -133,8 +138,17 @@ enum AuthService {
         request.cachePolicy = .reloadIgnoringLocalCacheData
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+        AppIdentity.apply(to: &request)
 
-        let body = LoginRequest(email: email, password: password)
+        let body = LoginRequest(
+            email: email,
+            password: password,
+            deviceName: AppIdentity.deviceName,
+            deviceType: AppIdentity.deviceType,
+            deviceOs: AppIdentity.deviceOs,
+            deviceBrowser: AppIdentity.deviceBrowser,
+            userAgent: AppIdentity.userAgent
+        )
         do {
             request.httpBody = try JSONEncoder().encode(body)
         } catch {
@@ -202,6 +216,7 @@ enum AuthService {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        AppIdentity.apply(to: &request)
         let body = ChangePasswordRequest(currentPassword: currentPassword, newPassword: newPassword, confirmPassword: confirmPassword)
         do {
             request.httpBody = try JSONEncoder().encode(body)
@@ -258,6 +273,7 @@ enum AuthService {
         request.timeoutInterval = timeout
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        AppIdentity.apply(to: &request)
 
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
@@ -298,6 +314,7 @@ enum AuthService {
         request.cachePolicy = .reloadIgnoringLocalCacheData
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+        AppIdentity.apply(to: &request)
 
         let body = RegisterRequest(name: name, email: email, password: password, confirmPassword: confirmPassword)
         do {
