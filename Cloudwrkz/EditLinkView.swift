@@ -199,23 +199,7 @@ struct EditLinkView: View {
                 .fill(CloudwrkzColors.primary500.opacity(0.1))
                 .frame(width: 72, height: 72)
             if let url = resolvedURL {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 72, height: 72)
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
-                    case .failure:
-                        faviconFallback
-                    case .empty:
-                        CloudwrkzSpinner(tint: CloudwrkzColors.neutral400)
-                    @unknown default:
-                        faviconFallback
-                    }
-                }
-                .id(url.absoluteString)
+                FaviconImageView(url: url, size: 72, cornerRadius: 14)
             } else {
                 faviconFallback
             }
@@ -635,8 +619,9 @@ struct EditLinkView: View {
         guard !raw.isEmpty else { return nil }
         if raw.hasPrefix("//") { return URL(string: "https:" + raw) }
         if raw.hasPrefix("/") {
+            let path = raw.replacingOccurrences(of: "/uploads/favicons/", with: "/api/favicons/")
             if let base = serverBaseURL {
-                return URL(string: raw, relativeTo: base)?.absoluteURL
+                return URL(string: path, relativeTo: base)?.absoluteURL
             }
             return nil
         }

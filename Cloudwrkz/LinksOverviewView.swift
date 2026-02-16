@@ -566,24 +566,7 @@ private struct LinkRowView: View {
                 .fill(CloudwrkzColors.primary500.opacity(0.15))
                 .frame(width: 40, height: 40)
             if let url = faviconURL {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 40, height: 40)
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                    case .failure:
-                        defaultLinkFallback
-                    case .empty:
-                        ProgressView()
-                            .frame(width: 18, height: 18)
-                    @unknown default:
-                        defaultLinkFallback
-                    }
-                }
-                .id(url.absoluteString)
+                FaviconImageView(url: url, size: 40, cornerRadius: 10)
             } else {
                 defaultLinkFallback
             }

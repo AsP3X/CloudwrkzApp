@@ -138,23 +138,7 @@ struct LinkDetailView: View {
                 .fill(CloudwrkzColors.primary500.opacity(0.15))
                 .frame(width: 48, height: 48)
             if let url = faviconURL {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 48, height: 48)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                    case .failure:
-                        defaultLinkFallback
-                    case .empty:
-                        ProgressView()
-                            .frame(width: 22, height: 22)
-                    @unknown default:
-                        defaultLinkFallback
-                    }
-                }
+                FaviconImageView(url: url, size: 48, cornerRadius: 12)
             } else {
                 defaultLinkFallback
             }

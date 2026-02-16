@@ -152,6 +152,133 @@ struct CloudwrkzSpinner: View {
     }
 }
 
+// MARK: - Favicon image (bypasses AsyncImage cache, always fetches fresh)
+
+/// Loads a remote image with explicit `reloadIgnoringLocalCacheData` policy so favicons
+/// are always fresh after edits. SwiftUI's built-in `AsyncImage` uses an opaque URL cache
+/// that can return stale (or previously-404) responses even when the server file has changed.
+///
+/// Includes the stored Bearer token in requests so that favicons load correctly even when
+/// the server sits behind a reverse proxy that requires authentication.
+struct FaviconImageView: View {
+    let url: URL
+    var size: CGFloat = 40
+    var cornerRadius: CGFloat = 10
+    var fallbackIcon: String = "link"
+    var fallbackColor: Color = CloudwrkzColors.primary400
+
+    @State private var uiImage: UIImage?
+    @State private var failed = false
+    @State private var loadTask: Task<Void, Never>?
+    @State private var debugInfo: String = ""
+    @State private var showDebug = false
+
+    private static let session: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.urlCache = nil
+        config.requestCachePolicy = .reloadIgnoringLocalCacheData
+        return URLSession(configuration: config)
+    }()
+
+    var body: some View {
+        ZStack {
+            if let uiImage {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: size, height: size)
+                    .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+            } else if failed {
+                fallbackView
+            } else {
+                CloudwrkzSpinner(tint: fallbackColor)
+                    .scaleEffect(size > 30 ? 0.8 : 0.6)
+            }
+        }
+        .frame(width: size, height: size)
+        .onTapGesture(count: 2) { showDebug.toggle() }
+        .popover(isPresented: $showDebug) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Favicon Debug").font(.headline)
+                Text("URL: \(url.absoluteString)")
+                    .font(.system(size: 11, design: .monospaced))
+                Text(debugInfo)
+                    .font(.system(size: 11, design: .monospaced))
+                Button("Retry") { startLoad() }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+            }
+            .padding()
+            .frame(minWidth: 300)
+        }
+        .onAppear { startLoad() }
+        .onChange(of: url) { _, _ in startLoad() }
+        .onDisappear { loadTask?.cancel() }
+    }
+
+    private var fallbackView: some View {
+        Image(systemName: fallbackIcon)
+            .font(.system(size: size * 0.45))
+            .foregroundStyle(fallbackColor)
+    }
+
+    private func startLoad() {
+        loadTask?.cancel()
+        uiImage = nil
+        failed = false
+        debugInfo = "[favicon] loading \(url.absoluteString)"
+        print("[FaviconImageView] startLoad url=\(url.absoluteString)")
+        loadTask = Task {
+            do {
+                var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 15)
+                let hasToken: Bool
+                if let token = AuthTokenStorage.getToken(), !token.isEmpty {
+                    request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+                    hasToken = true
+                } else {
+                    hasToken = false
+                }
+                print("[FaviconImageView] fetching hasToken=\(hasToken) url=\(url.absoluteString)")
+                let (data, response) = try await Self.session.data(for: request)
+                guard !Task.isCancelled else {
+                    print("[FaviconImageView] CANCELLED url=\(url.absoluteString)")
+                    return
+                }
+                if let http = response as? HTTPURLResponse {
+                    let contentType = http.value(forHTTPHeaderField: "Content-Type") ?? "nil"
+                    let snippet = String(data: data.prefix(200), encoding: .utf8) ?? "(binary \(data.count) bytes)"
+                    print("[FaviconImageView] status=\(http.statusCode) contentType=\(contentType) bytes=\(data.count) finalURL=\(http.url?.absoluteString ?? "nil") snippet=\(snippet)")
+                    debugInfo = "[favicon] \(http.statusCode) \(contentType) \(data.count)B url=\(http.url?.absoluteString ?? "?")"
+                    guard (200...299).contains(http.statusCode) else {
+                        failed = true
+                        return
+                    }
+                } else {
+                    print("[FaviconImageView] non-HTTP response url=\(url.absoluteString)")
+                    debugInfo = "[favicon] non-HTTP response"
+                    failed = true
+                    return
+                }
+                if let image = UIImage(data: data) {
+                    print("[FaviconImageView] SUCCESS \(Int(image.size.width))x\(Int(image.size.height)) url=\(url.absoluteString)")
+                    debugInfo = "[favicon] OK \(data.count)B"
+                    uiImage = image
+                } else {
+                    print("[FaviconImageView] UIImage DECODE FAILED bytes=\(data.count) url=\(url.absoluteString)")
+                    debugInfo = "[favicon] decode fail \(data.count)B"
+                    failed = true
+                }
+            } catch {
+                print("[FaviconImageView] ERROR \(error.localizedDescription) url=\(url.absoluteString)")
+                debugInfo = "[favicon] error: \(error.localizedDescription)"
+                if !Task.isCancelled {
+                    failed = true
+                }
+            }
+        }
+    }
+}
+
 // MARK: - Color hex (for collection chips etc.)
 
 extension Color {

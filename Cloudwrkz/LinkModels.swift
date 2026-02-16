@@ -53,11 +53,9 @@ extension Link {
     /// - Empty / nil favicon → `nil`
     /// - Protocol-relative URLs (`//example.com/icon.png`) → `https://example.com/icon.png`
     /// - Absolute URLs (`https://…`) → used as-is
-    /// - Relative paths (`/uploads/favicons/...`) → resolved against `serverBaseURL`
-    ///
-    /// Server-hosted favicons (relative paths) include a cache-busting query parameter
-    /// derived from `updatedAt` so that SwiftUI's AsyncImage reloads the image after edits
-    /// instead of returning a stale cached (or 404) response.
+    /// - Relative paths (`/uploads/favicons/...`) → rewritten to `/api/favicons/...` and
+    ///   resolved against `serverBaseURL`. The `/api/` prefix bypasses server middleware
+    ///   that redirects non-API paths to the login page when no session cookie is present.
     func faviconURL(serverBaseURL: URL?) -> URL? {
         let raw = (favicon ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         guard !raw.isEmpty else { return nil }
@@ -67,27 +65,20 @@ extension Link {
             return URL(string: "https:" + raw)
         }
 
-        // Relative path: /uploads/favicons/...
+        // Relative path from server (e.g. /uploads/favicons/favicon-abc.png).
         if raw.hasPrefix("/") {
-            var resolved: URL?
+            // Rewrite /uploads/favicons/ → /api/favicons/ so the request goes through
+            // the API route which the server middleware excludes from auth checks.
+            let path = raw.replacingOccurrences(of: "/uploads/favicons/", with: "/api/favicons/")
 
-            // Prefer explicit server base URL when provided.
             if let base = serverBaseURL {
-                resolved = URL(string: raw, relativeTo: base)?.absoluteURL
+                if let resolved = URL(string: path, relativeTo: base)?.absoluteURL {
+                    return resolved
+                }
             }
 
-            // Fallback: derive base from the link's own URL (host + scheme).
-            if resolved == nil, let derivedBase = Self.derivedBaseURL(from: url) {
-                resolved = URL(string: raw, relativeTo: derivedBase)?.absoluteURL
-            }
-
-            // Append cache-busting query parameter so AsyncImage reloads after edits.
-            if let base = resolved {
-                var components = URLComponents(url: base, resolvingAgainstBaseURL: true)
-                components?.queryItems = [
-                    URLQueryItem(name: "v", value: String(Int(updatedAt.timeIntervalSince1970)))
-                ]
-                return components?.url ?? base
+            if let derivedBase = Self.derivedBaseURL(from: url) {
+                return URL(string: path, relativeTo: derivedBase)?.absoluteURL
             }
 
             return nil
