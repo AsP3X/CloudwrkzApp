@@ -79,6 +79,9 @@ struct ContentView: View {
             .navigationDestination(for: Todo.self) { todo in
                 TodoDetailView(todo: todo)
             }
+            .navigationDestination(for: Link.self) { link in
+                LinkDetailView(link: link)
+            }
             .onAppear {
                 refreshProfileFromStorage()
                 if AuthTokenStorage.getToken() != nil {

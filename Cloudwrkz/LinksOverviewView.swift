@@ -214,7 +214,7 @@ struct LinksOverviewView: View {
         ScrollView {
             LazyVStack(spacing: 14) {
                 ForEach(links) { link in
-                    LinkRowView(link: link)
+                    LinkRowView(link: link, serverBaseURL: config.baseURL)
                 }
             }
             .padding(.horizontal, 20)
@@ -303,15 +303,15 @@ struct LinksOverviewView: View {
     }
 }
 
-// MARK: - Link row (liquid glass card, type badge, open in Safari)
+// MARK: - Link row (liquid glass card, type badge; tap opens link detail)
 
 private struct LinkRowView: View {
     let link: Link
+    /// Server base URL (e.g. https://cloudwrkz.com). Used to resolve relative favicon paths from the API.
+    var serverBaseURL: URL?
 
     var body: some View {
-        Button {
-            openURL(link.url)
-        } label: {
+        NavigationLink(value: link) {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .top, spacing: 12) {
                     linkIcon
@@ -369,14 +369,45 @@ private struct LinkRowView: View {
     }
 
     private var linkIcon: some View {
-        ZStack {
+        let faviconURL = resolvedFaviconURL
+        return ZStack {
             RoundedRectangle(cornerRadius: 10)
                 .fill(CloudwrkzColors.primary500.opacity(0.15))
                 .frame(width: 40, height: 40)
-            Image(systemName: linkTypeIcon(link.linkType))
-                .font(.system(size: 18))
-                .foregroundStyle(CloudwrkzColors.primary400)
+            if let url = faviconURL {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 40, height: 40)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                    case .failure, .empty:
+                        typeIconFallback
+                    @unknown default:
+                        typeIconFallback
+                    }
+                }
+            } else {
+                typeIconFallback
+            }
         }
+    }
+
+    /// Favicon URL from the server. Relative paths (e.g. /uploads/favicons/...) are resolved against serverBaseURL.
+    private var resolvedFaviconURL: URL? {
+        guard let fav = link.favicon, !fav.isEmpty else { return nil }
+        if fav.hasPrefix("/") {
+            return URL(string: fav, relativeTo: serverBaseURL)?.absoluteURL
+        }
+        return URL(string: fav)
+    }
+
+    private var typeIconFallback: some View {
+        Image(systemName: linkTypeIcon(link.linkType))
+            .font(.system(size: 18))
+            .foregroundStyle(CloudwrkzColors.primary400)
     }
 
     private var linkRowGlass: some View {
@@ -423,11 +454,6 @@ private struct LinkRowView: View {
         guard let url = URL(string: urlString),
               let host = url.host else { return urlString }
         return host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
-    }
-
-    private func openURL(_ urlString: String) {
-        guard let url = URL(string: urlString) else { return }
-        UIApplication.shared.open(url)
     }
 
     private func formatted(_ date: Date) -> String {

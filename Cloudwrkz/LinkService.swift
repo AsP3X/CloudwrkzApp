@@ -104,11 +104,13 @@ enum LinkService {
     }
 
     /// POST /api/links — create a link. Returns the new link id on success.
+    /// Pass favicon when available (e.g. from fetchMetadata) so the server can cache and store it like the website.
     static func createLink(
         config: ServerConfig,
         url: String,
         title: String? = nil,
         description: String? = nil,
+        favicon: String? = nil,
         collectionIds: [String]? = nil
     ) async -> Result<String, LinkServiceError> {
         guard let base = config.baseURL else {
@@ -138,6 +140,9 @@ enum LinkService {
             }
             if let d = description?.trimmingCharacters(in: .whitespacesAndNewlines), !d.isEmpty {
                 b["description"] = d
+            }
+            if let f = favicon?.trimmingCharacters(in: .whitespacesAndNewlines), !f.isEmpty {
+                b["favicon"] = f
             }
             if let ids = collectionIds, !ids.isEmpty {
                 b["collectionIds"] = ids

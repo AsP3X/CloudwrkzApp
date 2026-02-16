@@ -16,6 +16,7 @@ struct AddLinkView: View {
     @State private var urlText = ""
     @State private var titleText = ""
     @State private var descriptionText = ""
+    @State private var fetchedFavicon: String?
     @State private var selectedCollectionIds: Set<String> = []
     @State private var showCollectionChooser = false
     @State private var isSaving = false
@@ -222,8 +223,11 @@ struct AddLinkView: View {
     private func scheduleFetchMetadataIfValid(url: String) {
         fetchMetadataTask?.cancel()
         let trimmed = url.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty,
-              trimmed.hasPrefix("http://") || trimmed.hasPrefix("https://") || trimmed.contains("."),
+        if trimmed.isEmpty {
+            fetchedFavicon = nil
+            return
+        }
+        guard trimmed.hasPrefix("http://") || trimmed.hasPrefix("https://") || trimmed.contains("."),
               !isExtractingMetadata else { return }
         fetchMetadataTask = Task {
             try? await Task.sleep(nanoseconds: fetchMetadataDebounceSeconds)
@@ -251,6 +255,7 @@ struct AddLinkView: View {
                 if descriptionText.isEmpty, let d = meta.description, !d.isEmpty {
                     descriptionText = d
                 }
+                fetchedFavicon = meta.favicon
             case .failure(let err):
                 errorMessage = message(for: err)
             }
@@ -270,6 +275,7 @@ struct AddLinkView: View {
             url: url,
             title: titleText.isEmpty ? nil : titleText,
             description: descriptionText.isEmpty ? nil : descriptionText,
+            favicon: fetchedFavicon,
             collectionIds: collectionIds
         )
         await MainActor.run {
