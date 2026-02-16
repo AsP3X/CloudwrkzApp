@@ -70,10 +70,9 @@ struct EditTimeEntrySheet: View {
                             successBanner(msg)
                         }
 
-                        statusBadge
                         nameSection
-                        timingSection
                         descriptionSection
+                        timingSection
                         locationSection
                         tagsSection
                         billableSection
@@ -135,36 +134,6 @@ struct EditTimeEntrySheet: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.top, 4)
-    }
-
-    // MARK: - Status badge
-
-    private var statusBadge: some View {
-        HStack(spacing: 14) {
-            Image(systemName: entry.status.iconName)
-                .font(.system(size: 22))
-                .foregroundStyle(statusColor)
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(entry.name)
-                    .font(.system(size: 14, weight: .semibold, design: .monospaced))
-                    .foregroundStyle(CloudwrkzColors.primary400)
-                HStack(spacing: 8) {
-                    Text(entry.status.displayName)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(statusColor)
-                    Text("\u{2022}")
-                        .foregroundStyle(CloudwrkzColors.neutral600)
-                    Text(TimeTrackingUtils.formatDuration(entry.totalDuration))
-                        .font(.system(size: 13, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(CloudwrkzColors.neutral200)
-                }
-            }
-
-            Spacer()
-        }
-        .padding(16)
-        .glassPanel(cornerRadius: 16, tint: statusColor, tintOpacity: 0.06)
     }
 
     // MARK: - Name
@@ -555,15 +524,6 @@ struct EditTimeEntrySheet: View {
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(CloudwrkzColors.success400.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
-    }
-
-    private var statusColor: Color {
-        switch entry.status {
-        case .running: return CloudwrkzColors.success500
-        case .paused: return CloudwrkzColors.warning500
-        case .stopped: return CloudwrkzColors.neutral400
-        case .completed: return CloudwrkzColors.primary400
-        }
     }
 
     private static let detailDateFormatter: DateFormatter = {
