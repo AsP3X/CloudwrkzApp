@@ -29,7 +29,7 @@ struct DashboardHomeView: View {
                 .padding(.bottom, 32)
             }
         }
-        .toolbarBackground(CloudwrkzColors.neutral950.opacity(0.95), for: .navigationBar)
+        .toolbarBackground(.hidden, for: .navigationBar)
     }
 
     private var welcomeSection: some View {

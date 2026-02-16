@@ -44,7 +44,7 @@ struct DashboardSectionPlaceholderView: View {
             .padding(32)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .toolbarBackground(CloudwrkzColors.neutral950.opacity(0.95), for: .navigationBar)
+        .toolbarBackground(.hidden, for: .navigationBar)
     }
 }
 

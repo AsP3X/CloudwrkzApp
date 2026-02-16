@@ -190,7 +190,7 @@ struct ContentView: View {
                 QrLoginScannerView(onDismiss: { showQrScanner = false })
             }
             .tint(CloudwrkzColors.primary400)
-            .toolbarBackground(CloudwrkzColors.neutral950.opacity(0.95), for: .navigationBar)
+            .toolbarBackground(.hidden, for: .navigationBar)
         }
     }
 

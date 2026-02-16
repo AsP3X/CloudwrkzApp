@@ -90,8 +90,7 @@ struct EditTimeEntrySheet: View {
             }
             .navigationTitle("Edit Entry")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarBackground(CloudwrkzColors.neutral950.opacity(0.95), for: .navigationBar)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
