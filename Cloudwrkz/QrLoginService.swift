@@ -69,6 +69,7 @@ enum QrLoginService {
             case 200:
                 return .success(())
             case 401:
+                SessionExpiredNotifier.notify()
                 return .failure(.unauthorized)
             case 404:
                 return .failure(.requestNotFoundOrExpired)

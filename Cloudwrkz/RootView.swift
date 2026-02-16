@@ -30,8 +30,13 @@ struct RootView: View {
     /// When true, main content is covered by biometric lock overlay until Face ID / Touch ID succeeds.
     @State private var isAppLocked = false
     @State private var isEvaluatingBiometric = false
+    /// Timer that periodically validates the session while the user is on the main screen.
+    @State private var sessionCheckTimer: Timer?
+    /// When true, the session-expired overlay is shown over everything.
+    @State private var showSessionExpired = false
 
     private let pushPopAnimation = Animation.easeInOut(duration: 0.32)
+    private let sessionCheckInterval: TimeInterval = 30
 
     private func goForward(to newScreen: AuthScreen) {
         isGoingBack = false
@@ -136,7 +141,7 @@ struct RootView: View {
             .opacity(screen == .main ? 0 : 1)
 
             // Biometric lock overlay when app returned from background and user is on main.
-            if screen == .main, isAppLocked {
+            if screen == .main, isAppLocked, !showSessionExpired {
                 BiometricLockOverlayView(
                     onRetry: { await tryUnlockWithBiometric() },
                     isEvaluating: isEvaluatingBiometric
@@ -145,11 +150,30 @@ struct RootView: View {
                 .zIndex(1)
                 .task { await tryUnlockWithBiometric() }
             }
+
+            // Session-expired overlay – shown above everything when session is revoked remotely.
+            if showSessionExpired {
+                SessionExpiredOverlayView {
+                    withAnimation(pushPopAnimation) {
+                        showSessionExpired = false
+                        screen = .splash
+                    }
+                }
+                .transition(.opacity)
+                .zIndex(2)
+            }
         }
         .animation(pushPopAnimation, value: screen)
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .background, screen == .main, AccountSettingsStorage.biometricLockEnabled {
                 isAppLocked = true
+            }
+            if newPhase == .active, screen == .main {
+                validateSession()
+                startSessionCheckTimer()
+            }
+            if newPhase == .background || newPhase == .inactive {
+                stopSessionCheckTimer()
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
@@ -159,7 +183,22 @@ struct RootView: View {
             }
         }
         .onChange(of: screen) { _, newScreen in
-            if newScreen != .main { isAppLocked = false }
+            if newScreen != .main {
+                isAppLocked = false
+                stopSessionCheckTimer()
+            } else {
+                validateSession()
+                startSessionCheckTimer()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .sessionExpired)) { _ in
+            guard screen == .main, !showSessionExpired else { return }
+            stopSessionCheckTimer()
+            clearAllUserDataAndCache()
+            isAppLocked = false
+            withAnimation(.easeOut(duration: 0.35)) {
+                showSessionExpired = true
+            }
         }
         .sheet(isPresented: $showServerConfig, onDismiss: {
             if pendingHealthStatusAfterDismiss {
@@ -195,6 +234,30 @@ struct RootView: View {
         } else {
             showHealthStatus = true
         }
+    }
+
+    /// Calls the /me endpoint to verify the session is still valid.
+    /// If the server returns 401, `SessionExpiredNotifier` fires and RootView's
+    /// `.onReceive(.sessionExpired)` handles the logout automatically.
+    private func validateSession() {
+        guard screen == .main, AuthTokenStorage.getToken() != nil else { return }
+        Task {
+            let config = ServerConfig.load()
+            _ = await AuthService.fetchCurrentUser(config: config)
+        }
+    }
+
+    private func startSessionCheckTimer() {
+        stopSessionCheckTimer()
+        let timer = Timer.scheduledTimer(withTimeInterval: sessionCheckInterval, repeats: true) { _ in
+            validateSession()
+        }
+        sessionCheckTimer = timer
+    }
+
+    private func stopSessionCheckTimer() {
+        sessionCheckTimer?.invalidate()
+        sessionCheckTimer = nil
     }
 
     /// Runs Face ID / Touch ID. On success, clears app lock. Call when overlay appears or user taps Unlock.

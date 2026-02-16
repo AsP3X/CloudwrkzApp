@@ -285,6 +285,7 @@ enum AuthService {
                 let decoded = try JSONDecoder().decode(MeResponse.self, from: data)
                 return .success((name: decoded.name, email: decoded.email))
             case 401:
+                SessionExpiredNotifier.notify()
                 return .failure(.unauthorized)
             case 400...599:
                 let message = extractServerErrorMessage(data: data, statusCode: http.statusCode, requestURL: request.url)

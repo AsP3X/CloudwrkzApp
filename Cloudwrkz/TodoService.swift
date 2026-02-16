@@ -86,6 +86,7 @@ enum TodoService {
                 let decoded = try dateDecoder.decode(TodosResponse.self, from: data)
                 return .success(decoded.todos)
             case 401:
+                SessionExpiredNotifier.notify()
                 return .failure(.unauthorized)
             case 400...599:
                 let message = (try? JSONDecoder().decode(MessageResponse.self, from: data))?.message
@@ -141,6 +142,7 @@ enum TodoService {
                 let decoded = try dateDecoder.decode(Todo.self, from: data)
                 return .success(decoded)
             case 401:
+                SessionExpiredNotifier.notify()
                 return .failure(.unauthorized)
             case 404:
                 return .failure(.serverError(message: "Todo not found"))
@@ -217,6 +219,7 @@ enum TodoService {
                 let decoded = try JSONDecoder().decode(CreateResponse.self, from: data)
                 return .success(decoded.id)
             case 401:
+                SessionExpiredNotifier.notify()
                 return .failure(.unauthorized)
             case 403:
                 let msg = (try? JSONDecoder().decode(MessageResponse.self, from: data))?.message ?? "You can't create todos."

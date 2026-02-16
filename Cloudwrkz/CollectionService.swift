@@ -65,6 +65,7 @@ enum CollectionService {
                 let decoded = try JSONDecoder().decode(CollectionsResponse.self, from: data)
                 return .success(decoded.collections)
             case 401:
+                SessionExpiredNotifier.notify()
                 return .failure(.unauthorized)
             case 400...599:
                 let message = (try? JSONDecoder().decode(MessageResponse.self, from: data))?.message

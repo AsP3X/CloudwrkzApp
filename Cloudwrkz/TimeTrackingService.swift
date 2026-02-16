@@ -306,6 +306,7 @@ enum TimeTrackingService {
                 let decoded = try decode(data)
                 return .success(decoded)
             case 401:
+                SessionExpiredNotifier.notify()
                 return .failure(.unauthorized)
             case 404:
                 return .failure(.notFound)
@@ -332,6 +333,7 @@ enum TimeTrackingService {
             case 200, 201, 204:
                 return .success(())
             case 401:
+                SessionExpiredNotifier.notify()
                 return .failure(.unauthorized)
             case 404:
                 return .failure(.notFound)

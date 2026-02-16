@@ -90,6 +90,7 @@ enum LinkService {
                 let decoded = try dateDecoder.decode(LinksResponse.self, from: data)
                 return .success(decoded)
             case 401:
+                SessionExpiredNotifier.notify()
                 return .failure(.unauthorized)
             case 400...599:
                 let message = (try? JSONDecoder().decode(MessageResponse.self, from: data))?.message
@@ -167,6 +168,7 @@ enum LinkService {
                 let decoded = try JSONDecoder().decode(CreateResponse.self, from: data)
                 return .success(decoded.id)
             case 401:
+                SessionExpiredNotifier.notify()
                 return .failure(.unauthorized)
             case 403:
                 let msg = (try? JSONDecoder().decode(MessageResponse.self, from: data))?.message ?? "You can't create links."
@@ -279,6 +281,7 @@ enum LinkService {
                 let decoded = try JSONDecoder().decode(UpdateResponse.self, from: data)
                 return .success(decoded.id)
             case 401:
+                SessionExpiredNotifier.notify()
                 return .failure(.unauthorized)
             case 403:
                 let msg = (try? JSONDecoder().decode(MessageResponse.self, from: data))?.message ?? "You can't update this link."
@@ -322,6 +325,7 @@ enum LinkService {
             case 200, 204:
                 return .success(())
             case 401:
+                SessionExpiredNotifier.notify()
                 return .failure(.unauthorized)
             case 403:
                 let msg = (try? JSONDecoder().decode(MessageResponse.self, from: data))?.message ?? "You can't delete this link."
@@ -374,6 +378,7 @@ enum LinkService {
                 let decoded = try JSONDecoder().decode(LinkMetadata.self, from: data)
                 return .success(decoded)
             case 401:
+                SessionExpiredNotifier.notify()
                 return .failure(.unauthorized)
             case 400...599:
                 let message = (try? JSONDecoder().decode(MessageResponse.self, from: data))?.message
