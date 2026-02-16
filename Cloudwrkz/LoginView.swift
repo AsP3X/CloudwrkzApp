@@ -61,8 +61,7 @@ struct LoginView: View {
                     Button(action: submit) {
                         Group {
                             if isLoading {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                CloudwrkzSpinner(tint: .white)
                             } else {
                                 Text("Sign in")
                                     .font(.system(size: 17, weight: .semibold))

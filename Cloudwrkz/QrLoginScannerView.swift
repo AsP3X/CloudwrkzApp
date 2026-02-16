@@ -83,8 +83,7 @@ struct QrLoginScannerView: View {
                     .foregroundStyle(CloudwrkzColors.success500)
                     .transition(.scale.combined(with: .opacity))
             } else if isCurrent {
-                ProgressView()
-                    .progressViewStyle(CircularProgressViewStyle(tint: CloudwrkzColors.primary400))
+                CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
                     .scaleEffect(0.9)
             } else {
                 Image(systemName: "circle")

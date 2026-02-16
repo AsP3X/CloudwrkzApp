@@ -20,6 +20,10 @@ struct AccountSettingsView: View {
     @State private var biometricLockEnabled = AccountSettingsStorage.biometricLockEnabled
 
     @State private var serverConfig = ServerConfig.load()
+    @State private var cacheClearedFeedback = false
+    @State private var showCacheConfirm = false
+    @State private var cacheSizeDisplay: String = ""
+    @State private var isComputingCacheSize = false
 
     var body: some View {
         NavigationStack {
@@ -60,6 +64,7 @@ struct AccountSettingsView: View {
             .tint(CloudwrkzColors.primary400)
             .onAppear {
                 loadPreferences()
+                refreshCacheSize()
             }
             .onChange(of: notificationsEnabled) { _, v in AccountSettingsStorage.notificationsEnabled = v }
             .onChange(of: emailDigestEnabled) { _, v in AccountSettingsStorage.emailDigestEnabled = v }
@@ -70,6 +75,19 @@ struct AccountSettingsView: View {
             }
             .sheet(isPresented: $showChangePassword) {
                 ChangePasswordView(onSuccess: nil)
+            }
+            .alert("Clear local cache?", isPresented: $showCacheConfirm) {
+                Button("Cancel", role: .cancel) { }
+                Button("Clear", role: .destructive) {
+                    LocalCacheService.clearAll()
+                    cacheClearedFeedback = true
+                    refreshCacheSize()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        cacheClearedFeedback = false
+                    }
+                }
+            } message: {
+                Text("This will remove approximately \(cacheSizeDisplay) of cached data from this device. This won’t affect your account or server data.")
             }
         }
     }
@@ -204,9 +222,11 @@ struct AccountSettingsView: View {
                 settingsActionRow(
                     icon: "trash",
                     title: "Clear local cache",
-                    subtitle: "Free up space"
+                    subtitle: cacheClearedFeedback
+                        ? "Cache cleared"
+                        : (cacheSizeDisplay.isEmpty ? "Free up space" : "Approximately \(cacheSizeDisplay) on this device")
                 ) {
-                    // Placeholder: clear caches
+                    handleClearCacheTapped()
                 }
                 settingsDivider
                 settingsActionRow(
@@ -283,6 +303,57 @@ struct AccountSettingsView: View {
             trailing()
         }
         .padding(.vertical, 12)
+    }
+
+    // MARK: - Cache helpers
+
+    private func handleClearCacheTapped() {
+        Task {
+            isComputingCacheSize = true
+            cacheSizeDisplay = ""
+            let bytes = LocalCacheService.totalCacheSizeBytes()
+            await MainActor.run {
+                isComputingCacheSize = false
+                cacheSizeDisplay = formatBytes(bytes)
+                showCacheConfirm = true
+            }
+        }
+    }
+
+    private func refreshCacheSize() {
+        Task {
+            let bytes = LocalCacheService.totalCacheSizeBytes()
+            await MainActor.run {
+                cacheSizeDisplay = formatBytes(bytes)
+            }
+        }
+    }
+
+    private func formatBytes(_ bytes: Int64) -> String {
+        let kb: Double = 1024
+        let mb = kb * 1024
+        let gb = mb * 1024
+        let b = Double(bytes)
+
+        let formatter = NumberFormatter()
+        formatter.maximumFractionDigits = 1
+        formatter.minimumFractionDigits = 0
+
+        if b >= gb {
+            let value = b / gb
+            let s = formatter.string(from: NSNumber(value: value)) ?? String(format: "%.1f", value)
+            return "\(s) GB"
+        } else if b >= mb {
+            let value = b / mb
+            let s = formatter.string(from: NSNumber(value: value)) ?? String(format: "%.1f", value)
+            return "\(s) MB"
+        } else if b >= kb {
+            let value = b / kb
+            let s = formatter.string(from: NSNumber(value: value)) ?? String(format: "%.0f", value)
+            return "\(s) KB"
+        } else {
+            return "\(Int(bytes)) B"
+        }
     }
 }
 

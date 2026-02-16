@@ -62,9 +62,8 @@ struct TicketsOverviewView: View {
 
     private var loadingView: some View {
         VStack(spacing: 16) {
-            ProgressView()
-                .scaleEffect(1.2)
-                .tint(CloudwrkzColors.primary400)
+CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
+            .scaleEffect(1.2)
             Text("Loading tickets…")
                 .font(.system(size: 15, weight: .medium))
                 .foregroundStyle(CloudwrkzColors.neutral400)

@@ -134,6 +134,24 @@ extension View {
     }
 }
 
+// MARK: - Pure SwiftUI spinner (avoids UIKit CircularUIKitProgressView / PlatformViewRepresentableAdaptor)
+
+/// Circular loading indicator implemented in pure SwiftUI. Use instead of `ProgressView()` to avoid
+/// "Unable to render flattened version of PlatformViewRepresentableAdaptor<CircularUIKitProgressView>" in Previews and elsewhere.
+struct CloudwrkzSpinner: View {
+    var tint: Color = CloudwrkzColors.primary400
+    @State private var isAnimating = false
+
+    var body: some View {
+        Circle()
+            .trim(from: 0.2, to: 1)
+            .stroke(tint, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+            .rotationEffect(.degrees(isAnimating ? 360 : 0))
+            .frame(width: 20, height: 20)
+            .onAppear { withAnimation(.linear(duration: 0.9).repeatForever(autoreverses: false)) { isAnimating = true } }
+    }
+}
+
 // MARK: - Color hex (for collection chips etc.)
 
 extension Color {

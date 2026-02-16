@@ -42,9 +42,8 @@ struct TenantStatusView: View {
         Group {
             switch result {
             case .checking:
-                ProgressView()
-                    .scaleEffect(0.7)
-                    .tint(CloudwrkzColors.neutral400)
+CloudwrkzSpinner(tint: CloudwrkzColors.neutral400)
+                .scaleEffect(0.7)
             case .healthy:
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 12))

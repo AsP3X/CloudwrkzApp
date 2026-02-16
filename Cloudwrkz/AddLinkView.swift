@@ -77,9 +77,8 @@ struct AddLinkView: View {
 
                         if isExtractingMetadata {
                             HStack(spacing: 8) {
-                                ProgressView()
+                                CloudwrkzSpinner(tint: CloudwrkzColors.neutral100)
                                     .scaleEffect(0.9)
-                                    .tint(CloudwrkzColors.neutral100)
                                 Text("Extracting title & description…")
                                     .font(.system(size: 15, weight: .medium))
                                     .foregroundStyle(CloudwrkzColors.neutral400)

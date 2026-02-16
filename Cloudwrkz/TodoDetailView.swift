@@ -524,9 +524,8 @@ struct TodoDetailLoaderView: View {
             )
             .ignoresSafeArea()
             VStack(spacing: 16) {
-                ProgressView()
+                CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
                     .scaleEffect(1.2)
-                    .tint(CloudwrkzColors.primary400)
                 Text("Loading…")
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(CloudwrkzColors.neutral400)

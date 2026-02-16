@@ -60,9 +60,8 @@ struct ProfileEditView: View {
                     if isSaving {
                         Color.black.opacity(0.4)
                             .ignoresSafeArea()
-                        ProgressView()
-                            .scaleEffect(1.2)
-                            .tint(CloudwrkzColors.neutral100)
+CloudwrkzSpinner(tint: CloudwrkzColors.neutral100)
+                        .scaleEffect(1.2)
                     }
                 }
             }

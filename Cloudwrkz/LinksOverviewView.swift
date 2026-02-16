@@ -160,9 +160,8 @@ struct LinksOverviewView: View {
 
     private var loadingView: some View {
         VStack(spacing: 16) {
-            ProgressView()
+            CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
                 .scaleEffect(1.2)
-                .tint(CloudwrkzColors.primary400)
             Text("Loading links…")
                 .font(.system(size: 15, weight: .medium))
                 .foregroundStyle(CloudwrkzColors.neutral400)
@@ -390,17 +389,32 @@ private struct LinkRowView: View {
                         typeIconFallback
                     }
                 }
+                .id(url.absoluteString)
             } else {
                 typeIconFallback
             }
         }
+        .frame(width: 40, height: 40)
     }
 
-    /// Favicon URL from the server. Relative paths (e.g. /uploads/favicons/...) are resolved against serverBaseURL.
+    /// Favicon URL to display: server-provided if present; otherwise we fall back to the type icon.
+    /// This matches the Cloudwrkz server behavior so that when a favicon has been cached on the server,
+    /// the iOS app uses that exact icon. When the server has no favicon, we intentionally avoid third‑party
+    /// favicon services and show only the type-based icon.
     private var resolvedFaviconURL: URL? {
-        guard let fav = link.favicon, !fav.isEmpty else { return nil }
+        return serverProvidedFaviconURL
+    }
+
+    /// Server-stored favicon: relative paths resolved against serverBaseURL; protocol-relative and absolute supported.
+    private var serverProvidedFaviconURL: URL? {
+        let fav = (link.favicon ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !fav.isEmpty else { return nil }
+        if fav.hasPrefix("//") {
+            return URL(string: "https:" + fav)
+        }
         if fav.hasPrefix("/") {
-            return URL(string: fav, relativeTo: serverBaseURL)?.absoluteURL
+            guard let base = serverBaseURL else { return nil }
+            return URL(string: fav, relativeTo: base)?.absoluteURL
         }
         return URL(string: fav)
     }

@@ -41,4 +41,12 @@ struct AccountSettingsStorage {
         get { UserDefaults.standard.bool(forKey: biometricLockKey) }
         set { UserDefaults.standard.set(newValue, forKey: biometricLockKey) }
     }
+
+    /// Clears all account settings on logout so the next user gets defaults.
+    static func clear() {
+        UserDefaults.standard.removeObject(forKey: notificationsEnabledKey)
+        UserDefaults.standard.removeObject(forKey: emailDigestKey)
+        UserDefaults.standard.removeObject(forKey: appearanceKey)
+        UserDefaults.standard.removeObject(forKey: biometricLockKey)
+    }
 }

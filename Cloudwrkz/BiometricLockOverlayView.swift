@@ -36,9 +36,8 @@ struct BiometricLockOverlayView: View {
                     .padding(.horizontal, 32)
 
                 if isEvaluating {
-                    ProgressView()
+                    CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
                         .scaleEffect(1.2)
-                        .tint(CloudwrkzColors.primary400)
                         .padding(.top, 8)
                 } else {
                     Button {

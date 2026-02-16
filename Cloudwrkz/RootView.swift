@@ -18,6 +18,7 @@ enum AuthScreen {
 
 struct RootView: View {
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.modelContext) private var modelContext
     @State private var screen: AuthScreen = AuthTokenStorage.getToken() != nil ? .main : .splash
     /// Used for WhatsApp/Telegram-style push (forward) vs pop (back) transitions.
     @State private var isGoingBack = false
@@ -44,14 +45,29 @@ struct RootView: View {
         }
     }
 
+    /// Removes all user-related data and cache on logout.
+    private func clearAllUserDataAndCache() {
+        // SwiftData: delete all persisted models (e.g. Item)
+        let descriptor = FetchDescriptor<Item>()
+        let items = (try? modelContext.fetch(descriptor)) ?? []
+        for item in items {
+            modelContext.delete(item)
+        }
+        try? modelContext.save()
+
+        AuthTokenStorage.clear()
+        UserProfileStorage.clear()
+        AccountSettingsStorage.clear()
+        LocalCacheService.clearAll()
+    }
+
     var body: some View {
         ZStack {
             ContentView(
                 isMainVisible: screen == .main,
                 showServerConfig: $showServerConfig,
                 onLogout: {
-                    AuthTokenStorage.clear()
-                    UserProfileStorage.clear()
+                    clearAllUserDataAndCache()
                     withAnimation(pushPopAnimation) { screen = .splash }
                 }
             )

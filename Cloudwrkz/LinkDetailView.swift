@@ -635,11 +635,11 @@ private struct YouTubeThumbnailCardView: View {
                 case .empty:
                     Rectangle()
                         .fill(CloudwrkzColors.neutral800)
-                        .overlay { ProgressView().tint(CloudwrkzColors.primary400) }
+                        .overlay { CloudwrkzSpinner(tint: CloudwrkzColors.primary400) }
                 @unknown default:
                     Rectangle()
                         .fill(CloudwrkzColors.neutral800)
-                        .overlay { ProgressView().tint(CloudwrkzColors.primary400) }
+                        .overlay { CloudwrkzSpinner(tint: CloudwrkzColors.primary400) }
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
