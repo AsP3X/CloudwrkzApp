@@ -9,6 +9,8 @@ import SwiftUI
 
 struct LinkDetailView: View {
     let link: Link
+    /// Server base URL (e.g. https://cloudwrkz.com). Used to resolve relative favicon paths from the API.
+    var serverBaseURL: URL? = ServerConfig.load().baseURL
 
     /// Cached so body doesn't re-run regex/URL parsing on every re-evaluation.
     @State private var cachedYouTubeVideoId: String?
@@ -130,14 +132,48 @@ struct LinkDetailView: View {
     }
 
     private var linkIcon: some View {
-        ZStack {
+        let faviconURL = resolvedFaviconURL
+        return ZStack {
             RoundedRectangle(cornerRadius: 12)
                 .fill(CloudwrkzColors.primary500.opacity(0.15))
                 .frame(width: 48, height: 48)
-            Image(systemName: linkTypeIcon(link.linkType))
-                .font(.system(size: 22))
-                .foregroundStyle(CloudwrkzColors.primary400)
+            if let url = faviconURL {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 48, height: 48)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    case .failure, .empty:
+                        typeIconFallback
+                    @unknown default:
+                        typeIconFallback
+                    }
+                }
+            } else {
+                typeIconFallback
+            }
         }
+    }
+
+    /// Favicon URL from the server. Relative paths (e.g. /uploads/favicons/...) are resolved against serverBaseURL.
+    private var resolvedFaviconURL: URL? {
+        guard let fav = link.favicon, !fav.isEmpty else { return nil }
+        if fav.hasPrefix("//") {
+            return URL(string: "https:\(fav)")
+        }
+        if fav.hasPrefix("/") {
+            return URL(string: fav, relativeTo: serverBaseURL)?.absoluteURL
+        }
+        return URL(string: fav)
+    }
+
+    private var typeIconFallback: some View {
+        Image(systemName: linkTypeIcon(link.linkType))
+            .font(.system(size: 22))
+            .foregroundStyle(CloudwrkzColors.primary400)
     }
 
     private func descriptionCard(_ text: String) -> some View {

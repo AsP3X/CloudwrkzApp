@@ -264,11 +264,21 @@ struct AddLinkView: View {
 
     private func save() async {
         errorMessage = nil
-        isSaving = true
+        // Ensure any pending debounced metadata task doesn't race with save.
+        fetchMetadataTask?.cancel()
+
         var url = urlText.trimmingCharacters(in: .whitespacesAndNewlines)
         if !url.isEmpty && !url.hasPrefix("http://") && !url.hasPrefix("https://") {
             url = "https://" + url
         }
+
+        // If we don't have a favicon yet, try one last synchronous metadata fetch
+        // so the server can cache and persist favicons like the web app.
+        if fetchedFavicon == nil, !url.isEmpty {
+            await fetchMetadata()
+        }
+
+        isSaving = true
         let collectionIds: [String]? = selectedCollectionIds.isEmpty ? nil : Array(selectedCollectionIds)
         let result = await LinkService.createLink(
             config: config,

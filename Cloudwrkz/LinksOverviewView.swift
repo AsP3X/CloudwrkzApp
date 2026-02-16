@@ -333,7 +333,7 @@ private struct LinkRowView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     Image(systemName: "arrow.up.forward")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(CloudwrkzColors.neutral500)
+                        .foregroundStyle(CloudwrkzColors.primary400)
                 }
 
                 if let desc = link.description, !desc.isEmpty {

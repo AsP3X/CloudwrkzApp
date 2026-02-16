@@ -80,7 +80,7 @@ struct ContentView: View {
                 TodoDetailView(todo: todo)
             }
             .navigationDestination(for: Link.self) { link in
-                LinkDetailView(link: link)
+                LinkDetailView(link: link, serverBaseURL: ServerConfig.load().baseURL)
             }
             .onAppear {
                 refreshProfileFromStorage()
