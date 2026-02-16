@@ -69,6 +69,8 @@ struct ContentView: View {
                     TodosOverviewView()
                 } else if section == .links {
                     LinksOverviewView()
+                } else if section == .timeTracking {
+                    TimeTrackingOverviewView()
                 } else {
                     DashboardSectionPlaceholderView(section: section)
                 }
@@ -81,6 +83,9 @@ struct ContentView: View {
             }
             .navigationDestination(for: Link.self) { link in
                 LinkDetailView(link: link, serverBaseURL: ServerConfig.load().baseURL)
+            }
+            .navigationDestination(for: TimeEntry.self) { entry in
+                TimeEntryDetailView(entry: entry)
             }
             .onAppear {
                 refreshProfileFromStorage()
