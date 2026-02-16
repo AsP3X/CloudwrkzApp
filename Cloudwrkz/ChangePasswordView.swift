@@ -81,6 +81,7 @@ struct ChangePasswordView: View {
                     .disabled(isSaving || !canSave)
                 }
             }
+            .toolbarBackground(.visible, for: .navigationBar)
             .toolbarBackground(CloudwrkzColors.neutral950.opacity(0.95), for: .navigationBar)
             .tint(CloudwrkzColors.primary400)
         }

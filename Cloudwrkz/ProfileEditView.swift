@@ -85,6 +85,7 @@ CloudwrkzSpinner(tint: CloudwrkzColors.neutral100)
                     .disabled(isSaving)
                 }
             }
+            .toolbarBackground(.visible, for: .navigationBar)
             .toolbarBackground(CloudwrkzColors.neutral950.opacity(0.95), for: .navigationBar)
             .tint(CloudwrkzColors.primary400)
             .onAppear {

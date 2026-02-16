@@ -59,6 +59,7 @@ struct AddLinkCollectionChooserView: View {
             }
             .navigationTitle("Choose Collections")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.visible, for: .navigationBar)
             .toolbarBackground(CloudwrkzColors.neutral950.opacity(0.95), for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {

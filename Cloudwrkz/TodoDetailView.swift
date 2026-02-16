@@ -366,7 +366,8 @@ private struct TodoInfoSidebarView: View {
             }
             .navigationTitle("Todo information")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarBackground(CloudwrkzColors.neutral950.opacity(0.95), for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
