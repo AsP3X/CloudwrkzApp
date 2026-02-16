@@ -55,11 +55,9 @@ extension Link {
     /// - Absolute URLs (`https://…`) → used as-is
     /// - Relative paths (`/uploads/favicons/...`) → resolved against `serverBaseURL`
     ///
-    /// This mirrors the Cloudwrkz web app behavior so the iOS app uses the same favicon assets
-    /// served by the Cloudwrkz server.
-    ///
-    /// Additionally, when `serverBaseURL` is not available (e.g. misconfigured server settings),
-    /// relative paths are resolved against the link's own URL host as a fallback so icons still load.
+    /// Server-hosted favicons (relative paths) include a cache-busting query parameter
+    /// derived from `updatedAt` so that SwiftUI's AsyncImage reloads the image after edits
+    /// instead of returning a stale cached (or 404) response.
     func faviconURL(serverBaseURL: URL?) -> URL? {
         let raw = (favicon ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         guard !raw.isEmpty else { return nil }
@@ -71,16 +69,25 @@ extension Link {
 
         // Relative path: /uploads/favicons/...
         if raw.hasPrefix("/") {
+            var resolved: URL?
+
             // Prefer explicit server base URL when provided.
             if let base = serverBaseURL {
-                if let url = URL(string: raw, relativeTo: base)?.absoluteURL {
-                    return url
-                }
+                resolved = URL(string: raw, relativeTo: base)?.absoluteURL
             }
 
             // Fallback: derive base from the link's own URL (host + scheme).
-            if let derivedBase = Self.derivedBaseURL(from: url) {
-                return URL(string: raw, relativeTo: derivedBase)?.absoluteURL
+            if resolved == nil, let derivedBase = Self.derivedBaseURL(from: url) {
+                resolved = URL(string: raw, relativeTo: derivedBase)?.absoluteURL
+            }
+
+            // Append cache-busting query parameter so AsyncImage reloads after edits.
+            if let base = resolved {
+                var components = URLComponents(url: base, resolvingAgainstBaseURL: true)
+                components?.queryItems = [
+                    URLQueryItem(name: "v", value: String(Int(updatedAt.timeIntervalSince1970)))
+                ]
+                return components?.url ?? base
             }
 
             return nil
