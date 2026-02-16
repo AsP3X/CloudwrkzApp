@@ -17,6 +17,12 @@ struct LinksOverviewView: View {
     @State private var filters = LinkFilters()
     @State private var showFilters = false
     @State private var showAddLink = false
+    /// When true, tapping rows toggles selection instead of navigating. Driven by bulk "Select" action.
+    @State private var selectionMode = false
+    /// Link ids currently selected for bulk actions.
+    @State private var selectedLinkIds: Set<String> = []
+    /// Link pending deletion confirmation from the context menu.
+    @State private var pendingDeleteLink: Link?
 
     private let config = ServerConfig.load()
 
@@ -52,6 +58,16 @@ struct LinksOverviewView: View {
             }
         }
         .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                if selectionMode {
+                    Button("Done") {
+                        selectionMode = false
+                        selectedLinkIds.removeAll()
+                    }
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(CloudwrkzColors.primary400)
+                }
+            }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
                     showFilters = true
@@ -85,6 +101,11 @@ struct LinksOverviewView: View {
         .onAppear {
             Task { await loadCollections() }
             Task { await loadLinks() }
+        }
+        .overlay {
+            if let link = pendingDeleteLink {
+                deleteConfirmationDialog(for: link)
+            }
         }
     }
 
@@ -213,7 +234,41 @@ struct LinksOverviewView: View {
         ScrollView {
             LazyVStack(spacing: 14) {
                 ForEach(links) { link in
-                    LinkRowView(link: link, serverBaseURL: config.baseURL)
+                    let isSelected = selectedLinkIds.contains(link.id)
+                    LinkRowView(
+                        link: link,
+                        serverBaseURL: config.baseURL,
+                        isSelected: isSelected,
+                        selectionMode: selectionMode
+                    )
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        if selectionMode {
+                            toggleSelection(for: link)
+                        }
+                    }
+                    .contextMenu {
+                        Button {
+                            toggleSelection(for: link)
+                        } label: {
+                            Text(isSelected ? "Deselect" : "Select")
+                        }
+                        Button {
+                            // Hook for future edit flow (e.g. navigate to edit screen)
+                        } label: {
+                            Text("Edit")
+                        }
+                        Button {
+                            // Hook for future archive API integration.
+                        } label: {
+                            Text("Archive")
+                        }
+                        Button(role: .destructive) {
+                            pendingDeleteLink = link
+                        } label: {
+                            Text("Delete")
+                        }
+                    }
                 }
             }
             .padding(.horizontal, 20)
@@ -292,6 +347,120 @@ struct LinksOverviewView: View {
         }
     }
 
+    // MARK: - Link actions for long-press menu / bulk selection
+
+    /// Toggle selection for bulk actions. First selection enables selection mode; clearing all exits it.
+    private func toggleSelection(for link: Link) {
+        if selectedLinkIds.contains(link.id) {
+            selectedLinkIds.remove(link.id)
+            if selectedLinkIds.isEmpty {
+                selectionMode = false
+            }
+        } else {
+            selectedLinkIds.insert(link.id)
+            if !selectionMode {
+                selectionMode = true
+            }
+        }
+    }
+
+    /// Centered liquid-glass confirmation dialog for deleting a link.
+    @ViewBuilder
+    private func deleteConfirmationDialog(for link: Link) -> some View {
+        ZStack {
+            // Dimmed backdrop
+            Color.black.opacity(0.4)
+                .ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                VStack(spacing: 12) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundStyle(CloudwrkzColors.error500)
+                        Text("Delete link?")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundStyle(CloudwrkzColors.neutral100)
+                    }
+                    Text("“\(link.title)” will be removed from this list. This action can’t be undone.")
+                        .font(.system(size: 14, weight: .regular))
+                        .foregroundStyle(CloudwrkzColors.neutral400)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(3)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                HStack(spacing: 12) {
+                    Button {
+                        pendingDeleteLink = nil
+                    } label: {
+                        Text("Cancel")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundStyle(CloudwrkzColors.neutral100)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                    }
+                    .background(
+                        Group {
+                            if #available(iOS 26.0, *) {
+                                RoundedRectangle(cornerRadius: 14)
+                                    .fill(.clear)
+                                    .glassEffect(.regular.tint(.white.opacity(0.04)), in: RoundedRectangle(cornerRadius: 14))
+                            } else {
+                                Color.clear
+                                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
+                            }
+                        }
+                    )
+
+                    Button {
+                        // TODO: Wire to real delete endpoint, then refresh list.
+                        pendingDeleteLink = nil
+                    } label: {
+                        Text("Delete")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(CloudwrkzColors.neutral950)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                    }
+                    .background(
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(CloudwrkzColors.error500)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(.white.opacity(0.2), lineWidth: 1)
+                            )
+                    )
+                }
+            }
+            .padding(20)
+            .frame(maxWidth: 360)
+            .background(
+                Group {
+                    if #available(iOS 26.0, *) {
+                        RoundedRectangle(cornerRadius: 22)
+                            .fill(.clear)
+                            .glassEffect(.regular.tint(.white.opacity(0.08)), in: RoundedRectangle(cornerRadius: 22))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 22)
+                                    .stroke(.white.opacity(0.16), lineWidth: 1)
+                            )
+                    } else {
+                        Color.clear
+                            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 22))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 22)
+                                    .stroke(.white.opacity(0.16), lineWidth: 1)
+                            )
+                    }
+                }
+            )
+            .padding(.horizontal, 24)
+        }
+    }
+
+    // (Context menu actions are currently simple hooks – real edit/archive/delete can be wired here later.)
+
     private func message(for error: LinkServiceError) -> String {
         switch error {
         case .noServerURL: return "No server configured."
@@ -309,61 +478,67 @@ private struct LinkRowView: View {
     let link: Link
     /// Server base URL (e.g. https://cloudwrkz.com). Used to resolve relative favicon paths from the API.
     var serverBaseURL: URL?
+    /// When true, shows a subtle selected state for bulk actions.
+    var isSelected: Bool = false
+    /// When true, the list is in selection mode (driven from parent). Used only for visuals here.
+    var selectionMode: Bool = false
 
     var body: some View {
         NavigationLink(value: link) {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .top, spacing: 12) {
-                    linkIcon
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 8) {
-                            typePill(link.linkType)
-                            if link.isFavorite {
-                                Image(systemName: "star.fill")
-                                    .font(.system(size: 12))
-                                    .foregroundStyle(CloudwrkzColors.warning400)
+            ZStack {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(alignment: .top, spacing: 12) {
+                        linkIcon
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack(spacing: 8) {
+                                typePill(link.linkType)
+                                if link.isFavorite {
+                                    Image(systemName: "star.fill")
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(CloudwrkzColors.warning400)
+                                }
                             }
+                            Text(link.title)
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(CloudwrkzColors.neutral100)
+                                .lineLimit(2)
                         }
-                        Text(link.title)
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(CloudwrkzColors.neutral100)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        Image(systemName: "arrow.up.forward")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(CloudwrkzColors.primary400)
+                    }
+
+                    if let desc = link.description, !desc.isEmpty {
+                        Text(desc)
+                            .font(.system(size: 13, weight: .regular))
+                            .foregroundStyle(CloudwrkzColors.neutral400)
                             .lineLimit(2)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    Image(systemName: "arrow.up.forward")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(CloudwrkzColors.primary400)
-                }
 
-                if let desc = link.description, !desc.isEmpty {
-                    Text(desc)
-                        .font(.system(size: 13, weight: .regular))
-                        .foregroundStyle(CloudwrkzColors.neutral400)
-                        .lineLimit(2)
-                }
-
-                HStack(spacing: 12) {
-                    Text(domainLabel(link.url))
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(CloudwrkzColors.primary400)
-                        .lineLimit(1)
-                    let linkCollections = link.collections ?? []
-                    if !linkCollections.isEmpty {
-                        let names = linkCollections.prefix(2).map { $0.collection.name }
-                        Text(names.joined(separator: ", "))
+                    HStack(spacing: 12) {
+                        Text(domainLabel(link.url))
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(CloudwrkzColors.primary400)
+                            .lineLimit(1)
+                        let linkCollections = link.collections ?? []
+                        if !linkCollections.isEmpty {
+                            let names = linkCollections.prefix(2).map { $0.collection.name }
+                            Text(names.joined(separator: ", "))
+                                .font(.system(size: 12, weight: .regular))
+                                .foregroundStyle(CloudwrkzColors.neutral500)
+                                .lineLimit(1)
+                        }
+                        Text(formatted(link.createdAt))
                             .font(.system(size: 12, weight: .regular))
                             .foregroundStyle(CloudwrkzColors.neutral500)
-                            .lineLimit(1)
                     }
-                    Text(formatted(link.createdAt))
-                        .font(.system(size: 12, weight: .regular))
-                        .foregroundStyle(CloudwrkzColors.neutral500)
                 }
+                .padding(18)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+                .background(linkRowGlass)
             }
-            .padding(18)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
-            .background(linkRowGlass)
         }
         .buttonStyle(.plain)
     }
@@ -433,14 +608,20 @@ private struct LinkRowView: View {
                     .glassEffect(.regular.tint(.white.opacity(0.08)), in: RoundedRectangle(cornerRadius: 16))
                     .overlay(
                         RoundedRectangle(cornerRadius: 16)
-                            .stroke(.white.opacity(0.2), lineWidth: 1)
+                            .stroke(
+                                isSelected ? CloudwrkzColors.primary400 : .white.opacity(0.2),
+                                lineWidth: isSelected ? 2 : 1
+                            )
                     )
             } else {
                 Color.clear
                     .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
                     .overlay(
                         RoundedRectangle(cornerRadius: 16)
-                            .stroke(.white.opacity(0.2), lineWidth: 1)
+                            .stroke(
+                                isSelected ? CloudwrkzColors.primary400 : .white.opacity(0.2),
+                                lineWidth: isSelected ? 2 : 1
+                            )
                     )
             }
         }
