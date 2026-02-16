@@ -55,6 +55,14 @@ struct EditLinkView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 28) {
                         headerSection
+
+                        if let err = errorMessage {
+                            errorBanner(err)
+                        }
+                        if let msg = successMessage {
+                            successBanner(msg)
+                        }
+
                         faviconSection
                         urlSection
                         titleSection
@@ -68,13 +76,6 @@ struct EditLinkView: View {
                             collectionsSection
                         }
                         metadataRefetchSection
-
-                        if let err = errorMessage {
-                            errorBanner(err)
-                        }
-                        if let msg = successMessage {
-                            successBanner(msg)
-                        }
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 8)
@@ -88,6 +89,7 @@ struct EditLinkView: View {
             }
             .navigationTitle("Edit Link")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.visible, for: .navigationBar)
             .toolbarBackground(CloudwrkzColors.neutral950.opacity(0.95), for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -689,19 +691,17 @@ struct EditLinkView: View {
 
         isRefetchingMetadata = true
         let result = await LinkService.fetchMetadata(config: config, url: url)
-        await MainActor.run {
-            isRefetchingMetadata = false
-            switch result {
-            case .success(let meta):
-                if let f = meta.favicon, !f.isEmpty {
-                    faviconValue = f
-                    successMessage = "Icon updated."
-                } else {
-                    errorMessage = "No icon found for this URL."
-                }
-            case .failure(let err):
-                errorMessage = message(for: err)
+        isRefetchingMetadata = false
+        switch result {
+        case .success(let meta):
+            if let f = meta.favicon, !f.isEmpty {
+                faviconValue = f
+                successMessage = "Icon updated."
+            } else {
+                errorMessage = "No icon found for this URL."
             }
+        case .failure(let err):
+            errorMessage = message(for: err)
         }
     }
 
@@ -716,31 +716,29 @@ struct EditLinkView: View {
 
         isRefetchingMetadata = true
         let result = await LinkService.fetchMetadata(config: config, url: url)
-        await MainActor.run {
-            isRefetchingMetadata = false
-            switch result {
-            case .success(let meta):
-                var updated: [String] = []
-                if let t = meta.title, !t.isEmpty {
-                    titleText = t
-                    updated.append("title")
-                }
-                if let d = meta.description, !d.isEmpty {
-                    descriptionText = d
-                    updated.append("description")
-                }
-                if let f = meta.favicon, !f.isEmpty {
-                    faviconValue = f
-                    updated.append("icon")
-                }
-                if updated.isEmpty {
-                    errorMessage = "No metadata found for this URL."
-                } else {
-                    successMessage = "Updated \(updated.joined(separator: ", "))."
-                }
-            case .failure(let err):
-                errorMessage = message(for: err)
+        isRefetchingMetadata = false
+        switch result {
+        case .success(let meta):
+            var updated: [String] = []
+            if let t = meta.title, !t.isEmpty {
+                titleText = t
+                updated.append("title")
             }
+            if let d = meta.description, !d.isEmpty {
+                descriptionText = d
+                updated.append("description")
+            }
+            if let f = meta.favicon, !f.isEmpty {
+                faviconValue = f
+                updated.append("icon")
+            }
+            if updated.isEmpty {
+                errorMessage = "No metadata found for this URL."
+            } else {
+                successMessage = "Updated \(updated.joined(separator: ", "))."
+            }
+        case .failure(let err):
+            errorMessage = message(for: err)
         }
     }
 
@@ -749,6 +747,7 @@ struct EditLinkView: View {
         successMessage = nil
         isSaving = true
 
+        // Build the delta – only send fields that actually changed.
         var url: String? = nil
         let trimmedURL = urlText.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmedURL != link.url {
@@ -788,15 +787,12 @@ struct EditLinkView: View {
             collectionIds: collectionIds
         )
 
-        await MainActor.run {
-            isSaving = false
-            switch result {
-            case .success:
-                onSaved()
-                dismiss()
-            case .failure(let err):
-                errorMessage = message(for: err)
-            }
+        isSaving = false
+        switch result {
+        case .success:
+            onSaved()
+        case .failure(let err):
+            errorMessage = message(for: err)
         }
     }
 

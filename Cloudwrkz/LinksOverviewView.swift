@@ -103,6 +103,7 @@ struct LinksOverviewView: View {
                 collections: collections,
                 serverBaseURL: config.baseURL,
                 onSaved: {
+                    editingLink = nil
                     Task {
                         await loadCollections()
                         await loadLinks()
