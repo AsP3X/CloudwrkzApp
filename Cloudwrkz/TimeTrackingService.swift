@@ -214,6 +214,8 @@ enum TimeTrackingService {
         var tags: [String]?
         var location: String?
         var billable: Bool?
+        var startedAt: Date?
+        var stoppedAt: Date?
     }
 
     static func updateTimeEntry(config: ServerConfig, id: String, input: UpdateInput) async -> Result<Void, TimeTrackingServiceError> {

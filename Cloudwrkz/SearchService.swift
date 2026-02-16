@@ -19,7 +19,6 @@ enum SearchServiceError: Equatable, Error {
 
 enum SearchService {
     private static let timeout: TimeInterval = 15
-    private static var currentTask: URLSessionDataTask?
 
     private static func searchPathSegments(loginPath: String) -> [String] {
         let path = loginPath.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -29,9 +28,6 @@ enum SearchService {
 
     /// GET /api/search?q=...&limit=20 (or /api/auth/search when using auth login path). Cancels previous request if still in flight.
     static func search(config: ServerConfig, query: String, limit: Int = 20) async -> Result<SearchResponse, SearchServiceError> {
-        currentTask?.cancel()
-        currentTask = nil
-
         guard let base = config.baseURL else {
             return .failure(.noServerURL)
         }
@@ -60,41 +56,29 @@ enum SearchService {
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
 
-        return await withCheckedContinuation { continuation in
-            let task = URLSession.shared.dataTask(with: request) { data, response, error in
-                defer { currentTask = nil }
-                if let error = error as? URLError, error.code == .cancelled {
-                    continuation.resume(returning: .failure(.cancelled))
-                    return
-                }
-                if let error = error {
-                    continuation.resume(returning: .failure(.networkError(description: error.localizedDescription)))
-                    return
-                }
-                guard let data = data, let http = response as? HTTPURLResponse else {
-                    continuation.resume(returning: .failure(.serverError(message: "Invalid response")))
-                    return
-                }
-                switch http.statusCode {
-                case 200:
-                    do {
-                        let decoded = try JSONDecoder().decode(SearchResponse.self, from: data)
-                        continuation.resume(returning: .success(decoded))
-                    } catch {
-                        continuation.resume(returning: .failure(.networkError(description: error.localizedDescription)))
-                    }
-                case 401:
-                    continuation.resume(returning: .failure(.unauthorized))
-                case 400...599:
-                    let message = (try? JSONDecoder().decode(MessageResponse.self, from: data))?.message
-                        ?? "Server error (\(http.statusCode))"
-                    continuation.resume(returning: .failure(.serverError(message: message)))
-                default:
-                    continuation.resume(returning: .failure(.serverError(message: "Unexpected status \(http.statusCode)")))
-                }
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse else {
+                return .failure(.serverError(message: "Invalid response"))
             }
-            currentTask = task
-            task.resume()
+            switch http.statusCode {
+            case 200:
+                let decoded = try JSONDecoder().decode(SearchResponse.self, from: data)
+                return .success(decoded)
+            case 401:
+                return .failure(.unauthorized)
+            case 400...599:
+                let message = (try? JSONDecoder().decode(MessageResponse.self, from: data))?.message
+                    ?? "Server error (\(http.statusCode))"
+                return .failure(.serverError(message: message))
+            default:
+                return .failure(.serverError(message: "Unexpected status \(http.statusCode)"))
+            }
+        } catch let error as URLError where error.code == .cancelled {
+            return .failure(.cancelled)
+        } catch {
+            let description = (error as? URLError)?.localizedDescription ?? error.localizedDescription
+            return .failure(.networkError(description: description))
         }
     }
 }

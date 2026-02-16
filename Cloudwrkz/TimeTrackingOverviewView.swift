@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import Combine
 
 struct TimeTrackingOverviewView: View {
     @State private var entries: [TimeEntry] = []
@@ -18,6 +19,12 @@ struct TimeTrackingOverviewView: View {
     @State private var showAddEntry = false
     @State private var showActionMenu = false
     @State private var timerTick = Date()
+    @State private var selectionMode = false
+    @State private var selectedEntryIds: Set<String> = []
+    @State private var pendingDeleteEntry: TimeEntry?
+    @State private var editingEntry: TimeEntry?
+    @State private var showBulkDeleteConfirm = false
+    @State private var bulkActionInProgress = false
 
     private let config = ServerConfig.load()
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -40,28 +47,51 @@ struct TimeTrackingOverviewView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                HStack(spacing: 14) {
-                    Button { showFilters = true } label: {
-                        Image(systemName: "line.3.horizontal.decrease.circle.fill")
-                            .font(.system(size: 22))
-                            .foregroundStyle(CloudwrkzColors.primary400)
+            ToolbarItem(placement: .navigationBarLeading) {
+                if selectionMode {
+                    Button("Done") {
+                        selectionMode = false
+                        selectedEntryIds.removeAll()
                     }
-                    Menu {
-                        Button {
-                            showStartTimer = true
-                        } label: {
-                            Label("Start Timer", systemImage: "play.circle")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(CloudwrkzColors.primary400)
+                }
+            }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                if selectionMode {
+                    Button(selectedEntryIds.count == entries.count ? "Deselect All" : "Select All") {
+                        if selectedEntryIds.count == entries.count {
+                            selectedEntryIds.removeAll()
+                            selectionMode = false
+                        } else {
+                            selectedEntryIds = Set(entries.map(\.id))
                         }
-                        Button {
-                            showAddEntry = true
-                        } label: {
-                            Label("Add Manual Entry", systemImage: "plus.circle")
+                    }
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(CloudwrkzColors.primary400)
+                } else {
+                    HStack(spacing: 14) {
+                        Button { showFilters = true } label: {
+                            Image(systemName: "line.3.horizontal.decrease.circle.fill")
+                                .font(.system(size: 22))
+                                .foregroundStyle(CloudwrkzColors.primary400)
                         }
-                    } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 22))
-                            .foregroundStyle(CloudwrkzColors.primary400)
+                        Menu {
+                            Button {
+                                showStartTimer = true
+                            } label: {
+                                Label("Start Timer", systemImage: "play.circle")
+                            }
+                            Button {
+                                showAddEntry = true
+                            } label: {
+                                Label("Add Manual Entry", systemImage: "plus.circle")
+                            }
+                        } label: {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.system(size: 22))
+                                .foregroundStyle(CloudwrkzColors.primary400)
+                        }
                     }
                 }
             }
@@ -79,8 +109,30 @@ struct TimeTrackingOverviewView: View {
             AddTimeEntrySheet(onCreated: { Task { await loadEntries() } })
                 .presentationDetents([.large])
         }
+        .sheet(item: $editingEntry) { entry in
+            EditTimeEntrySheet(
+                entry: entry,
+                onSaved: {
+                    editingEntry = nil
+                    Task { await loadEntries() }
+                }
+            )
+            .presentationDetents([.large])
+        }
         .onAppear { Task { await loadEntries() } }
         .onReceive(timer) { timerTick = $0 }
+        .overlay {
+            if showBulkDeleteConfirm {
+                bulkDeleteConfirmationDialog
+            } else if let entry = pendingDeleteEntry {
+                deleteConfirmationDialog(for: entry)
+            }
+        }
+        .overlay {
+            if bulkActionInProgress {
+                bulkActionLoadingOverlay
+            }
+        }
     }
 
     // MARK: - Background
@@ -105,10 +157,15 @@ struct TimeTrackingOverviewView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 12)
-            .padding(.bottom, 32)
+            .padding(.bottom, selectionMode ? 100 : 32)
         }
         .refreshable { await loadEntries() }
         .scrollContentBackground(.hidden)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if selectionMode {
+                bulkActionBar
+            }
+        }
     }
 
     // MARK: - Stats cards
@@ -145,41 +202,115 @@ struct TimeTrackingOverviewView: View {
                 }
 
                 ForEach(activeEntries) { entry in
-                    NavigationLink(value: entry) {
-                        ActiveTimerRow(entry: entry, tick: timerTick, onPause: {
-                            Task { await performAction(.pause, on: entry) }
-                        }, onResume: {
-                            Task { await performAction(.resume, on: entry) }
-                        }, onStop: {
-                            Task { await performAction(.stop, on: entry) }
-                        })
+                    let isSelected = selectedEntryIds.contains(entry.id)
+                    Group {
+                        if selectionMode {
+                            ActiveTimerRow(entry: entry, tick: timerTick, isSelected: isSelected, selectionMode: true, onPause: {
+                                Task { await performAction(.pause, on: entry) }
+                            }, onResume: {
+                                Task { await performAction(.resume, on: entry) }
+                            }, onStop: {
+                                Task { await performAction(.stop, on: entry) }
+                            })
+                            .onTapGesture { toggleSelection(for: entry) }
+                        } else {
+                            NavigationLink(value: entry) {
+                                ActiveTimerRow(entry: entry, tick: timerTick, isSelected: false, selectionMode: false, onPause: {
+                                    Task { await performAction(.pause, on: entry) }
+                                }, onResume: {
+                                    Task { await performAction(.resume, on: entry) }
+                                }, onStop: {
+                                    Task { await performAction(.stop, on: entry) }
+                                })
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
-                    .buttonStyle(.plain)
+                    .contextMenu {
+                        Button { toggleSelection(for: entry) } label: {
+                            Label(isSelected ? "Deselect" : "Select", systemImage: isSelected ? "minus.circle" : "checkmark.circle")
+                        }
+                        if !selectionMode {
+                            Button { editingEntry = entry } label: {
+                                Label("Edit", systemImage: "pencil")
+                            }
+                            if entry.status.canPause {
+                                Button { Task { await performAction(.pause, on: entry) } } label: {
+                                    Label("Pause", systemImage: "pause.fill")
+                                }
+                            }
+                            if entry.status.canResume {
+                                Button { Task { await performAction(.resume, on: entry) } } label: {
+                                    Label("Resume", systemImage: "play.fill")
+                                }
+                            }
+                            if entry.status.canStop {
+                                Button { Task { await performAction(.stop, on: entry) } } label: {
+                                    Label("Stop", systemImage: "stop.fill")
+                                }
+                            }
+                            Button(role: .destructive) { pendingDeleteEntry = entry } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
+                    }
                 }
             }
         }
     }
 
-    // MARK: - All entries section
+    // MARK: - All entries section (excludes active timers shown above)
 
     private var allEntriesSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("ALL ENTRIES")
-                .font(.system(size: 11, weight: .bold))
-                .tracking(0.8)
-                .foregroundStyle(CloudwrkzColors.neutral500)
+        let stoppedEntries = entries.filter { !$0.status.isActive }
+        return Group {
+            if !stoppedEntries.isEmpty {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("ENTRIES")
+                        .font(.system(size: 11, weight: .bold))
+                        .tracking(0.8)
+                        .foregroundStyle(CloudwrkzColors.neutral500)
 
-            ForEach(entries) { entry in
-                NavigationLink(value: entry) {
-                    TimeEntryRow(entry: entry, tick: timerTick, onPause: {
-                        Task { await performAction(.pause, on: entry) }
-                    }, onResume: {
-                        Task { await performAction(.resume, on: entry) }
-                    }, onStop: {
-                        Task { await performAction(.stop, on: entry) }
-                    })
+                    ForEach(stoppedEntries) { entry in
+                        let isSelected = selectedEntryIds.contains(entry.id)
+                        Group {
+                            if selectionMode {
+                                TimeEntryRow(entry: entry, tick: timerTick, isSelected: isSelected, selectionMode: true, onPause: {
+                                    Task { await performAction(.pause, on: entry) }
+                                }, onResume: {
+                                    Task { await performAction(.resume, on: entry) }
+                                }, onStop: {
+                                    Task { await performAction(.stop, on: entry) }
+                                })
+                                .onTapGesture { toggleSelection(for: entry) }
+                            } else {
+                                NavigationLink(value: entry) {
+                                    TimeEntryRow(entry: entry, tick: timerTick, isSelected: false, selectionMode: false, onPause: {
+                                        Task { await performAction(.pause, on: entry) }
+                                    }, onResume: {
+                                        Task { await performAction(.resume, on: entry) }
+                                    }, onStop: {
+                                        Task { await performAction(.stop, on: entry) }
+                                    })
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .contextMenu {
+                            Button { toggleSelection(for: entry) } label: {
+                                Label(isSelected ? "Deselect" : "Select", systemImage: isSelected ? "minus.circle" : "checkmark.circle")
+                            }
+                            if !selectionMode {
+                                Button { editingEntry = entry } label: {
+                                    Label("Edit", systemImage: "pencil")
+                                }
+                                Button(role: .destructive) { pendingDeleteEntry = entry } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                        }
+                    }
                 }
-                .buttonStyle(.plain)
             }
         }
     }
@@ -270,7 +401,7 @@ struct TimeTrackingOverviewView: View {
 
     // MARK: - Actions
 
-    private enum TimerAction { case pause, resume, stop, complete }
+    private enum TimerAction { case pause, resume, stop }
 
     private func performAction(_ action: TimerAction, on entry: TimeEntry) async {
         let result: Result<Void, TimeTrackingServiceError>
@@ -281,8 +412,6 @@ struct TimeTrackingOverviewView: View {
             result = await TimeTrackingService.resumeTimeEntry(config: config, id: entry.id)
         case .stop:
             result = await TimeTrackingService.stopTimeEntry(config: config, id: entry.id)
-        case .complete:
-            result = await TimeTrackingService.completeTimeEntry(config: config, id: entry.id)
         }
 
         switch result {
@@ -318,6 +447,300 @@ struct TimeTrackingOverviewView: View {
         case .notFound: return "Time tracking not available."
         case .serverError(let m): return m
         case .networkError: return "Could not reach server."
+        }
+    }
+
+    // MARK: - Selection
+
+    private func toggleSelection(for entry: TimeEntry) {
+        if selectedEntryIds.contains(entry.id) {
+            selectedEntryIds.remove(entry.id)
+            if selectedEntryIds.isEmpty { selectionMode = false }
+        } else {
+            selectedEntryIds.insert(entry.id)
+            if !selectionMode { selectionMode = true }
+        }
+    }
+
+    // MARK: - Single & bulk delete
+
+    private func performSingleDelete(id: String) async {
+        let result = await TimeTrackingService.deleteTimeEntry(config: config, id: id)
+        if case .success = result {
+            await MainActor.run { entries.removeAll { $0.id == id } }
+        }
+    }
+
+    private func performBulkDelete() async {
+        await MainActor.run { bulkActionInProgress = true }
+        let ids = Array(selectedEntryIds)
+        var succeededIds: Set<String> = []
+        await withTaskGroup(of: (String, Bool).self) { group in
+            for id in ids {
+                group.addTask {
+                    let result = await TimeTrackingService.deleteTimeEntry(config: config, id: id)
+                    switch result {
+                    case .success: return (id, true)
+                    case .failure: return (id, false)
+                    }
+                }
+            }
+            for await (id, success) in group {
+                if success { succeededIds.insert(id) }
+            }
+        }
+        await MainActor.run {
+            entries.removeAll { succeededIds.contains($0.id) }
+            selectedEntryIds.subtract(succeededIds)
+            if selectedEntryIds.isEmpty { selectionMode = false }
+            bulkActionInProgress = false
+        }
+    }
+
+    private func performBulkStop() async {
+        await MainActor.run { bulkActionInProgress = true }
+        let ids = Array(selectedEntryIds)
+        for id in ids {
+            _ = await TimeTrackingService.stopTimeEntry(config: config, id: id)
+        }
+        await MainActor.run {
+            selectedEntryIds.removeAll()
+            selectionMode = false
+            bulkActionInProgress = false
+        }
+        await loadEntries()
+    }
+
+    // MARK: - Bulk action bar
+
+    private var bulkActionBar: some View {
+        VStack(spacing: 14) {
+            HStack(spacing: 8) {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(CloudwrkzColors.primary400)
+                Text("\(selectedEntryIds.count) selected")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(CloudwrkzColors.neutral100)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 7)
+            .background(
+                Capsule()
+                    .fill(CloudwrkzColors.primary500.opacity(0.12))
+                    .overlay(Capsule().stroke(CloudwrkzColors.primary400.opacity(0.25), lineWidth: 1))
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            HStack(spacing: 10) {
+                bulkActionButton(icon: "stop.fill", label: "Stop", tint: CloudwrkzColors.warning500) {
+                    Task { await performBulkStop() }
+                }
+                bulkActionButton(icon: "trash", label: "Delete", tint: CloudwrkzColors.error500) {
+                    showBulkDeleteConfirm = true
+                }
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 16)
+        .padding(.bottom, 12)
+        .background(CloudwrkzColors.neutral950.opacity(0.95))
+        .overlay(alignment: .top) {
+            Rectangle().frame(height: 1).foregroundStyle(.white.opacity(0.15))
+        }
+    }
+
+    private func bulkActionButton(icon: String, label: String, tint: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: icon).font(.system(size: 14, weight: .semibold))
+                Text(label).font(.system(size: 13, weight: .semibold))
+            }
+            .foregroundStyle(selectedEntryIds.isEmpty ? CloudwrkzColors.neutral600 : tint)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity)
+            .background(bulkButtonGlass(tint: tint))
+        }
+        .disabled(selectedEntryIds.isEmpty)
+        .buttonStyle(.plain)
+    }
+
+    private func bulkButtonGlass(tint: Color) -> some View {
+        Group {
+            if #available(iOS 26.0, *) {
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(.clear)
+                    .glassEffect(.regular.tint(tint.opacity(0.1)), in: RoundedRectangle(cornerRadius: 14))
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(tint.opacity(0.3), lineWidth: 1))
+            } else {
+                Color.clear
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
+                    .background(tint.opacity(0.05), in: RoundedRectangle(cornerRadius: 14))
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(tint.opacity(0.3), lineWidth: 1))
+            }
+        }
+    }
+
+    // MARK: - Delete confirmation dialog
+
+    @ViewBuilder
+    private func deleteConfirmationDialog(for entry: TimeEntry) -> some View {
+        ZStack {
+            Color.black.opacity(0.4).ignoresSafeArea()
+            VStack(spacing: 20) {
+                VStack(spacing: 12) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundStyle(CloudwrkzColors.error500)
+                        Text("Delete time entry?")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundStyle(CloudwrkzColors.neutral100)
+                    }
+                    Text("\u{201C}\(entry.name)\u{201D} will be permanently removed. This action can\u{2019}t be undone.")
+                        .font(.system(size: 14, weight: .regular))
+                        .foregroundStyle(CloudwrkzColors.neutral400)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(3)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                HStack(spacing: 12) {
+                    Button {
+                        pendingDeleteEntry = nil
+                    } label: {
+                        Text("Cancel")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundStyle(CloudwrkzColors.neutral100)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                    }
+                    .background(confirmDialogGlass)
+                    Button {
+                        let id = entry.id
+                        pendingDeleteEntry = nil
+                        Task { await performSingleDelete(id: id) }
+                    } label: {
+                        Text("Delete")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(CloudwrkzColors.neutral950)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                    }
+                    .background(
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(CloudwrkzColors.error500)
+                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(.white.opacity(0.2), lineWidth: 1))
+                    )
+                }
+            }
+            .padding(20)
+            .frame(maxWidth: 360)
+            .background(confirmDialogPanel)
+            .padding(.horizontal, 24)
+        }
+    }
+
+    // MARK: - Bulk delete confirmation dialog
+
+    private var bulkDeleteConfirmationDialog: some View {
+        ZStack {
+            Color.black.opacity(0.4).ignoresSafeArea()
+            VStack(spacing: 20) {
+                VStack(spacing: 12) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundStyle(CloudwrkzColors.error500)
+                        Text("Delete \(selectedEntryIds.count) entries?")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundStyle(CloudwrkzColors.neutral100)
+                    }
+                    Text("The selected time entries will be permanently removed. This action can\u{2019}t be undone.")
+                        .font(.system(size: 14, weight: .regular))
+                        .foregroundStyle(CloudwrkzColors.neutral400)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(3)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                HStack(spacing: 12) {
+                    Button {
+                        showBulkDeleteConfirm = false
+                    } label: {
+                        Text("Cancel")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundStyle(CloudwrkzColors.neutral100)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                    }
+                    .background(confirmDialogGlass)
+                    Button {
+                        showBulkDeleteConfirm = false
+                        Task { await performBulkDelete() }
+                    } label: {
+                        Text("Delete")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(CloudwrkzColors.neutral950)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                    }
+                    .background(
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(CloudwrkzColors.error500)
+                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(.white.opacity(0.2), lineWidth: 1))
+                    )
+                }
+            }
+            .padding(20)
+            .frame(maxWidth: 360)
+            .background(confirmDialogPanel)
+            .padding(.horizontal, 24)
+        }
+    }
+
+    // MARK: - Bulk action loading overlay
+
+    private var bulkActionLoadingOverlay: some View {
+        ZStack {
+            Color.black.opacity(0.4).ignoresSafeArea()
+            VStack(spacing: 18) {
+                CloudwrkzSpinner(tint: CloudwrkzColors.primary400).scaleEffect(1.4)
+                Text("Processing…")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(CloudwrkzColors.neutral400)
+            }
+            .padding(32)
+            .background(confirmDialogPanel)
+        }
+    }
+
+    // MARK: - Shared glass for confirmation dialogs
+
+    private var confirmDialogGlass: some View {
+        Group {
+            if #available(iOS 26.0, *) {
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(.clear)
+                    .glassEffect(.regular.tint(.white.opacity(0.04)), in: RoundedRectangle(cornerRadius: 14))
+            } else {
+                Color.clear
+                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
+            }
+        }
+    }
+
+    private var confirmDialogPanel: some View {
+        Group {
+            if #available(iOS 26.0, *) {
+                RoundedRectangle(cornerRadius: 22)
+                    .fill(.clear)
+                    .glassEffect(.regular.tint(.white.opacity(0.08)), in: RoundedRectangle(cornerRadius: 22))
+                    .overlay(RoundedRectangle(cornerRadius: 22).stroke(.white.opacity(0.16), lineWidth: 1))
+            } else {
+                Color.clear
+                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 22))
+                    .overlay(RoundedRectangle(cornerRadius: 22).stroke(.white.opacity(0.16), lineWidth: 1))
+            }
         }
     }
 }
@@ -376,6 +799,8 @@ private struct StatCard: View {
 private struct ActiveTimerRow: View {
     let entry: TimeEntry
     let tick: Date
+    var isSelected: Bool = false
+    var selectionMode: Bool = false
     var onPause: () -> Void
     var onResume: () -> Void
     var onStop: () -> Void
@@ -383,6 +808,11 @@ private struct ActiveTimerRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 10) {
+                if selectionMode {
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 22))
+                        .foregroundStyle(isSelected ? CloudwrkzColors.primary400 : CloudwrkzColors.neutral500)
+                }
                 statusIndicator
                 VStack(alignment: .leading, spacing: 3) {
                     Text(entry.name)
@@ -472,24 +902,27 @@ private struct ActiveTimerRow: View {
     }
 
     private var activeRowGlass: some View {
-        Group {
+        let accent = entry.status == .running ? CloudwrkzColors.success500 : CloudwrkzColors.warning500
+        let borderColor = isSelected ? CloudwrkzColors.primary400 : accent.opacity(0.3)
+        let borderWidth: CGFloat = isSelected ? 2 : 1
+        return Group {
             if #available(iOS 26.0, *) {
                 RoundedRectangle(cornerRadius: 18)
                     .fill(.clear)
                     .glassEffect(
-                        .regular.tint((entry.status == .running ? CloudwrkzColors.success500 : CloudwrkzColors.warning500).opacity(0.1)),
+                        .regular.tint(accent.opacity(0.1)),
                         in: RoundedRectangle(cornerRadius: 18)
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 18)
-                            .stroke((entry.status == .running ? CloudwrkzColors.success500 : CloudwrkzColors.warning500).opacity(0.3), lineWidth: 1)
+                            .stroke(borderColor, lineWidth: borderWidth)
                     )
             } else {
                 Color.clear
                     .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 18))
                     .overlay(
                         RoundedRectangle(cornerRadius: 18)
-                            .stroke((entry.status == .running ? CloudwrkzColors.success500 : CloudwrkzColors.warning500).opacity(0.3), lineWidth: 1)
+                            .stroke(borderColor, lineWidth: borderWidth)
                     )
             }
         }
@@ -501,6 +934,8 @@ private struct ActiveTimerRow: View {
 private struct TimeEntryRow: View {
     let entry: TimeEntry
     let tick: Date
+    var isSelected: Bool = false
+    var selectionMode: Bool = false
     var onPause: () -> Void
     var onResume: () -> Void
     var onStop: () -> Void
@@ -515,6 +950,12 @@ private struct TimeEntryRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top, spacing: 10) {
+                if selectionMode {
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 22))
+                        .foregroundStyle(isSelected ? CloudwrkzColors.primary400 : CloudwrkzColors.neutral500)
+                        .padding(.top, 2)
+                }
                 VStack(alignment: .leading, spacing: 5) {
                     HStack(spacing: 8) {
                         Text(entry.name)
@@ -622,21 +1063,23 @@ private struct TimeEntryRow: View {
     }
 
     private var rowGlass: some View {
-        Group {
+        let borderColor = isSelected ? CloudwrkzColors.primary400 : Color.white.opacity(0.2)
+        let borderWidth: CGFloat = isSelected ? 2 : 1
+        return Group {
             if #available(iOS 26.0, *) {
                 RoundedRectangle(cornerRadius: 16)
                     .fill(.clear)
                     .glassEffect(.regular.tint(.white.opacity(0.08)), in: RoundedRectangle(cornerRadius: 16))
                     .overlay(
                         RoundedRectangle(cornerRadius: 16)
-                            .stroke(.white.opacity(0.2), lineWidth: 1)
+                            .stroke(borderColor, lineWidth: borderWidth)
                     )
             } else {
                 Color.clear
                     .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
                     .overlay(
                         RoundedRectangle(cornerRadius: 16)
-                            .stroke(.white.opacity(0.2), lineWidth: 1)
+                            .stroke(borderColor, lineWidth: borderWidth)
                     )
             }
         }
