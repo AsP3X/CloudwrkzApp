@@ -66,6 +66,7 @@ struct ProfileView: View {
                     .padding(.top, 16)
                     .padding(.bottom, 32)
                 }
+                .scrollContentBackground(.hidden)
             }
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.inline)
@@ -78,7 +79,7 @@ struct ProfileView: View {
                     .accessibilityLabel("Done")
                 }
             }
-            .toolbarBackground(CloudwrkzColors.neutral950.opacity(0.95), for: .navigationBar)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .tint(CloudwrkzColors.primary400)
             .sheet(isPresented: $showEditSheet, onDismiss: {
                 onProfileUpdated?()

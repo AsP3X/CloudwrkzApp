@@ -43,6 +43,7 @@ struct AccountSettingsView: View {
                     .padding(.top, 16)
                     .padding(.bottom, 32)
                 }
+                .scrollContentBackground(.hidden)
             }
             .navigationTitle("Account Settings")
             .navigationBarTitleDisplayMode(.inline)
@@ -55,7 +56,7 @@ struct AccountSettingsView: View {
                     .accessibilityLabel("Done")
                 }
             }
-            .toolbarBackground(CloudwrkzColors.neutral950.opacity(0.95), for: .navigationBar)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .tint(CloudwrkzColors.primary400)
             .onAppear {
                 loadPreferences()

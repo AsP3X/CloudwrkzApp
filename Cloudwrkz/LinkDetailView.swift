@@ -42,6 +42,7 @@ struct LinkDetailView: View {
                 .padding(.top, 8)
                 .padding(.bottom, 40)
             }
+        .scrollContentBackground(.hidden)
         }
         .onAppear {
             if cachedYouTubeVideoId == nil { cachedYouTubeVideoId = Self.youtubeVideoId(from: link.url) }
@@ -49,7 +50,7 @@ struct LinkDetailView: View {
         }
         .navigationTitle(link.title)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(CloudwrkzColors.neutral950.opacity(0.95), for: .navigationBar)
+        .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {

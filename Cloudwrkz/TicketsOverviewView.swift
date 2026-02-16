@@ -31,7 +31,7 @@ struct TicketsOverviewView: View {
         }
         .navigationTitle("Tickets")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(CloudwrkzColors.neutral950.opacity(0.95), for: .navigationBar)
+        .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
@@ -127,6 +127,7 @@ struct TicketsOverviewView: View {
         .refreshable {
             await loadTickets()
         }
+        .scrollContentBackground(.hidden)
     }
 
     /// Load tickets; supports pull-to-refresh (async) and onAppear. Keeps refresh indicator visible until load finishes.

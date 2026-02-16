@@ -35,10 +35,11 @@ struct TodoDetailView: View {
                 .padding(.top, 8)
                 .padding(.bottom, 40)
             }
+        .scrollContentBackground(.hidden)
         }
         .navigationTitle(todo.todoNumber ?? todo.title)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(CloudwrkzColors.neutral950.opacity(0.95), for: .navigationBar)
+        .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 HStack(spacing: 16) {
@@ -361,10 +362,11 @@ private struct TodoInfoSidebarView: View {
                         .padding(20)
                         .padding(.bottom, 32)
                 }
+                .scrollContentBackground(.hidden)
             }
             .navigationTitle("Todo information")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(CloudwrkzColors.neutral950.opacity(0.95), for: .navigationBar)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {

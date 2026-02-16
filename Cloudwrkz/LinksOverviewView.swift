@@ -27,25 +27,25 @@ struct LinksOverviewView: View {
                 loadingView
             } else if let error = errorMessage {
                 errorView(error)
+            } else if links.isEmpty {
+                emptyView
             } else {
-                VStack(spacing: 0) {
-                    if let refreshErr = refreshErrorMessage {
-                        refreshErrorBanner(message: refreshErr)
+                linkList
+                    .safeAreaInset(edge: .top, spacing: 0) {
+                        VStack(spacing: 0) {
+                            if let refreshErr = refreshErrorMessage {
+                                refreshErrorBanner(message: refreshErr)
+                            }
+                            if !collections.isEmpty || filters.collectionId != nil {
+                                collectionPicker
+                            }
+                        }
                     }
-                    if !collections.isEmpty || filters.collectionId != nil {
-                        collectionPicker
-                    }
-                    if links.isEmpty {
-                        emptyView
-                    } else {
-                        linkList
-                    }
-                }
             }
         }
         .navigationTitle("Links")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(CloudwrkzColors.neutral950.opacity(0.95), for: .navigationBar)
+        .toolbarBackground(.hidden, for: .navigationBar)
         .overlay(alignment: .bottomTrailing) {
             if !isLoading || !links.isEmpty {
                 addLinkButton
@@ -228,6 +228,7 @@ struct LinksOverviewView: View {
                 group.addTask { await loadLinks(isRefresh: true) }
             }
         }
+        .scrollContentBackground(.hidden)
     }
 
     private func refreshErrorBanner(message: String) -> some View {

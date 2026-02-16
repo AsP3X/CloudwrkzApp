@@ -32,7 +32,7 @@ struct TodosOverviewView: View {
         }
         .navigationTitle("ToDo")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(CloudwrkzColors.neutral950.opacity(0.95), for: .navigationBar)
+        .toolbarBackground(.hidden, for: .navigationBar)
         .overlay(alignment: .bottomTrailing) {
             if !isLoading || !todos.isEmpty {
                 addTodoButton
@@ -161,6 +161,7 @@ struct TodosOverviewView: View {
         .refreshable {
             await loadTodos()
         }
+        .scrollContentBackground(.hidden)
     }
 
     /// Load todos; supports pull-to-refresh (async) and onAppear. Keeps refresh indicator visible until load finishes.
