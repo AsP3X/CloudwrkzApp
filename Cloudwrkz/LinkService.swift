@@ -182,6 +182,117 @@ enum LinkService {
         }
     }
 
+    /// PUT .../[id] — update an existing link. Returns the link id on success.
+    static func updateLink(
+        config: ServerConfig,
+        id: String,
+        url: String? = nil,
+        title: String? = nil,
+        description: String? = nil,
+        favicon: String? = nil,
+        linkType: String? = nil,
+        tags: [String]? = nil,
+        notes: String? = nil,
+        isFavorite: Bool? = nil,
+        rating: Int?? = nil,
+        collectionIds: [String]? = nil,
+        extractMetadata: Bool? = nil
+    ) async -> Result<String, LinkServiceError> {
+        guard let base = config.baseURL else {
+            return .failure(.noServerURL)
+        }
+        guard let token = AuthTokenStorage.getToken(), !token.isEmpty else {
+            return .failure(.noToken)
+        }
+        let pathSegments = linksPathSegments(loginPath: config.loginPath)
+        guard !pathSegments.isEmpty else {
+            return .failure(.noServerURL)
+        }
+        var requestURL = base
+        for segment in pathSegments {
+            requestURL = requestURL.appending(path: segment)
+        }
+        requestURL = requestURL.appending(path: id)
+
+        var request = URLRequest(url: requestURL)
+        request.httpMethod = "PUT"
+        request.timeoutInterval = timeout
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        var body: [String: Any] = [:]
+        if let url = url?.trimmingCharacters(in: .whitespacesAndNewlines), !url.isEmpty {
+            body["url"] = url
+        }
+        if let title = title {
+            body["title"] = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        if let description = description {
+            body["description"] = description.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        if let favicon = favicon {
+            body["favicon"] = favicon.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        if let linkType = linkType {
+            body["linkType"] = linkType
+        }
+        if let tags = tags {
+            body["tags"] = tags
+        }
+        if let notes = notes {
+            body["notes"] = notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        if let isFavorite = isFavorite {
+            body["isFavorite"] = isFavorite
+        }
+        if let rating = rating {
+            if let value = rating {
+                body["rating"] = value
+            } else {
+                body["rating"] = NSNull()
+            }
+        }
+        if let collectionIds = collectionIds {
+            body["collectionIds"] = collectionIds
+        }
+        if let extractMetadata = extractMetadata {
+            body["extractMetadata"] = extractMetadata
+        }
+
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: body) else {
+            return .failure(.serverError(message: "Invalid request"))
+        }
+        request.httpBody = jsonData
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse else {
+                return .failure(.serverError(message: "Invalid response"))
+            }
+            switch http.statusCode {
+            case 200:
+                struct UpdateResponse: Decodable { let id: String }
+                let decoded = try JSONDecoder().decode(UpdateResponse.self, from: data)
+                return .success(decoded.id)
+            case 401:
+                return .failure(.unauthorized)
+            case 403:
+                let msg = (try? JSONDecoder().decode(MessageResponse.self, from: data))?.message ?? "You can't update this link."
+                return .failure(.serverError(message: msg))
+            case 400...599:
+                let message = (try? JSONDecoder().decode(MessageResponse.self, from: data))?.message
+                    ?? "Server error (\(http.statusCode))"
+                return .failure(.serverError(message: message))
+            default:
+                return .failure(.serverError(message: "Unexpected status \(http.statusCode)"))
+            }
+        } catch {
+            let description = (error as? URLError)?.localizedDescription ?? error.localizedDescription
+            return .failure(.networkError(description: description))
+        }
+    }
+
     /// POST .../metadata — extract title, description, favicon from URL for Add Link form.
     static func fetchMetadata(config: ServerConfig, url: String) async -> Result<LinkMetadata, LinkServiceError> {
         guard let base = config.baseURL else {

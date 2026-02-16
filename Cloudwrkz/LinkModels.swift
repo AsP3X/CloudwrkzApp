@@ -25,6 +25,7 @@ struct Link: Identifiable, Decodable, Hashable {
     let favicon: String?
     let linkType: String
     let tags: [String]
+    let notes: String?
     let isFavorite: Bool
     let rating: Int?
     let createdAt: Date

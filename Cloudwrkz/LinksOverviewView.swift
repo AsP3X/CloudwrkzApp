@@ -23,6 +23,8 @@ struct LinksOverviewView: View {
     @State private var selectedLinkIds: Set<String> = []
     /// Link pending deletion confirmation from the context menu.
     @State private var pendingDeleteLink: Link?
+    /// Link being edited from the context menu.
+    @State private var editingLink: Link?
 
     private let config = ServerConfig.load()
 
@@ -87,6 +89,19 @@ struct LinksOverviewView: View {
             AddLinkView(
                 collections: collections,
                 currentCollectionId: filters.collectionId,
+                onSaved: {
+                    Task {
+                        await loadCollections()
+                        await loadLinks()
+                    }
+                }
+            )
+        }
+        .sheet(item: $editingLink) { link in
+            EditLinkView(
+                link: link,
+                collections: collections,
+                serverBaseURL: config.baseURL,
                 onSaved: {
                     Task {
                         await loadCollections()
@@ -251,22 +266,22 @@ struct LinksOverviewView: View {
                         Button {
                             toggleSelection(for: link)
                         } label: {
-                            Text(isSelected ? "Deselect" : "Select")
+                            Label(isSelected ? "Deselect" : "Select", systemImage: isSelected ? "minus.circle" : "checkmark.circle")
                         }
                         Button {
-                            // Hook for future edit flow (e.g. navigate to edit screen)
+                            editingLink = link
                         } label: {
-                            Text("Edit")
+                            Label("Edit", systemImage: "pencil")
                         }
                         Button {
                             // Hook for future archive API integration.
                         } label: {
-                            Text("Archive")
+                            Label("Archive", systemImage: "archivebox")
                         }
                         Button(role: .destructive) {
                             pendingDeleteLink = link
                         } label: {
-                            Text("Delete")
+                            Label("Delete", systemImage: "trash")
                         }
                     }
                 }

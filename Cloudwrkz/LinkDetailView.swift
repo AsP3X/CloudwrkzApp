@@ -663,6 +663,7 @@ struct LinkDetailView_Previews: PreviewProvider {
                 favicon: nil,
                 linkType: "WEBSITE",
                 tags: ["sample", "demo"],
+                notes: nil,
                 isFavorite: true,
                 rating: 4,
                 createdAt: Date(),
