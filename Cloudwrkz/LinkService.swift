@@ -293,6 +293,48 @@ enum LinkService {
         }
     }
 
+    /// DELETE .../[id] — delete a single link.
+    static func deleteLink(config: ServerConfig, id: String) async -> Result<Void, LinkServiceError> {
+        guard let base = config.baseURL else { return .failure(.noServerURL) }
+        guard let token = AuthTokenStorage.getToken(), !token.isEmpty else { return .failure(.noToken) }
+        let pathSegments = linksPathSegments(loginPath: config.loginPath)
+        guard !pathSegments.isEmpty else { return .failure(.noServerURL) }
+        var requestURL = base
+        for segment in pathSegments { requestURL = requestURL.appending(path: segment) }
+        requestURL = requestURL.appending(path: id)
+
+        var request = URLRequest(url: requestURL)
+        request.httpMethod = "DELETE"
+        request.timeoutInterval = timeout
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse else {
+                return .failure(.serverError(message: "Invalid response"))
+            }
+            switch http.statusCode {
+            case 200, 204:
+                return .success(())
+            case 401:
+                return .failure(.unauthorized)
+            case 403:
+                let msg = (try? JSONDecoder().decode(MessageResponse.self, from: data))?.message ?? "You can't delete this link."
+                return .failure(.serverError(message: msg))
+            case 400...599:
+                let message = (try? JSONDecoder().decode(MessageResponse.self, from: data))?.message
+                    ?? "Server error (\(http.statusCode))"
+                return .failure(.serverError(message: message))
+            default:
+                return .failure(.serverError(message: "Unexpected status \(http.statusCode)"))
+            }
+        } catch {
+            let description = (error as? URLError)?.localizedDescription ?? error.localizedDescription
+            return .failure(.networkError(description: description))
+        }
+    }
+
     /// POST .../metadata — extract title, description, favicon from URL for Add Link form.
     static func fetchMetadata(config: ServerConfig, url: String) async -> Result<LinkMetadata, LinkServiceError> {
         guard let base = config.baseURL else {

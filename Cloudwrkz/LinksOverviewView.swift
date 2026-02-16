@@ -25,6 +25,16 @@ struct LinksOverviewView: View {
     @State private var pendingDeleteLink: Link?
     /// Link being edited from the context menu.
     @State private var editingLink: Link?
+    /// When true the bulk-delete confirmation dialog is visible.
+    @State private var showBulkDeleteConfirm = false
+    /// When true the bulk collection assignment sheet is visible.
+    @State private var showBulkCollectionPicker = false
+    /// When true a bulk action is running – shows a loading overlay.
+    @State private var bulkActionInProgress = false
+    /// Collection ids chosen in the bulk collection picker.
+    @State private var bulkCollectionIds: Set<String> = []
+    /// Progress tracking for bulk actions (completed, total).
+    @State private var bulkProgress: (completed: Int, total: Int) = (0, 0)
 
     private let config = ServerConfig.load()
 
@@ -55,7 +65,7 @@ struct LinksOverviewView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .overlay(alignment: .bottomTrailing) {
-            if !isLoading || !links.isEmpty {
+            if !selectionMode && (!isLoading || !links.isEmpty) {
                 addLinkButton
             }
         }
@@ -71,12 +81,25 @@ struct LinksOverviewView: View {
                 }
             }
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button {
-                    showFilters = true
-                } label: {
-                    Image(systemName: "line.3.horizontal.decrease.circle.fill")
-                        .font(.system(size: 22))
-                        .foregroundStyle(CloudwrkzColors.primary400)
+                if selectionMode {
+                    Button(selectedLinkIds.count == links.count ? "Deselect All" : "Select All") {
+                        if selectedLinkIds.count == links.count {
+                            selectedLinkIds.removeAll()
+                            selectionMode = false
+                        } else {
+                            selectedLinkIds = Set(links.map(\.id))
+                        }
+                    }
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(CloudwrkzColors.primary400)
+                } else {
+                    Button {
+                        showFilters = true
+                    } label: {
+                        Image(systemName: "line.3.horizontal.decrease.circle.fill")
+                            .font(.system(size: 22))
+                            .foregroundStyle(CloudwrkzColors.primary400)
+                    }
                 }
             }
         }
@@ -111,6 +134,16 @@ struct LinksOverviewView: View {
                 }
             )
         }
+        .sheet(isPresented: $showBulkCollectionPicker) {
+            BulkCollectionChooserView(
+                collections: collections,
+                selectedIds: $bulkCollectionIds,
+                linkCount: selectedLinkIds.count,
+                onApply: { ids in
+                    Task { await performBulkCollectionAssignment(collectionIds: Array(ids)) }
+                }
+            )
+        }
         .onChange(of: showFilters) { _, isOpen in
             if isOpen { Task { await loadCollections() } }
         }
@@ -119,8 +152,15 @@ struct LinksOverviewView: View {
             Task { await loadLinks() }
         }
         .overlay {
-            if let link = pendingDeleteLink {
+            if showBulkDeleteConfirm {
+                bulkDeleteConfirmationDialog
+            } else if let link = pendingDeleteLink {
                 deleteConfirmationDialog(for: link)
+            }
+        }
+        .overlay {
+            if bulkActionInProgress {
+                bulkActionLoadingOverlay
             }
         }
     }
@@ -269,20 +309,17 @@ struct LinksOverviewView: View {
                         } label: {
                             Label(isSelected ? "Deselect" : "Select", systemImage: isSelected ? "minus.circle" : "checkmark.circle")
                         }
-                        Button {
-                            editingLink = link
-                        } label: {
-                            Label("Edit", systemImage: "pencil")
-                        }
-                        Button {
-                            // Hook for future archive API integration.
-                        } label: {
-                            Label("Archive", systemImage: "archivebox")
-                        }
-                        Button(role: .destructive) {
-                            pendingDeleteLink = link
-                        } label: {
-                            Label("Delete", systemImage: "trash")
+                        if !selectionMode {
+                            Button {
+                                editingLink = link
+                            } label: {
+                                Label("Edit", systemImage: "pencil")
+                            }
+                            Button(role: .destructive) {
+                                pendingDeleteLink = link
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
                         }
                     }
                 }
@@ -296,6 +333,11 @@ struct LinksOverviewView: View {
             await withTaskGroup(of: Void.self) { group in
                 group.addTask { await loadCollections() }
                 group.addTask { await loadLinks(isRefresh: true) }
+            }
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if selectionMode {
+                bulkActionBar
             }
         }
         .scrollContentBackground(.hidden)
@@ -380,6 +422,397 @@ struct LinksOverviewView: View {
         }
     }
 
+    // MARK: - Single & bulk link actions
+
+    private func performSingleDelete(id: String) async {
+        let result = await LinkService.deleteLink(config: config, id: id)
+        await MainActor.run {
+            switch result {
+            case .success:
+                links.removeAll { $0.id == id }
+            case .failure:
+                refreshErrorMessage = "Failed to delete link."
+            }
+        }
+    }
+
+    private func performBulkDelete() async {
+        await MainActor.run { bulkActionInProgress = true }
+        let ids = Array(selectedLinkIds)
+        var succeededIds: Set<String> = []
+        await withTaskGroup(of: (String, Bool).self) { group in
+            for id in ids {
+                group.addTask {
+                    let result = await LinkService.deleteLink(config: config, id: id)
+                    switch result {
+                    case .success: return (id, true)
+                    case .failure: return (id, false)
+                    }
+                }
+            }
+            for await (id, success) in group {
+                if success { succeededIds.insert(id) }
+            }
+        }
+        let failCount = ids.count - succeededIds.count
+        await MainActor.run {
+            links.removeAll { succeededIds.contains($0.id) }
+            selectedLinkIds.subtract(succeededIds)
+            if selectedLinkIds.isEmpty { selectionMode = false }
+            bulkActionInProgress = false
+            if failCount > 0 {
+                refreshErrorMessage = "Failed to delete \(failCount) link\(failCount == 1 ? "" : "s")."
+            }
+        }
+        if !succeededIds.isEmpty {
+            await loadCollections()
+        }
+    }
+
+    private func performBulkCollectionAssignment(collectionIds: [String]) async {
+        await MainActor.run { bulkActionInProgress = true }
+        let ids = Array(selectedLinkIds)
+        var failCount = 0
+        await withTaskGroup(of: Bool.self) { group in
+            for id in ids {
+                group.addTask {
+                    let result = await LinkService.updateLink(config: config, id: id, collectionIds: collectionIds)
+                    switch result {
+                    case .success: return true
+                    case .failure: return false
+                    }
+                }
+            }
+            for await success in group {
+                if !success { failCount += 1 }
+            }
+        }
+        await MainActor.run {
+            selectedLinkIds.removeAll()
+            selectionMode = false
+            bulkActionInProgress = false
+            if failCount > 0 {
+                refreshErrorMessage = "Failed to update \(failCount) link\(failCount == 1 ? "" : "s")."
+            }
+        }
+        await loadLinks()
+        await loadCollections()
+    }
+
+    private func performBulkFetchIcons() async {
+        let ids = Array(selectedLinkIds)
+        await MainActor.run {
+            bulkProgress = (0, ids.count)
+            bulkActionInProgress = true
+        }
+        var failCount = 0
+        await withTaskGroup(of: Bool.self) { group in
+            for id in ids {
+                group.addTask {
+                    let result = await LinkService.updateLink(config: config, id: id, extractMetadata: true)
+                    switch result {
+                    case .success: return true
+                    case .failure: return false
+                    }
+                }
+            }
+            for await success in group {
+                if !success { failCount += 1 }
+                await MainActor.run {
+                    bulkProgress.completed += 1
+                }
+            }
+        }
+        await MainActor.run {
+            selectedLinkIds.removeAll()
+            selectionMode = false
+            bulkActionInProgress = false
+            bulkProgress = (0, 0)
+            if failCount > 0 {
+                refreshErrorMessage = "Failed to refresh \(failCount) link\(failCount == 1 ? "" : "s")."
+            }
+        }
+        await loadLinks()
+    }
+
+    // MARK: - Bulk action bar (full-width liquid glass dock)
+
+    private var bulkActionBar: some View {
+        VStack(spacing: 14) {
+            // Selection count badge
+            HStack(spacing: 8) {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(CloudwrkzColors.primary400)
+                Text("\(selectedLinkIds.count) selected")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(CloudwrkzColors.neutral100)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 7)
+            .background(
+                Capsule()
+                    .fill(CloudwrkzColors.primary500.opacity(0.12))
+                    .overlay(
+                        Capsule()
+                            .stroke(CloudwrkzColors.primary400.opacity(0.25), lineWidth: 1)
+                    )
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            // Action buttons
+            HStack(spacing: 10) {
+                bulkActionButton(
+                    icon: "trash",
+                    label: "Delete",
+                    tint: CloudwrkzColors.error500,
+                    glassTint: CloudwrkzColors.error500,
+                    glassTintOpacity: 0.1,
+                    strokeColor: CloudwrkzColors.error500.opacity(0.3)
+                ) {
+                    showBulkDeleteConfirm = true
+                }
+                bulkActionButton(
+                    icon: "folder.badge.plus",
+                    label: "Assign",
+                    tint: CloudwrkzColors.primary400,
+                    glassTint: CloudwrkzColors.primary500,
+                    glassTintOpacity: 0.08,
+                    strokeColor: CloudwrkzColors.primary400.opacity(0.35)
+                ) {
+                    bulkCollectionIds = []
+                    showBulkCollectionPicker = true
+                }
+                bulkActionButton(
+                    icon: "arrow.triangle.2.circlepath",
+                    label: "Refresh",
+                    tint: CloudwrkzColors.primary400,
+                    glassTint: CloudwrkzColors.primary500,
+                    glassTintOpacity: 0.08,
+                    strokeColor: CloudwrkzColors.primary400.opacity(0.35)
+                ) {
+                    Task { await performBulkFetchIcons() }
+                }
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 16)
+        .padding(.bottom, 12)
+        .background(CloudwrkzColors.neutral950.opacity(0.95))
+        .overlay(alignment: .top) {
+            Rectangle()
+                .frame(height: 1)
+                .foregroundStyle(.white.opacity(0.15))
+        }
+    }
+
+    private func bulkActionButton(
+        icon: String,
+        label: String,
+        tint: Color,
+        glassTint: Color,
+        glassTintOpacity: Double,
+        strokeColor: Color,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .semibold))
+                Text(label)
+                    .font(.system(size: 13, weight: .semibold))
+            }
+            .foregroundStyle(selectedLinkIds.isEmpty ? CloudwrkzColors.neutral600 : tint)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity)
+            .background(
+                Group {
+                    if #available(iOS 26.0, *) {
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(.clear)
+                            .glassEffect(
+                                .regular.tint(glassTint.opacity(glassTintOpacity)),
+                                in: RoundedRectangle(cornerRadius: 14)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(strokeColor, lineWidth: 1)
+                            )
+                    } else {
+                        Color.clear
+                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
+                            .background(
+                                glassTint.opacity(glassTintOpacity * 0.5),
+                                in: RoundedRectangle(cornerRadius: 14)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(strokeColor, lineWidth: 1)
+                            )
+                    }
+                }
+            )
+        }
+        .disabled(selectedLinkIds.isEmpty)
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Bulk delete confirmation dialog
+
+    private var bulkDeleteConfirmationDialog: some View {
+        ZStack {
+            Color.black.opacity(0.4)
+                .ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                VStack(spacing: 12) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundStyle(CloudwrkzColors.error500)
+                        Text("Delete \(selectedLinkIds.count) links?")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundStyle(CloudwrkzColors.neutral100)
+                    }
+                    Text("The selected links will be permanently removed. This action can't be undone.")
+                        .font(.system(size: 14, weight: .regular))
+                        .foregroundStyle(CloudwrkzColors.neutral400)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(3)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                HStack(spacing: 12) {
+                    Button {
+                        showBulkDeleteConfirm = false
+                    } label: {
+                        Text("Cancel")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundStyle(CloudwrkzColors.neutral100)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                    }
+                    .background(
+                        Group {
+                            if #available(iOS 26.0, *) {
+                                RoundedRectangle(cornerRadius: 14)
+                                    .fill(.clear)
+                                    .glassEffect(.regular.tint(.white.opacity(0.04)), in: RoundedRectangle(cornerRadius: 14))
+                            } else {
+                                Color.clear
+                                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
+                            }
+                        }
+                    )
+
+                    Button {
+                        showBulkDeleteConfirm = false
+                        Task { await performBulkDelete() }
+                    } label: {
+                        Text("Delete")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(CloudwrkzColors.neutral950)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                    }
+                    .background(
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(CloudwrkzColors.error500)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(.white.opacity(0.2), lineWidth: 1)
+                            )
+                    )
+                }
+            }
+            .padding(20)
+            .frame(maxWidth: 360)
+            .background(
+                Group {
+                    if #available(iOS 26.0, *) {
+                        RoundedRectangle(cornerRadius: 22)
+                            .fill(.clear)
+                            .glassEffect(.regular.tint(.white.opacity(0.08)), in: RoundedRectangle(cornerRadius: 22))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 22)
+                                    .stroke(.white.opacity(0.16), lineWidth: 1)
+                            )
+                    } else {
+                        Color.clear
+                            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 22))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 22)
+                                    .stroke(.white.opacity(0.16), lineWidth: 1)
+                            )
+                    }
+                }
+            )
+            .padding(.horizontal, 24)
+        }
+    }
+
+    // MARK: - Bulk action loading overlay
+
+    private var bulkActionLoadingOverlay: some View {
+        let hasProgress = bulkProgress.total > 0
+        let fraction: CGFloat = hasProgress
+            ? CGFloat(bulkProgress.completed) / CGFloat(bulkProgress.total)
+            : 0
+
+        return ZStack {
+            Color.black.opacity(0.4)
+                .ignoresSafeArea()
+
+            VStack(spacing: 18) {
+                if hasProgress {
+                    // Circular progress ring
+                    ZStack {
+                        Circle()
+                            .stroke(CloudwrkzColors.neutral700, lineWidth: 4)
+                        Circle()
+                            .trim(from: 0, to: fraction)
+                            .stroke(CloudwrkzColors.primary400, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                            .rotationEffect(.degrees(-90))
+                            .animation(.easeInOut(duration: 0.3), value: bulkProgress.completed)
+                        Text("\(bulkProgress.completed)/\(bulkProgress.total)")
+                            .font(.system(size: 15, weight: .bold, design: .rounded))
+                            .foregroundStyle(CloudwrkzColors.neutral100)
+                    }
+                    .frame(width: 56, height: 56)
+                } else {
+                    CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
+                        .scaleEffect(1.4)
+                }
+
+                Text(hasProgress ? "Refreshing icons…" : "Processing…")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(CloudwrkzColors.neutral400)
+            }
+            .padding(32)
+            .background(
+                Group {
+                    if #available(iOS 26.0, *) {
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(.clear)
+                            .glassEffect(.regular.tint(.white.opacity(0.08)), in: RoundedRectangle(cornerRadius: 20))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 20)
+                                    .stroke(.white.opacity(0.16), lineWidth: 1)
+                            )
+                    } else {
+                        Color.clear
+                            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 20))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 20)
+                                    .stroke(.white.opacity(0.16), lineWidth: 1)
+                            )
+                    }
+                }
+            )
+        }
+    }
+
     /// Centered liquid-glass confirmation dialog for deleting a link.
     @ViewBuilder
     private func deleteConfirmationDialog(for link: Link) -> some View {
@@ -430,8 +863,9 @@ struct LinksOverviewView: View {
                     )
 
                     Button {
-                        // TODO: Wire to real delete endpoint, then refresh list.
+                        let linkId = link.id
                         pendingDeleteLink = nil
+                        Task { await performSingleDelete(id: linkId) }
                     } label: {
                         Text("Delete")
                             .font(.system(size: 16, weight: .semibold))
@@ -475,8 +909,6 @@ struct LinksOverviewView: View {
         }
     }
 
-    // (Context menu actions are currently simple hooks – real edit/archive/delete can be wired here later.)
-
     private func message(for error: LinkServiceError) -> String {
         switch error {
         case .noServerURL: return "No server configured."
@@ -500,63 +932,81 @@ private struct LinkRowView: View {
     var selectionMode: Bool = false
 
     var body: some View {
-        NavigationLink(value: link) {
-            ZStack {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack(alignment: .top, spacing: 12) {
-                        linkIcon
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack(spacing: 8) {
-                                typePill(link.linkType)
-                                if link.isFavorite {
-                                    Image(systemName: "star.fill")
-                                        .font(.system(size: 12))
-                                        .foregroundStyle(CloudwrkzColors.warning400)
-                                }
+        Group {
+            if selectionMode {
+                rowContent
+            } else {
+                NavigationLink(value: link) {
+                    rowContent
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private var rowContent: some View {
+        ZStack {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .top, spacing: 12) {
+                    if selectionMode {
+                        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                            .font(.system(size: 22))
+                            .foregroundStyle(isSelected ? CloudwrkzColors.primary400 : CloudwrkzColors.neutral500)
+                            .padding(.top, 2)
+                    }
+                    linkIcon
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 8) {
+                            typePill(link.linkType)
+                            if link.isFavorite {
+                                Image(systemName: "star.fill")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(CloudwrkzColors.warning400)
                             }
-                            Text(link.title)
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundStyle(CloudwrkzColors.neutral100)
-                                .lineLimit(2)
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        Text(link.title)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(CloudwrkzColors.neutral100)
+                            .lineLimit(2)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    if !selectionMode {
                         Image(systemName: "arrow.up.forward")
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundStyle(CloudwrkzColors.primary400)
                     }
+                }
 
-                    if let desc = link.description, !desc.isEmpty {
-                        Text(desc)
-                            .font(.system(size: 13, weight: .regular))
-                            .foregroundStyle(CloudwrkzColors.neutral400)
-                            .lineLimit(2)
-                    }
+                if let desc = link.description, !desc.isEmpty {
+                    Text(desc)
+                        .font(.system(size: 13, weight: .regular))
+                        .foregroundStyle(CloudwrkzColors.neutral400)
+                        .lineLimit(2)
+                }
 
-                    HStack(spacing: 12) {
-                        Text(domainLabel(link.url))
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(CloudwrkzColors.primary400)
-                            .lineLimit(1)
-                        let linkCollections = link.collections ?? []
-                        if !linkCollections.isEmpty {
-                            let names = linkCollections.prefix(2).map { $0.collection.name }
-                            Text(names.joined(separator: ", "))
-                                .font(.system(size: 12, weight: .regular))
-                                .foregroundStyle(CloudwrkzColors.neutral500)
-                                .lineLimit(1)
-                        }
-                        Text(formatted(link.createdAt))
+                HStack(spacing: 12) {
+                    Text(domainLabel(link.url))
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(CloudwrkzColors.primary400)
+                        .lineLimit(1)
+                    let linkCollections = link.collections ?? []
+                    if !linkCollections.isEmpty {
+                        let names = linkCollections.prefix(2).map { $0.collection.name }
+                        Text(names.joined(separator: ", "))
                             .font(.system(size: 12, weight: .regular))
                             .foregroundStyle(CloudwrkzColors.neutral500)
+                            .lineLimit(1)
                     }
+                    Text(formatted(link.createdAt))
+                        .font(.system(size: 12, weight: .regular))
+                        .foregroundStyle(CloudwrkzColors.neutral500)
                 }
-                .padding(18)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
-                .background(linkRowGlass)
             }
+            .padding(18)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .background(linkRowGlass)
         }
-        .buttonStyle(.plain)
     }
 
     private var linkIcon: some View {
@@ -779,6 +1229,132 @@ struct LinkFiltersView: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Bulk collection chooser (presented as sheet)
+
+private struct BulkCollectionChooserView: View {
+    @Environment(\.dismiss) private var dismiss
+    var collections: [Collection]
+    @Binding var selectedIds: Set<String>
+    let linkCount: Int
+    let onApply: (Set<String>) -> Void
+
+    private var background: some View {
+        LinearGradient(
+            colors: [CloudwrkzColors.primary950, CloudwrkzColors.neutral950],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .ignoresSafeArea()
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                background
+                VStack(spacing: 0) {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 24) {
+                            Text("Choose the collections to assign to \(linkCount) link\(linkCount == 1 ? "" : "s").")
+                                .font(.system(size: 15, weight: .regular))
+                                .foregroundStyle(CloudwrkzColors.neutral400)
+
+                            if collections.isEmpty {
+                                Text("No collections available.")
+                                    .font(.system(size: 15, weight: .regular))
+                                    .foregroundStyle(CloudwrkzColors.neutral500)
+                                    .padding(20)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .glassPanel(cornerRadius: 20, tint: CloudwrkzColors.primary500, tintOpacity: 0.04)
+                            } else {
+                                VStack(spacing: 0) {
+                                    ForEach(collections) { collection in
+                                        collectionRow(collection: collection)
+                                    }
+                                }
+                                .padding(20)
+                                .glassPanel(cornerRadius: 20, tint: CloudwrkzColors.primary500, tintOpacity: 0.04)
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 8)
+                        .padding(.bottom, 120)
+                    }
+
+                    VStack(spacing: 0) {
+                        Rectangle()
+                            .frame(height: 1)
+                            .foregroundStyle(.white.opacity(0.15))
+
+                        Button {
+                            onApply(selectedIds)
+                            dismiss()
+                        } label: {
+                            Text("Apply to \(linkCount) link\(linkCount == 1 ? "" : "s")")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundStyle(CloudwrkzColors.neutral950)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(CloudwrkzColors.primary400, in: RoundedRectangle(cornerRadius: 14))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .stroke(.white.opacity(0.3), lineWidth: 1)
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 16)
+                    }
+                    .background(CloudwrkzColors.neutral950.opacity(0.95))
+                }
+            }
+            .navigationTitle("Assign Collections")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarBackground(CloudwrkzColors.neutral950.opacity(0.95), for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                        .font(.system(size: 17, weight: .medium))
+                        .foregroundStyle(CloudwrkzColors.neutral400)
+                }
+            }
+            .tint(CloudwrkzColors.primary400)
+        }
+    }
+
+    private func collectionRow(collection: Collection) -> some View {
+        let isSelected = selectedIds.contains(collection.id)
+        let hasColor = collection.color.flatMap { c in c.count == 7 && c.hasPrefix("#") } == true
+        return Button {
+            if isSelected {
+                selectedIds.remove(collection.id)
+            } else {
+                selectedIds.insert(collection.id)
+            }
+        } label: {
+            HStack(spacing: 12) {
+                if hasColor, let color = collection.color {
+                    Circle()
+                        .fill(Color(hex: color))
+                        .frame(width: 12, height: 12)
+                }
+                Text(collection.name)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(CloudwrkzColors.neutral100)
+                Spacer()
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 20))
+                        .foregroundStyle(CloudwrkzColors.primary400)
+                }
+            }
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }
 
