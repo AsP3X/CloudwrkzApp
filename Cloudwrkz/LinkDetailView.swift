@@ -132,7 +132,7 @@ struct LinkDetailView: View {
     }
 
     private var linkIcon: some View {
-        let faviconURL = resolvedFaviconURL
+        let faviconURL = link.faviconURL(serverBaseURL: serverBaseURL)
         return ZStack {
             RoundedRectangle(cornerRadius: 12)
                 .fill(CloudwrkzColors.primary500.opacity(0.15))
@@ -146,32 +146,24 @@ struct LinkDetailView: View {
                             .aspectRatio(contentMode: .fit)
                             .frame(width: 48, height: 48)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
-                    case .failure, .empty:
-                        typeIconFallback
+                    case .failure:
+                        defaultLinkFallback
+                    case .empty:
+                        ProgressView()
+                            .frame(width: 22, height: 22)
                     @unknown default:
-                        typeIconFallback
+                        defaultLinkFallback
                     }
                 }
             } else {
-                typeIconFallback
+                defaultLinkFallback
             }
         }
     }
 
-    /// Favicon URL from the server. Relative paths (e.g. /uploads/favicons/...) are resolved against serverBaseURL.
-    private var resolvedFaviconURL: URL? {
-        guard let fav = link.favicon, !fav.isEmpty else { return nil }
-        if fav.hasPrefix("//") {
-            return URL(string: "https:\(fav)")
-        }
-        if fav.hasPrefix("/") {
-            return URL(string: fav, relativeTo: serverBaseURL)?.absoluteURL
-        }
-        return URL(string: fav)
-    }
-
-    private var typeIconFallback: some View {
-        Image(systemName: linkTypeIcon(link.linkType))
+    /// Default chain-link icon shown when favicon is missing or fails to load.
+    private var defaultLinkFallback: some View {
+        Image(systemName: "link")
             .font(.system(size: 22))
             .foregroundStyle(CloudwrkzColors.primary400)
     }

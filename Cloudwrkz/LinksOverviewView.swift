@@ -544,7 +544,7 @@ private struct LinkRowView: View {
     }
 
     private var linkIcon: some View {
-        let faviconURL = resolvedFaviconURL
+        let faviconURL = link.faviconURL(serverBaseURL: serverBaseURL)
         return ZStack {
             RoundedRectangle(cornerRadius: 10)
                 .fill(CloudwrkzColors.primary500.opacity(0.15))
@@ -558,44 +558,26 @@ private struct LinkRowView: View {
                             .aspectRatio(contentMode: .fit)
                             .frame(width: 40, height: 40)
                             .clipShape(RoundedRectangle(cornerRadius: 10))
-                    case .failure, .empty:
-                        typeIconFallback
+                    case .failure:
+                        defaultLinkFallback
+                    case .empty:
+                        ProgressView()
+                            .frame(width: 18, height: 18)
                     @unknown default:
-                        typeIconFallback
+                        defaultLinkFallback
                     }
                 }
                 .id(url.absoluteString)
             } else {
-                typeIconFallback
+                defaultLinkFallback
             }
         }
         .frame(width: 40, height: 40)
     }
 
-    /// Favicon URL to display: server-provided if present; otherwise we fall back to the type icon.
-    /// This matches the Cloudwrkz server behavior so that when a favicon has been cached on the server,
-    /// the iOS app uses that exact icon. When the server has no favicon, we intentionally avoid third‑party
-    /// favicon services and show only the type-based icon.
-    private var resolvedFaviconURL: URL? {
-        return serverProvidedFaviconURL
-    }
-
-    /// Server-stored favicon: relative paths resolved against serverBaseURL; protocol-relative and absolute supported.
-    private var serverProvidedFaviconURL: URL? {
-        let fav = (link.favicon ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !fav.isEmpty else { return nil }
-        if fav.hasPrefix("//") {
-            return URL(string: "https:" + fav)
-        }
-        if fav.hasPrefix("/") {
-            guard let base = serverBaseURL else { return nil }
-            return URL(string: fav, relativeTo: base)?.absoluteURL
-        }
-        return URL(string: fav)
-    }
-
-    private var typeIconFallback: some View {
-        Image(systemName: linkTypeIcon(link.linkType))
+    /// Default chain-link icon shown when favicon is missing or fails to load.
+    private var defaultLinkFallback: some View {
+        Image(systemName: "link")
             .font(.system(size: 18))
             .foregroundStyle(CloudwrkzColors.primary400)
     }

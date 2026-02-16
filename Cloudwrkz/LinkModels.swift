@@ -43,6 +43,79 @@ struct Link: Identifiable, Decodable, Hashable {
     }
 }
 
+// MARK: - Favicon helpers
+
+extension Link {
+    /// Builds a full favicon URL using the value stored on the link and the server base URL.
+    ///
+    /// Behavior:
+    /// - Empty / nil favicon → `nil`
+    /// - Protocol-relative URLs (`//example.com/icon.png`) → `https://example.com/icon.png`
+    /// - Absolute URLs (`https://…`) → used as-is
+    /// - Relative paths (`/uploads/favicons/...`) → resolved against `serverBaseURL`
+    ///
+    /// This mirrors the Cloudwrkz web app behavior so the iOS app uses the same favicon assets
+    /// served by the Cloudwrkz server.
+    ///
+    /// Additionally, when `serverBaseURL` is not available (e.g. misconfigured server settings),
+    /// relative paths are resolved against the link's own URL host as a fallback so icons still load.
+    func faviconURL(serverBaseURL: URL?) -> URL? {
+        let raw = (favicon ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !raw.isEmpty else { return nil }
+
+        // Protocol-relative URL: //example.com/icon.png
+        if raw.hasPrefix("//") {
+            return URL(string: "https:" + raw)
+        }
+
+        // Relative path: /uploads/favicons/...
+        if raw.hasPrefix("/") {
+            // Prefer explicit server base URL when provided.
+            if let base = serverBaseURL {
+                if let url = URL(string: raw, relativeTo: base)?.absoluteURL {
+                    return url
+                }
+            }
+
+            // Fallback: derive base from the link's own URL (host + scheme).
+            if let derivedBase = Self.derivedBaseURL(from: url) {
+                return URL(string: raw, relativeTo: derivedBase)?.absoluteURL
+            }
+
+            return nil
+        }
+
+        // Absolute URL string as-is.
+        return URL(string: raw)
+    }
+
+    /// Derive a base URL (scheme + host + optional port) from a link URL string.
+    /// Used as a fallback when `serverBaseURL` is not available.
+    private static func derivedBaseURL(from linkURLString: String) -> URL? {
+        let trimmed = linkURLString.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        // Ensure we have a scheme so URL parsing succeeds.
+        let withScheme: String
+        if trimmed.hasPrefix("http://") || trimmed.hasPrefix("https://") {
+            withScheme = trimmed
+        } else {
+            withScheme = "https://" + trimmed
+        }
+
+        guard let full = URL(string: withScheme),
+              let host = full.host else {
+            return nil
+        }
+
+        var components = URLComponents()
+        components.scheme = full.scheme ?? "https"
+        components.host = host
+        components.port = full.port
+        return components.url
+    }
+}
+
 // MARK: - Collections (for picker and filter)
 
 struct CollectionsResponse: Decodable {
