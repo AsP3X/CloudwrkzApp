@@ -7,6 +7,23 @@
 
 import SwiftUI
 
+enum TodoOverviewViewStyle: String, CaseIterable {
+    case card = "card"
+    case list = "list"
+}
+
+private enum TodoListRowItem: Identifiable {
+    case completedHeader
+    case todo(Todo)
+
+    var id: String {
+        switch self {
+        case .completedHeader: return "completed-header"
+        case .todo(let t): return t.id
+        }
+    }
+}
+
 struct TodosOverviewView: View {
     @State private var todos: [Todo] = []
     @State private var isLoading = true
@@ -14,6 +31,11 @@ struct TodosOverviewView: View {
     @State private var filters = TodoFilters()
     @State private var showFilters = false
     @State private var showAddTodo = false
+    @AppStorage("todoOverviewViewStyle") private var viewStyleRaw: String = TodoOverviewViewStyle.card.rawValue
+
+    private var viewStyle: TodoOverviewViewStyle {
+        TodoOverviewViewStyle(rawValue: viewStyleRaw) ?? .card
+    }
 
     private let config = ServerConfig.load()
 
@@ -27,7 +49,10 @@ struct TodosOverviewView: View {
             } else if todos.isEmpty {
                 emptyView
             } else {
-                todoList
+                switch viewStyle {
+                case .card: cardView
+                case .list: listView
+                }
             }
         }
         .navigationTitle("ToDo")
@@ -39,6 +64,24 @@ struct TodosOverviewView: View {
             }
         }
         .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Menu {
+                    Button {
+                        viewStyleRaw = TodoOverviewViewStyle.card.rawValue
+                    } label: {
+                        Label("Card view", systemImage: "square.grid.2x2")
+                    }
+                    Button {
+                        viewStyleRaw = TodoOverviewViewStyle.list.rawValue
+                    } label: {
+                        Label("List view", systemImage: "list.bullet")
+                    }
+                } label: {
+                    Image(systemName: viewStyle == .card ? "square.grid.2x2" : "list.bullet")
+                        .font(.system(size: 22))
+                        .foregroundStyle(CloudwrkzColors.primary400)
+                }
+            }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
                     showFilters = true
@@ -143,7 +186,7 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private var todoList: some View {
+    private var cardView: some View {
         ScrollView {
             LazyVStack(spacing: 14) {
                 ForEach(todos) { todo in
@@ -161,6 +204,155 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
             await loadTodos()
         }
         .scrollContentBackground(.hidden)
+    }
+
+    private var activeTodos: [Todo] {
+        todos.filter { $0.status != "COMPLETED" }
+    }
+
+    private var completedTodos: [Todo] {
+        todos.filter { $0.status == "COMPLETED" }
+    }
+
+    private var todoListRowItems: [TodoListRowItem] {
+        let active: [TodoListRowItem] = activeTodos.map { .todo($0) }
+        let header: [TodoListRowItem] = completedTodos.isEmpty ? [] : [.completedHeader]
+        let completed: [TodoListRowItem] = completedTodos.map { .todo($0) }
+        return active + header + completed
+    }
+
+    private var listView: some View {
+        List {
+            ForEach(todoListRowItems) { item in
+                switch item {
+                case .completedHeader:
+                    Text("COMPLETED")
+                        .font(.system(size: 11, weight: .bold))
+                        .tracking(0.8)
+                        .foregroundStyle(CloudwrkzColors.neutral500)
+                        .listRowInsets(EdgeInsets(top: 12, leading: 20, bottom: 4, trailing: 20))
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                case .todo(let todo):
+                    if todo.status == "COMPLETED" {
+                        NavigationLink(value: todo) {
+                            overviewCompletedRow(todo)
+                        }
+                        .buttonStyle(.plain)
+                        .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20))
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) {
+                                Task { await deleteTodo(todo.id) }
+                            } label: { Image(systemName: "trash") }
+                            .tint(.red)
+                        }
+                    } else {
+                        NavigationLink(value: todo) {
+                            overviewActiveRow(todo)
+                        }
+                        .buttonStyle(.plain)
+                        .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20))
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) {
+                                Task { await deleteTodo(todo.id) }
+                            } label: { Image(systemName: "trash") }
+                            .tint(.red)
+                            Button {
+                                Task { await completeTodo(todo.id) }
+                            } label: { Image(systemName: "checkmark") }
+                            .tint(CloudwrkzColors.success500)
+                        }
+                    }
+                }
+            }
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .refreshable {
+            await loadTodos()
+        }
+        .animation(.easeInOut(duration: 0.25), value: todoListRowItems.map(\.id))
+    }
+
+    private func overviewActiveRow(_ todo: Todo) -> some View {
+        HStack(spacing: 14) {
+            Button {
+                Task { await completeTodo(todo.id) }
+            } label: {
+                Image(systemName: "circle")
+                    .font(.system(size: 20))
+                    .foregroundStyle(CloudwrkzColors.neutral500)
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.plain)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(todo.title)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(CloudwrkzColors.neutral100)
+                    .lineLimit(2)
+                Text(overviewTodoSubtitle(todo))
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundStyle(CloudwrkzColors.neutral500)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+    }
+
+    private func overviewCompletedRow(_ todo: Todo) -> some View {
+        HStack(spacing: 14) {
+            Button {
+                Task { await uncompleteTodo(todo.id) }
+            } label: {
+                Image(systemName: "checkmark.circle")
+                    .font(.system(size: 20))
+                    .foregroundStyle(CloudwrkzColors.success500)
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.plain)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(todo.title)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(CloudwrkzColors.neutral400)
+                    .strikethrough(true, color: CloudwrkzColors.neutral500)
+                    .lineLimit(2)
+                Text(overviewTodoSubtitle(todo))
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundStyle(CloudwrkzColors.neutral500)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+    }
+
+    private func overviewTodoSubtitle(_ todo: Todo) -> String {
+        let status = todo.status.replacingOccurrences(of: "_", with: " ").lowercased()
+        return "\(status) · \(todo.priority)"
+    }
+
+    private func completeTodo(_ id: String) async {
+        let result = await TodoService.updateTodo(config: config, id: id, status: "COMPLETED")
+        guard case .success = result else { return }
+        await loadTodos()
+    }
+
+    private func uncompleteTodo(_ id: String) async {
+        let result = await TodoService.updateTodo(config: config, id: id, status: "IN_PROGRESS")
+        guard case .success = result else { return }
+        await loadTodos()
+    }
+
+    private func deleteTodo(_ id: String) async {
+        _ = await TodoService.deleteTodo(config: config, id: id)
+        await loadTodos()
     }
 
     /// Load todos; supports pull-to-refresh (async) and onAppear. Keeps refresh indicator visible until load finishes.
