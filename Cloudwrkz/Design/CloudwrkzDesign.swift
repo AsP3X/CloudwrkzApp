@@ -6,6 +6,7 @@
 //  Adaptive: supports both dark and light appearance.
 //
 
+import os
 import SwiftUI
 
 // MARK: - Enterprise palette (adaptive dark/light)
@@ -363,9 +364,12 @@ struct FaviconImageView: View {
     @State private var uiImage: UIImage?
     @State private var failed = false
     @State private var loadTask: Task<Void, Never>?
+    #if DEBUG
     @State private var debugInfo: String = ""
     @State private var showDebug = false
+    #endif
 
+    private static let logger = Logger(subsystem: "Cloudwrkz", category: "Favicon")
     private static let session: URLSession = {
         let config = URLSessionConfiguration.default
         config.urlCache = nil
@@ -389,6 +393,7 @@ struct FaviconImageView: View {
             }
         }
         .frame(width: size, height: size)
+        #if DEBUG
         .onTapGesture(count: 2) { showDebug.toggle() }
         .popover(isPresented: $showDebug) {
             VStack(alignment: .leading, spacing: 6) {
@@ -404,6 +409,7 @@ struct FaviconImageView: View {
             .padding()
             .frame(minWidth: 300)
         }
+        #endif
         .onAppear { startLoad() }
         .onChange(of: url) { _, _ in startLoad() }
         .onDisappear { loadTask?.cancel() }
@@ -419,8 +425,10 @@ struct FaviconImageView: View {
         loadTask?.cancel()
         uiImage = nil
         failed = false
+        #if DEBUG
         debugInfo = "[favicon] loading \(url.absoluteString)"
-        print("[FaviconImageView] startLoad url=\(url.absoluteString)")
+        #endif
+        Self.logger.debug("startLoad url=\(url.absoluteString)")
         loadTask = Task {
             do {
                 var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 15)
@@ -432,39 +440,48 @@ struct FaviconImageView: View {
                     hasToken = false
                 }
                 AppIdentity.apply(to: &request)
-                print("[FaviconImageView] fetching hasToken=\(hasToken) url=\(url.absoluteString)")
+                Self.logger.debug("fetching hasToken=\(hasToken) url=\(url.absoluteString)")
                 let (data, response) = try await Self.session.data(for: request)
                 guard !Task.isCancelled else {
-                    print("[FaviconImageView] CANCELLED url=\(url.absoluteString)")
+                    Self.logger.debug("CANCELLED url=\(url.absoluteString)")
                     return
                 }
                 if let http = response as? HTTPURLResponse {
                     let contentType = http.value(forHTTPHeaderField: "Content-Type") ?? "nil"
-                    let snippet = String(data: data.prefix(200), encoding: .utf8) ?? "(binary \(data.count) bytes)"
-                    print("[FaviconImageView] status=\(http.statusCode) contentType=\(contentType) bytes=\(data.count) finalURL=\(http.url?.absoluteString ?? "nil") snippet=\(snippet)")
+                    Self.logger.debug("status=\(http.statusCode) contentType=\(contentType) bytes=\(data.count) finalURL=\(http.url?.absoluteString ?? "nil")")
+                    #if DEBUG
                     debugInfo = "[favicon] \(http.statusCode) \(contentType) \(data.count)B url=\(http.url?.absoluteString ?? "?")"
+                    #endif
                     guard (200...299).contains(http.statusCode) else {
                         failed = true
                         return
                     }
                 } else {
-                    print("[FaviconImageView] non-HTTP response url=\(url.absoluteString)")
+                    Self.logger.debug("non-HTTP response url=\(url.absoluteString)")
+                    #if DEBUG
                     debugInfo = "[favicon] non-HTTP response"
+                    #endif
                     failed = true
                     return
                 }
                 if let image = UIImage(data: data) {
-                    print("[FaviconImageView] SUCCESS \(Int(image.size.width))x\(Int(image.size.height)) url=\(url.absoluteString)")
+                    Self.logger.debug("SUCCESS \(Int(image.size.width))x\(Int(image.size.height)) url=\(url.absoluteString)")
+                    #if DEBUG
                     debugInfo = "[favicon] OK \(data.count)B"
+                    #endif
                     uiImage = image
                 } else {
-                    print("[FaviconImageView] UIImage DECODE FAILED bytes=\(data.count) url=\(url.absoluteString)")
+                    Self.logger.debug("UIImage DECODE FAILED bytes=\(data.count) url=\(url.absoluteString)")
+                    #if DEBUG
                     debugInfo = "[favicon] decode fail \(data.count)B"
+                    #endif
                     failed = true
                 }
             } catch {
-                print("[FaviconImageView] ERROR \(error.localizedDescription) url=\(url.absoluteString)")
+                Self.logger.error("ERROR \(error.localizedDescription) url=\(url.absoluteString)")
+                #if DEBUG
                 debugInfo = "[favicon] error: \(error.localizedDescription)"
+                #endif
                 if !Task.isCancelled {
                     failed = true
                 }
