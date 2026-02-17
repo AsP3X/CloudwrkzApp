@@ -207,7 +207,7 @@ struct EditLinkView: View {
         .frame(width: 72, height: 72)
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .stroke(.white.opacity(0.15), lineWidth: 1)
+                .stroke(CloudwrkzColors.glassStrokeSubtle, lineWidth: 1)
         )
     }
 
@@ -293,7 +293,7 @@ struct EditLinkView: View {
             )
             .overlay(
                 Capsule()
-                    .stroke(.white.opacity(isSelected ? 0 : 0.2), lineWidth: 1)
+                    .stroke(isSelected ? Color.clear : CloudwrkzColors.glassStroke, lineWidth: 1)
             )
         }
         .buttonStyle(.plain)

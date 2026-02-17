@@ -143,11 +143,11 @@ struct TicketFiltersView: View {
             .padding(.horizontal, 16)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(.white.opacity(isSelected ? 0.08 : 0.04))
+                    .fill(isSelected ? CloudwrkzColors.glassFillHighlight : CloudwrkzColors.glassFillSubtle)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
                             .stroke(
-                                isSelected ? CloudwrkzColors.primary400.opacity(0.5) : .white.opacity(0.1),
+                                isSelected ? CloudwrkzColors.primary400.opacity(0.5) : CloudwrkzColors.glassStrokeSubtle,
                                 lineWidth: isSelected ? 1.5 : 1
                             )
                     )
@@ -189,7 +189,7 @@ struct TicketFiltersView: View {
         .background(CloudwrkzColors.neutral900.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(.white.opacity(0.12), lineWidth: 1)
+                .stroke(CloudwrkzColors.glassStrokeSubtle, lineWidth: 1)
         )
     }
 

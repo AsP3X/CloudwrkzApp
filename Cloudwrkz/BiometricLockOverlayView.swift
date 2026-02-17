@@ -45,7 +45,7 @@ struct BiometricLockOverlayView: View {
                     } label: {
                         Text("Unlock with \(BiometricService.biometricTypeName)")
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(CloudwrkzColors.neutral950)
+                            .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
                             .glassButtonPrimary(cornerRadius: 14)

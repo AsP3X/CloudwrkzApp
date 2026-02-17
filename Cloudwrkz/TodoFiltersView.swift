@@ -189,11 +189,11 @@ struct TodoFiltersView: View {
             .padding(.horizontal, 16)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(.white.opacity(isSelected ? 0.08 : 0.04))
+                    .fill(isSelected ? CloudwrkzColors.glassFillHighlight : CloudwrkzColors.glassFillSubtle)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
                             .stroke(
-                                isSelected ? CloudwrkzColors.primary400.opacity(0.5) : .white.opacity(0.1),
+                                isSelected ? CloudwrkzColors.primary400.opacity(0.5) : CloudwrkzColors.glassStrokeSubtle,
                                 lineWidth: isSelected ? 1.5 : 1
                             )
                     )

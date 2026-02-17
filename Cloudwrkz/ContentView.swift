@@ -232,31 +232,10 @@ struct ContentView: View {
                         .padding(16)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .contentShape(Rectangle())
-                        .background(menuCardGlass)
+                        .glassCard(cornerRadius: 16)
                     }
                     .buttonStyle(.plain)
                 }
-            }
-        }
-    }
-
-    private var menuCardGlass: some View {
-        Group {
-            if #available(iOS 26.0, *) {
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(.clear)
-                    .glassEffect(.regular.tint(.white.opacity(0.04)), in: RoundedRectangle(cornerRadius: 16))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(.white.opacity(0.12), lineWidth: 1)
-                    )
-            } else {
-                Color.clear
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(.white.opacity(0.12), lineWidth: 1)
-                    )
             }
         }
     }

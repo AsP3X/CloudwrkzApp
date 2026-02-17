@@ -70,7 +70,7 @@ struct DashboardHomeView: View {
                                 .foregroundStyle(CloudwrkzColors.neutral500)
                         }
                         .padding(16)
-                        .background(quickAccessRowGlass)
+                        .glassCard(cornerRadius: 16)
                     }
                     .buttonStyle(.plain)
                 }
@@ -78,26 +78,6 @@ struct DashboardHomeView: View {
         }
     }
 
-    private var quickAccessRowGlass: some View {
-        Group {
-            if #available(iOS 26.0, *) {
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(.clear)
-                    .glassEffect(.regular.tint(.white.opacity(0.04)), in: RoundedRectangle(cornerRadius: 16))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(.white.opacity(0.12), lineWidth: 1)
-                    )
-            } else {
-                Color.clear
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(.white.opacity(0.12), lineWidth: 1)
-                    )
-            }
-        }
-    }
 }
 
 #Preview {

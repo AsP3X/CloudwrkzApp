@@ -258,28 +258,7 @@ private struct TodoRowView: View {
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
-        .background(todoRowGlass)
-    }
-
-    private var todoRowGlass: some View {
-        Group {
-            if #available(iOS 26.0, *) {
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(.clear)
-                    .glassEffect(.regular.tint(.white.opacity(0.08)), in: RoundedRectangle(cornerRadius: 16))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(.white.opacity(0.2), lineWidth: 1)
-                    )
-            } else {
-                Color.clear
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(.white.opacity(0.2), lineWidth: 1)
-                    )
-            }
-        }
+        .glassCard(cornerRadius: 16)
     }
 
     private func statusPill(_ status: String) -> some View {

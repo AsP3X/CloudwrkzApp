@@ -177,7 +177,7 @@ struct LinksOverviewView: View {
                 .background(CloudwrkzColors.primary400, in: Circle())
                 .overlay(
                     Circle()
-                        .stroke(.white.opacity(0.3), lineWidth: 1)
+                        .stroke(CloudwrkzColors.glassStroke, lineWidth: 1)
                 )
                 .shadow(color: .black.opacity(0.25), radius: 8, x: 0, y: 4)
         }
@@ -220,7 +220,7 @@ struct LinksOverviewView: View {
                 )
                 .overlay(
                     Capsule()
-                        .stroke(.white.opacity(isSelected ? 0 : 0.25), lineWidth: 1)
+                        .stroke(isSelected ? Color.clear : CloudwrkzColors.glassStroke, lineWidth: 1)
                 )
         }
         .buttonStyle(.plain)
@@ -363,7 +363,7 @@ struct LinksOverviewView: View {
         .overlay(
             Rectangle()
                 .frame(height: 1)
-                .foregroundStyle(.white.opacity(0.15)),
+                .foregroundStyle(CloudwrkzColors.divider),
             alignment: .bottom
         )
     }
@@ -602,7 +602,7 @@ struct LinksOverviewView: View {
         .overlay(alignment: .top) {
             Rectangle()
                 .frame(height: 1)
-                .foregroundStyle(.white.opacity(0.15))
+                .foregroundStyle(CloudwrkzColors.divider)
         }
     }
 
@@ -698,7 +698,7 @@ struct LinksOverviewView: View {
                             if #available(iOS 26.0, *) {
                                 RoundedRectangle(cornerRadius: 14)
                                     .fill(.clear)
-                                    .glassEffect(.regular.tint(.white.opacity(0.04)), in: RoundedRectangle(cornerRadius: 14))
+                                    .glassEffect(.regular.tint(CloudwrkzColors.glassFillSubtle), in: RoundedRectangle(cornerRadius: 14))
                             } else {
                                 Color.clear
                                     .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
@@ -721,7 +721,7 @@ struct LinksOverviewView: View {
                             .fill(CloudwrkzColors.error500)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 14)
-                                    .stroke(.white.opacity(0.2), lineWidth: 1)
+                                    .stroke(CloudwrkzColors.glassStroke, lineWidth: 1)
                             )
                     )
                 }
@@ -733,17 +733,17 @@ struct LinksOverviewView: View {
                     if #available(iOS 26.0, *) {
                         RoundedRectangle(cornerRadius: 22)
                             .fill(.clear)
-                            .glassEffect(.regular.tint(.white.opacity(0.08)), in: RoundedRectangle(cornerRadius: 22))
+                            .glassEffect(.regular.tint(CloudwrkzColors.glassFillHighlight), in: RoundedRectangle(cornerRadius: 22))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 22)
-                                    .stroke(.white.opacity(0.16), lineWidth: 1)
+                                    .stroke(CloudwrkzColors.glassStrokeSubtle, lineWidth: 1)
                             )
                     } else {
                         Color.clear
                             .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 22))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 22)
-                                    .stroke(.white.opacity(0.16), lineWidth: 1)
+                                    .stroke(CloudwrkzColors.glassStrokeSubtle, lineWidth: 1)
                             )
                     }
                 }
@@ -795,17 +795,17 @@ struct LinksOverviewView: View {
                     if #available(iOS 26.0, *) {
                         RoundedRectangle(cornerRadius: 20)
                             .fill(.clear)
-                            .glassEffect(.regular.tint(.white.opacity(0.08)), in: RoundedRectangle(cornerRadius: 20))
+                            .glassEffect(.regular.tint(CloudwrkzColors.glassFillHighlight), in: RoundedRectangle(cornerRadius: 20))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 20)
-                                    .stroke(.white.opacity(0.16), lineWidth: 1)
+                                    .stroke(CloudwrkzColors.glassStrokeSubtle, lineWidth: 1)
                             )
                     } else {
                         Color.clear
                             .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 20))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 20)
-                                    .stroke(.white.opacity(0.16), lineWidth: 1)
+                                    .stroke(CloudwrkzColors.glassStrokeSubtle, lineWidth: 1)
                             )
                     }
                 }
@@ -854,7 +854,7 @@ struct LinksOverviewView: View {
                             if #available(iOS 26.0, *) {
                                 RoundedRectangle(cornerRadius: 14)
                                     .fill(.clear)
-                                    .glassEffect(.regular.tint(.white.opacity(0.04)), in: RoundedRectangle(cornerRadius: 14))
+                                    .glassEffect(.regular.tint(CloudwrkzColors.glassFillSubtle), in: RoundedRectangle(cornerRadius: 14))
                             } else {
                                 Color.clear
                                     .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
@@ -878,7 +878,7 @@ struct LinksOverviewView: View {
                             .fill(CloudwrkzColors.error500)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 14)
-                                    .stroke(.white.opacity(0.2), lineWidth: 1)
+                                    .stroke(CloudwrkzColors.glassStroke, lineWidth: 1)
                             )
                     )
                 }
@@ -890,17 +890,17 @@ struct LinksOverviewView: View {
                     if #available(iOS 26.0, *) {
                         RoundedRectangle(cornerRadius: 22)
                             .fill(.clear)
-                            .glassEffect(.regular.tint(.white.opacity(0.08)), in: RoundedRectangle(cornerRadius: 22))
+                            .glassEffect(.regular.tint(CloudwrkzColors.glassFillHighlight), in: RoundedRectangle(cornerRadius: 22))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 22)
-                                    .stroke(.white.opacity(0.16), lineWidth: 1)
+                                    .stroke(CloudwrkzColors.glassStrokeSubtle, lineWidth: 1)
                             )
                     } else {
                         Color.clear
                             .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 22))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 22)
-                                    .stroke(.white.opacity(0.16), lineWidth: 1)
+                                    .stroke(CloudwrkzColors.glassStrokeSubtle, lineWidth: 1)
                             )
                     }
                 }
@@ -1036,11 +1036,11 @@ private struct LinkRowView: View {
             if #available(iOS 26.0, *) {
                 RoundedRectangle(cornerRadius: 16)
                     .fill(.clear)
-                    .glassEffect(.regular.tint(.white.opacity(0.08)), in: RoundedRectangle(cornerRadius: 16))
+                    .glassEffect(.regular.tint(CloudwrkzColors.glassFillHighlight), in: RoundedRectangle(cornerRadius: 16))
                     .overlay(
                         RoundedRectangle(cornerRadius: 16)
                             .stroke(
-                                isSelected ? CloudwrkzColors.primary400 : .white.opacity(0.2),
+                                isSelected ? CloudwrkzColors.primary400 : CloudwrkzColors.glassStroke,
                                 lineWidth: isSelected ? 2 : 1
                             )
                     )
@@ -1050,7 +1050,7 @@ private struct LinkRowView: View {
                     .overlay(
                         RoundedRectangle(cornerRadius: 16)
                             .stroke(
-                                isSelected ? CloudwrkzColors.primary400 : .white.opacity(0.2),
+                                isSelected ? CloudwrkzColors.primary400 : CloudwrkzColors.glassStroke,
                                 lineWidth: isSelected ? 2 : 1
                             )
                     )
@@ -1218,7 +1218,6 @@ struct LinkFiltersView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
@@ -1286,7 +1285,7 @@ private struct BulkCollectionChooserView: View {
                     VStack(spacing: 0) {
                         Rectangle()
                             .frame(height: 1)
-                            .foregroundStyle(.white.opacity(0.15))
+                            .foregroundStyle(CloudwrkzColors.divider)
 
                         Button {
                             onApply(selectedIds)
@@ -1300,7 +1299,7 @@ private struct BulkCollectionChooserView: View {
                                 .background(CloudwrkzColors.primary400, in: RoundedRectangle(cornerRadius: 14))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 14)
-                                        .stroke(.white.opacity(0.3), lineWidth: 1)
+                                        .stroke(CloudwrkzColors.glassStroke, lineWidth: 1)
                                 )
                         }
                         .buttonStyle(.plain)

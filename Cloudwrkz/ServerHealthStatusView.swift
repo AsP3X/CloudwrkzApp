@@ -81,7 +81,6 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Refresh") {

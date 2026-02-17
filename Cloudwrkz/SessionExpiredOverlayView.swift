@@ -67,7 +67,7 @@ struct SessionExpiredOverlayView: View {
 
                     // Divider
                     Rectangle()
-                        .fill(.white.opacity(0.08))
+                        .fill(CloudwrkzColors.divider)
                         .frame(height: 1)
                         .padding(.horizontal, 8)
                         .opacity(appeared ? 1 : 0)
@@ -79,7 +79,7 @@ struct SessionExpiredOverlayView: View {
                             Text("Back to Sign In")
                                 .font(.system(size: 17, weight: .semibold))
                         }
-                        .foregroundStyle(CloudwrkzColors.neutral950)
+                        .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
                         .glassButtonPrimary(cornerRadius: 14)

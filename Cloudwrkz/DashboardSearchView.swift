@@ -29,6 +29,10 @@ struct DashboardSearchView: View {
                 resultsContent
             }
         }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            isFieldFocused = false
+        }
         .onAppear {
             isFieldFocused = true
         }
@@ -183,6 +187,7 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
                 .padding(.horizontal, 20)
                 .padding(.bottom, 32)
             }
+            .scrollDismissesKeyboard(.interactively)
         }
     }
 

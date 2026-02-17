@@ -49,7 +49,7 @@ struct RegisterView: View {
                 VStack(spacing: 24) {
                     Text("Create account")
                         .font(.system(size: 28, weight: .bold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(CloudwrkzColors.textOnGradient)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                     formFields
@@ -66,7 +66,7 @@ struct RegisterView: View {
                             } else {
                                 Text("Create account")
                                     .font(.system(size: 17, weight: .semibold))
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(CloudwrkzColors.textOnGradient)
                             }
                         }
                         .frame(maxWidth: .infinity)
@@ -101,7 +101,7 @@ struct RegisterView: View {
                     .textContentType(.name)
                     .autocapitalization(.words)
                     .focused($focusedField, equals: .name)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(CloudwrkzColors.neutral100)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 14)
                     .glassField(cornerRadius: 10)
@@ -118,7 +118,7 @@ struct RegisterView: View {
                     .autocapitalization(.none)
                     .autocorrectionDisabled()
                     .focused($focusedField, equals: .email)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(CloudwrkzColors.neutral100)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 14)
                     .glassField(cornerRadius: 10)
@@ -132,7 +132,7 @@ struct RegisterView: View {
                 SecureField("Choose a password", text: $password)
                     .textContentType(.newPassword)
                     .focused($focusedField, equals: .password)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(CloudwrkzColors.neutral100)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 14)
                     .glassField(cornerRadius: 10)
@@ -146,7 +146,7 @@ struct RegisterView: View {
                 SecureField("Confirm your password", text: $confirmPassword)
                     .textContentType(.newPassword)
                     .focused($focusedField, equals: .confirmPassword)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(CloudwrkzColors.neutral100)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 14)
                     .glassField(cornerRadius: 10)

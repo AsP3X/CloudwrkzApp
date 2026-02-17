@@ -43,7 +43,7 @@ struct DashboardMenuView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
+            
         }
     }
 
@@ -125,14 +125,7 @@ struct DashboardMenuView: View {
                     .foregroundStyle(CloudwrkzColors.neutral500)
             }
             .padding(16)
-            .background {
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(.white.opacity(0.04))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(.white.opacity(0.1), lineWidth: 1)
-                    )
-            }
+            .glassCard(cornerRadius: 16)
         }
         .buttonStyle(.plain)
     }

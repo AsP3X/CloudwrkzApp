@@ -128,7 +128,7 @@ struct LinkDetailView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(20)
-        .background(detailGlassPanel)
+        .glassCard(cornerRadius: 20)
     }
 
     private var linkIcon: some View {
@@ -170,7 +170,7 @@ struct LinkDetailView: View {
         }
         .padding(22)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(detailGlassPanel)
+        .glassCard(cornerRadius: 20)
     }
 
     private var linkInfoCard: some View {
@@ -199,7 +199,7 @@ struct LinkDetailView: View {
         }
         .padding(22)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(detailGlassPanel)
+        .glassCard(cornerRadius: 20)
     }
 
     private func infoRow(label: String, value: String) -> some View {
@@ -211,27 +211,6 @@ struct LinkDetailView: View {
             Text(value)
                 .font(.system(size: 14, weight: .regular))
                 .foregroundStyle(CloudwrkzColors.neutral100)
-        }
-    }
-
-    private var detailGlassPanel: some View {
-        Group {
-            if #available(iOS 26.0, *) {
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(.clear)
-                    .glassEffect(.regular.tint(.white.opacity(0.06)), in: RoundedRectangle(cornerRadius: 20))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(.white.opacity(0.18), lineWidth: 1)
-                    )
-            } else {
-                Color.clear
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 20))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(.white.opacity(0.18), lineWidth: 1)
-                    )
-            }
         }
     }
 
@@ -460,7 +439,7 @@ struct LinkDetailView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(detailGlassPanel)
+        .glassCard(cornerRadius: 20)
     }
 
     private var githubIconGlass: some View {
@@ -468,10 +447,10 @@ struct LinkDetailView: View {
             if #available(iOS 26.0, *) {
                 RoundedRectangle(cornerRadius: 14)
                     .fill(.clear)
-                    .glassEffect(.regular.tint(.white.opacity(0.08)), in: RoundedRectangle(cornerRadius: 14))
+                    .glassEffect(.regular.tint(CloudwrkzColors.glassFillHighlight), in: RoundedRectangle(cornerRadius: 14))
                     .overlay(
                         RoundedRectangle(cornerRadius: 14)
-                            .stroke(.white.opacity(0.2), lineWidth: 1)
+                            .stroke(CloudwrkzColors.glassStroke, lineWidth: 1)
                     )
                     .frame(width: 52, height: 52)
             } else {
@@ -480,7 +459,7 @@ struct LinkDetailView: View {
                     .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
                     .overlay(
                         RoundedRectangle(cornerRadius: 14)
-                            .stroke(.white.opacity(0.2), lineWidth: 1)
+                            .stroke(CloudwrkzColors.glassStroke, lineWidth: 1)
                     )
                     .frame(width: 52, height: 52)
             }
@@ -517,7 +496,7 @@ struct LinkDetailView: View {
                     .glassEffect(.regular.tint(CloudwrkzColors.primary500.opacity(0.06)), in: RoundedRectangle(cornerRadius: 12))
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .stroke(.white.opacity(0.15), lineWidth: 1)
+                            .stroke(CloudwrkzColors.glassStrokeSubtle, lineWidth: 1)
                     )
             } else {
                 RoundedRectangle(cornerRadius: 12)
@@ -525,7 +504,7 @@ struct LinkDetailView: View {
                     .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .stroke(.white.opacity(0.15), lineWidth: 1)
+                            .stroke(CloudwrkzColors.glassStrokeSubtle, lineWidth: 1)
                     )
             }
         }
@@ -533,7 +512,7 @@ struct LinkDetailView: View {
 
     private var divider: some View {
         Rectangle()
-            .fill(.white.opacity(0.08))
+            .fill(CloudwrkzColors.divider)
             .frame(height: 1)
             .padding(.horizontal, 20)
     }
@@ -592,7 +571,7 @@ private struct YouTubeThumbnailCardView: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(.white.opacity(0.18), lineWidth: 1)
+                .stroke(CloudwrkzColors.glassStrokeSubtle, lineWidth: 1)
         )
         .onAppear { loadThumbnail = true }
     }

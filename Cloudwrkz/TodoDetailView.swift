@@ -116,7 +116,7 @@ struct TodoDetailView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(20)
-        .background(detailGlassPanel)
+        .glassCard(cornerRadius: 20)
     }
 
     private var contentGrid: some View {
@@ -157,7 +157,7 @@ struct TodoDetailView: View {
         }
         .padding(22)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(detailGlassPanel)
+        .glassCard(cornerRadius: 20)
     }
 
     private var ticketLinkCard: some View {
@@ -180,7 +180,7 @@ struct TodoDetailView: View {
                 }
                 .padding(20)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(detailGlassPanel)
+                .glassCard(cornerRadius: 20)
             }
         }
     }
@@ -219,7 +219,7 @@ struct TodoDetailView: View {
 
     private var settingsDivider: some View {
         Rectangle()
-            .fill(.white.opacity(0.12))
+            .fill(CloudwrkzColors.divider)
             .frame(height: 1)
     }
 
@@ -273,27 +273,6 @@ struct TodoDetailView: View {
         }
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var detailGlassPanel: some View {
-        Group {
-            if #available(iOS 26.0, *) {
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(.clear)
-                    .glassEffect(.regular.tint(.white.opacity(0.06)), in: RoundedRectangle(cornerRadius: 20))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(.white.opacity(0.18), lineWidth: 1)
-                    )
-            } else {
-                Color.clear
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 20))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(.white.opacity(0.18), lineWidth: 1)
-                    )
-            }
-        }
     }
 
     private func statusPill(_ status: String) -> some View {
@@ -430,7 +409,7 @@ private struct TodoInfoSidebarView: View {
         }
         .padding(22)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(sidebarGlassPanel)
+        .glassCard(cornerRadius: 20)
     }
 
     private func infoRow(label: String, value: String, mono: Bool = false) -> some View {
@@ -450,27 +429,6 @@ private struct TodoInfoSidebarView: View {
         Rectangle()
             .fill(CloudwrkzColors.neutral700.opacity(0.6))
             .frame(height: 1)
-    }
-
-    private var sidebarGlassPanel: some View {
-        Group {
-            if #available(iOS 26.0, *) {
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(.clear)
-                    .glassEffect(.regular.tint(.white.opacity(0.06)), in: RoundedRectangle(cornerRadius: 20))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(.white.opacity(0.18), lineWidth: 1)
-                    )
-            } else {
-                Color.clear
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 20))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(.white.opacity(0.18), lineWidth: 1)
-                    )
-            }
-        }
     }
 
     private func formatAssignedTo() -> String {

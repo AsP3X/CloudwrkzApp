@@ -85,7 +85,7 @@ struct TicketDetailView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(20)
-        .background(detailGlassPanel)
+        .glassCard(cornerRadius: 20)
     }
 
     private var contentGrid: some View {
@@ -125,7 +125,7 @@ struct TicketDetailView: View {
         }
         .padding(22)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(detailGlassPanel)
+        .glassCard(cornerRadius: 20)
     }
 
     private var commentsPlaceholder: some View {
@@ -145,28 +145,7 @@ struct TicketDetailView: View {
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(detailGlassPanel)
-    }
-
-    private var detailGlassPanel: some View {
-        Group {
-            if #available(iOS 26.0, *) {
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(.clear)
-                    .glassEffect(.regular.tint(.white.opacity(0.06)), in: RoundedRectangle(cornerRadius: 20))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(.white.opacity(0.18), lineWidth: 1)
-                    )
-            } else {
-                Color.clear
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 20))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(.white.opacity(0.18), lineWidth: 1)
-                    )
-            }
-        }
+        .glassCard(cornerRadius: 20)
     }
 
     private func statusPill(_ status: String) -> some View {
@@ -317,7 +296,7 @@ private struct TicketInfoSidebarView: View {
         }
         .padding(22)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(sidebarGlassPanel)
+        .glassCard(cornerRadius: 20)
     }
 
     private func infoRow(label: String, value: String, mono: Bool = false) -> some View {
@@ -337,27 +316,6 @@ private struct TicketInfoSidebarView: View {
         Rectangle()
             .fill(CloudwrkzColors.neutral700.opacity(0.6))
             .frame(height: 1)
-    }
-
-    private var sidebarGlassPanel: some View {
-        Group {
-            if #available(iOS 26.0, *) {
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(.clear)
-                    .glassEffect(.regular.tint(.white.opacity(0.06)), in: RoundedRectangle(cornerRadius: 20))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(.white.opacity(0.18), lineWidth: 1)
-                    )
-            } else {
-                Color.clear
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 20))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(.white.opacity(0.18), lineWidth: 1)
-                    )
-            }
-        }
     }
 
     private func formatCreatedBy() -> String {

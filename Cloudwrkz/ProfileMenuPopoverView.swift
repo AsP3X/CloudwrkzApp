@@ -98,7 +98,7 @@ struct ProfileMenuPopoverView: View {
 
     private var divider: some View {
         Rectangle()
-            .fill(.white.opacity(0.12))
+            .fill(CloudwrkzColors.divider)
             .frame(height: 1)
             .padding(.vertical, 4)
     }
@@ -178,30 +178,9 @@ private struct MenuRowButton: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(menuRowGlass)
+            .glassCard(cornerRadius: 12)
         }
         .buttonStyle(ProfileMenuRowButtonStyle())
-    }
-
-    private var menuRowGlass: some View {
-        Group {
-            if #available(iOS 26.0, *) {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(.clear)
-                    .glassEffect(.regular.tint(.white.opacity(0.04)), in: RoundedRectangle(cornerRadius: 12))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(.white.opacity(0.12), lineWidth: 1)
-                    )
-            } else {
-                Color.clear
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(.white.opacity(0.12), lineWidth: 1)
-                    )
-            }
-        }
     }
 }
 

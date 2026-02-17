@@ -210,7 +210,6 @@ struct EditTimeEntrySheet: View {
             )
             .datePickerStyle(.compact)
             .labelsHidden()
-            .colorScheme(.dark)
             .tint(CloudwrkzColors.primary400)
         }
     }
@@ -244,7 +243,6 @@ struct EditTimeEntrySheet: View {
                 )
                 .datePickerStyle(.compact)
                 .labelsHidden()
-                .colorScheme(.dark)
                 .tint(CloudwrkzColors.primary400)
             }
         }

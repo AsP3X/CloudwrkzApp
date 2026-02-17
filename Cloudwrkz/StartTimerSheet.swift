@@ -265,17 +265,17 @@ struct StartTimerSheet: View {
             if #available(iOS 26.0, *) {
                 RoundedRectangle(cornerRadius: 20)
                     .fill(.clear)
-                    .glassEffect(.regular.tint(.white.opacity(0.04)), in: RoundedRectangle(cornerRadius: 20))
+                    .glassEffect(.regular.tint(CloudwrkzColors.glassFillSubtle), in: RoundedRectangle(cornerRadius: 20))
                     .overlay(
                         RoundedRectangle(cornerRadius: 20)
-                            .stroke(.white.opacity(0.14), lineWidth: 1)
+                            .stroke(CloudwrkzColors.glassStrokeSubtle, lineWidth: 1)
                     )
             } else {
                 Color.clear
                     .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 20))
                     .overlay(
                         RoundedRectangle(cornerRadius: 20)
-                            .stroke(.white.opacity(0.14), lineWidth: 1)
+                            .stroke(CloudwrkzColors.glassStrokeSubtle, lineWidth: 1)
                     )
             }
         }

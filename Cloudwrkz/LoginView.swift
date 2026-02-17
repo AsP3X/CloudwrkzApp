@@ -47,7 +47,7 @@ struct LoginView: View {
                 VStack(spacing: 24) {
                     Text("Sign in")
                         .font(.system(size: 28, weight: .bold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(CloudwrkzColors.textOnGradient)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                     formFields
@@ -65,7 +65,7 @@ struct LoginView: View {
                             } else {
                                 Text("Sign in")
                                     .font(.system(size: 17, weight: .semibold))
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(CloudwrkzColors.textOnGradient)
                             }
                         }
                         .frame(maxWidth: .infinity)
@@ -95,7 +95,7 @@ struct LoginView: View {
                     .autocapitalization(.none)
                     .autocorrectionDisabled()
                     .focused($focusedField, equals: .email)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(CloudwrkzColors.neutral100)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 14)
                     .glassField(cornerRadius: 10)
@@ -109,7 +109,7 @@ struct LoginView: View {
                 SecureField("Enter your password", text: $password)
                     .textContentType(.password)
                     .focused($focusedField, equals: .password)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(CloudwrkzColors.neutral100)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 14)
                     .glassField(cornerRadius: 10)

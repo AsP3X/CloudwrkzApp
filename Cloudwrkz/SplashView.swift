@@ -26,11 +26,11 @@ struct SplashView: View {
                 VStack(spacing: 16) {
                     Image(systemName: "cloud.fill")
                         .font(.system(size: 52, weight: .medium))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(CloudwrkzColors.textOnGradient)
 
                     Text("Cloudwrkz")
                         .font(.system(size: 34, weight: .bold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(CloudwrkzColors.textOnGradient)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.top, 60)
@@ -44,7 +44,7 @@ struct SplashView: View {
                     Button(action: onLogin) {
                         Text("Sign in")
                             .font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(CloudwrkzColors.textOnGradient)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
                     }
