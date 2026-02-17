@@ -7,6 +7,18 @@
 
 import SwiftUI
 
+private enum SubtodoListItem: Identifiable {
+    case completedHeader
+    case subtask(Todo.TodoSubtask)
+
+    var id: String {
+        switch self {
+        case .completedHeader: return "completed-header"
+        case .subtask(let s): return s.id
+        }
+    }
+}
+
 struct TodoDetailView: View {
     @State private var todo: Todo
     @State private var showTodoInfoSidebar = false
@@ -76,7 +88,22 @@ struct TodoDetailView: View {
         let result = await TodoService.fetchTodo(config: ServerConfig.load(), id: todo.id)
         await MainActor.run {
             if case .success(let updated) = result {
-                withAnimation(.easeInOut(duration: 0.28)) {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    todo = updated
+                }
+            }
+        }
+    }
+
+    /// Reloads todo after marking complete. When `immediate` is true (e.g. checkmark icon tap), no delay and quick animation.
+    private func loadTodoAfterComplete(immediate: Bool = false) async {
+        if !immediate {
+            try? await Task.sleep(nanoseconds: 400_000_000)
+        }
+        let result = await TodoService.fetchTodo(config: ServerConfig.load(), id: todo.id)
+        await MainActor.run {
+            if case .success(let updated) = result {
+                withAnimation(.easeInOut(duration: immediate ? 0.25 : 1.4)) {
                     todo = updated
                 }
             }
@@ -130,7 +157,6 @@ struct TodoDetailView: View {
             descriptionCard
             ticketLinkCard
             subtodosSection
-            completedSection
         }
     }
 
@@ -140,6 +166,14 @@ struct TodoDetailView: View {
 
     private var completedSubtodos: [Todo.TodoSubtask] {
         (todo.subtodos ?? []).filter { $0.status == "COMPLETED" }
+    }
+
+    /// Active first, then a "Completed" header, then completed — so completing an item moves it in the list and can animate.
+    private var subtodoListItems: [SubtodoListItem] {
+        let active: [SubtodoListItem] = activeSubtodos.map { .subtask($0) }
+        let header: [SubtodoListItem] = completedSubtodos.isEmpty ? [] : [.completedHeader]
+        let completed: [SubtodoListItem] = completedSubtodos.map { .subtask($0) }
+        return active + header + completed
     }
 
     private var descriptionCard: some View {
@@ -202,70 +236,76 @@ struct TodoDetailView: View {
             if activeSubtodos.isEmpty && completedSubtodos.isEmpty {
                 subtodoPlaceholderRow
                     .padding(.horizontal, 4)
-            } else if activeSubtodos.isEmpty {
+            } else if activeSubtodos.isEmpty && !completedSubtodos.isEmpty {
                 subtodoEmptyActiveRow
                     .padding(.horizontal, 4)
             } else {
                 List {
-                    ForEach(activeSubtodos, id: \.id) { subtodo in
-                        NavigationLink(destination: TodoDetailLoaderView(todoId: subtodo.id)) {
-                            subtodoSettingsRow(subtodo)
-                        }
-                        .buttonStyle(.plain)
-                        .listRowInsets(EdgeInsets(top: 0, leading: 4, bottom: 0, trailing: 4))
-                        .listRowSeparator(.hidden)
-                        .listRowBackground(Color.clear)
-                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            Button(role: .destructive) {
-                                Task { await deleteSubtodo(subtodo.id) }
-                            } label: { Image(systemName: "trash") }
-                            .tint(.red)
-                            Button {
-                                Task { await completeSubtodo(subtodo.id) }
-                            } label: { Image(systemName: "checkmark") }
-                            .tint(CloudwrkzColors.success500)
+                    ForEach(subtodoListItems) { item in
+                        switch item {
+                        case .completedHeader:
+                            Text("COMPLETED")
+                                .font(.system(size: 11, weight: .bold))
+                                .tracking(0.8)
+                                .foregroundStyle(CloudwrkzColors.neutral500)
+                                .listRowInsets(EdgeInsets(top: 12, leading: 4, bottom: 4, trailing: 4))
+                                .listRowSeparator(.hidden)
+                                .listRowBackground(Color.clear)
+                        case .subtask(let subtodo):
+                            if subtodo.status == "COMPLETED" {
+                                NavigationLink(destination: TodoDetailLoaderView(todoId: subtodo.id)) {
+                                    completedSubtodoRow(subtodo)
+                                }
+                                .buttonStyle(.plain)
+                                .listRowInsets(EdgeInsets(top: 0, leading: 4, bottom: 0, trailing: 4))
+                                .listRowSeparator(.hidden)
+                                .listRowBackground(Color.clear)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                    Button(role: .destructive) {
+                                        Task { await deleteSubtodo(subtodo.id) }
+                                    } label: { Image(systemName: "trash") }
+                                    .tint(.red)
+                                }
+                            } else {
+                                NavigationLink(destination: TodoDetailLoaderView(todoId: subtodo.id)) {
+                                    subtodoSettingsRow(subtodo)
+                                }
+                                .buttonStyle(.plain)
+                                .listRowInsets(EdgeInsets(top: 0, leading: 4, bottom: 0, trailing: 4))
+                                .listRowSeparator(.hidden)
+                                .listRowBackground(Color.clear)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                    Button(role: .destructive) {
+                                        Task { await deleteSubtodo(subtodo.id) }
+                                    } label: { Image(systemName: "trash") }
+                                    .tint(.red)
+                                    Button {
+                                        Task { await completeSubtodo(subtodo.id) }
+                                    } label: { Image(systemName: "checkmark") }
+                                    .tint(CloudwrkzColors.success500)
+                                }
+                            }
                         }
                     }
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
                 .scrollDisabled(true)
-                .frame(minHeight: CGFloat(activeSubtodos.count) * 56)
+                .frame(minHeight: listMinHeight)
+                .animation(.easeInOut(duration: 1.4), value: subtodoListItems.map(\.id))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var completedSection: some View {
-        Group {
-            if !completedSubtodos.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    sectionLabel("Completed")
-                    List {
-                        ForEach(completedSubtodos, id: \.id) { subtodo in
-                            NavigationLink(destination: TodoDetailLoaderView(todoId: subtodo.id)) {
-                                completedSubtodoRow(subtodo)
-                            }
-                            .buttonStyle(.plain)
-                            .listRowInsets(EdgeInsets(top: 0, leading: 4, bottom: 0, trailing: 4))
-                            .listRowSeparator(.hidden)
-                            .listRowBackground(Color.clear)
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button(role: .destructive) {
-                                    Task { await deleteSubtodo(subtodo.id) }
-                                } label: { Image(systemName: "trash") }
-                                .tint(.red)
-                            }
-                        }
-                    }
-                    .listStyle(.plain)
-                    .scrollContentBackground(.hidden)
-                    .scrollDisabled(true)
-                    .frame(minHeight: CGFloat(completedSubtodos.count) * 56)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
+    private var listMinHeight: CGFloat {
+        let rowH: CGFloat = 56
+        let headerRowH: CGFloat = 32
+        var h = CGFloat(activeSubtodos.count) * rowH
+        if !completedSubtodos.isEmpty {
+            h += headerRowH + CGFloat(completedSubtodos.count) * rowH
         }
+        return max(h, 60)
     }
 
     private var subtodoEmptyActiveRow: some View {
@@ -283,13 +323,18 @@ struct TodoDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// Row for a completed subtodo: checkmark, strikethrough title, muted. List provides disclosure chevron.
+    /// Row for a completed subtodo: empty checkmark circle (tappable to uncomplete), strikethrough title, muted. List provides disclosure chevron.
     private func completedSubtodoRow(_ subtodo: Todo.TodoSubtask) -> some View {
         HStack(spacing: 14) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 20))
-                .foregroundStyle(CloudwrkzColors.success500)
-                .frame(width: 28, height: 28)
+            Button {
+                Task { await uncompleteSubtodo(subtodo.id, immediate: true) }
+            } label: {
+                Image(systemName: "checkmark.circle")
+                    .font(.system(size: 20))
+                    .foregroundStyle(CloudwrkzColors.success500)
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.plain)
             VStack(alignment: .leading, spacing: 2) {
                 Text(subtodo.title)
                     .font(.system(size: 15, weight: .semibold))
@@ -307,15 +352,18 @@ struct TodoDetailView: View {
         .contentShape(Rectangle())
     }
 
-    private func completeSubtodo(_ id: String) async {
+    private func completeSubtodo(_ id: String, immediate: Bool = false) async {
         let config = ServerConfig.load()
         let result = await TodoService.updateTodo(config: config, id: id, status: "COMPLETED")
-        await MainActor.run {
-            if case .failure = result {
-                // Optionally show an error; for now just skip refresh
-            }
-        }
-        await loadTodo()
+        guard case .success = result else { return }
+        await loadTodoAfterComplete(immediate: immediate)
+    }
+
+    private func uncompleteSubtodo(_ id: String, immediate: Bool = false) async {
+        let config = ServerConfig.load()
+        let result = await TodoService.updateTodo(config: config, id: id, status: "IN_PROGRESS")
+        guard case .success = result else { return }
+        await loadTodoAfterComplete(immediate: immediate)
     }
 
     private func deleteSubtodo(_ id: String) async {
@@ -343,13 +391,18 @@ struct TodoDetailView: View {
             .frame(height: 1)
     }
 
-    /// One subtodo as a row: icon, title, subtitle. List provides disclosure chevron.
+    /// One subtodo as a row: empty circle icon (tappable to complete), title, subtitle. List provides disclosure chevron.
     private func subtodoSettingsRow(_ subtodo: Todo.TodoSubtask) -> some View {
         HStack(spacing: 14) {
-            Image(systemName: "list.bullet.indent")
-                .font(.system(size: 20))
-                .foregroundStyle(CloudwrkzColors.primary400)
-                .frame(width: 28, height: 28)
+            Button {
+                Task { await completeSubtodo(subtodo.id, immediate: true) }
+            } label: {
+                Image(systemName: "circle")
+                    .font(.system(size: 20))
+                    .foregroundStyle(CloudwrkzColors.neutral500)
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.plain)
             VStack(alignment: .leading, spacing: 2) {
                 Text(subtodo.title)
                     .font(.system(size: 15, weight: .semibold))
