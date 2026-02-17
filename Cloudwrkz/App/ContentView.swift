@@ -74,7 +74,7 @@ struct ContentView: View {
                 } else if section == .timeTracking {
                     TimeTrackingOverviewView()
                 } else if section == .archive {
-                    ArchiveOverviewView()
+                    ArchiveOverviewView(path: $path)
                 } else {
                     DashboardSectionPlaceholderView(section: section)
                 }

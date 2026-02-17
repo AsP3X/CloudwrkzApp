@@ -70,3 +70,30 @@ enum ArchiveTypeFilter: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 }
+
+/// Archive list sort option.
+enum ArchiveSortOption: String, CaseIterable, Identifiable {
+    case newestArchivedFirst = "archivedAt-desc"
+    case oldestArchivedFirst = "archivedAt-asc"
+    case titleAsc = "title-asc"
+    case titleDesc = "title-desc"
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .newestArchivedFirst: return "Newest archived first"
+        case .oldestArchivedFirst: return "Oldest archived first"
+        case .titleAsc: return "Title (A → Z)"
+        case .titleDesc: return "Title (Z → A)"
+        }
+    }
+}
+
+/// Archive filter state (type, sort, date range). Used by filter sheet.
+struct ArchiveFilters: Equatable {
+    var type: ArchiveTypeFilter = .all
+    var sort: ArchiveSortOption = .newestArchivedFirst
+    var archivedFrom: Date?
+    var archivedTo: Date?
+}

@@ -9,25 +9,47 @@
 import SwiftUI
 
 struct ArchiveOverviewView: View {
+    /// When provided, row tap pushes onto this path (no NavigationLink = no chevron). Swipe actions still work.
+    @Binding var path: NavigationPath
+
     @State private var items: [ArchiveItem] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
-    @State private var typeFilter: ArchiveTypeFilter = .all
+    @State private var filters = ArchiveFilters()
+    @State private var showFilters = false
     @State private var itemToDelete: ArchiveItem?
     @State private var isWorking = false
 
+    private var hasActiveFilters: Bool {
+        filters.type != .all || filters.sort != .newestArchivedFirst
+    }
+
     private var filteredItems: [ArchiveItem] {
-        let sorted = items.sorted { (a, b) in
-            let aDate = a.archivedAt ?? .distantPast
-            let bDate = b.archivedAt ?? .distantPast
-            return aDate > bDate
+        var list: [ArchiveItem]
+        switch filters.type {
+        case .all: list = items
+        case .tickets: list = items.filter { if case .ticket = $0 { return true }; return false }
+        case .todos: list = items.filter { if case .todo = $0 { return true }; return false }
+        case .time: list = items.filter { if case .timeEntry = $0 { return true }; return false }
+        case .links: list = items.filter { if case .link = $0 { return true }; return false }
         }
-        switch typeFilter {
-        case .all: return sorted
-        case .tickets: return sorted.filter { if case .ticket = $0 { return true }; return false }
-        case .todos: return sorted.filter { if case .todo = $0 { return true }; return false }
-        case .time: return sorted.filter { if case .timeEntry = $0 { return true }; return false }
-        case .links: return sorted.filter { if case .link = $0 { return true }; return false }
+        if let from = filters.archivedFrom {
+            list = list.filter { ($0.archivedAt ?? .distantPast) >= from }
+        }
+        if let to = filters.archivedTo {
+            var end = Calendar.current.startOfDay(for: to)
+            end = Calendar.current.date(byAdding: .day, value: 1, to: end) ?? end
+            list = list.filter { ($0.archivedAt ?? .distantFuture) < end }
+        }
+        switch filters.sort {
+        case .newestArchivedFirst:
+            return list.sorted { (a, b) in (a.archivedAt ?? .distantPast) > (b.archivedAt ?? .distantPast) }
+        case .oldestArchivedFirst:
+            return list.sorted { (a, b) in (a.archivedAt ?? .distantPast) < (b.archivedAt ?? .distantPast) }
+        case .titleAsc:
+            return list.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+        case .titleDesc:
+            return list.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedDescending }
         }
     }
 
@@ -52,6 +74,20 @@ struct ArchiveOverviewView: View {
         .navigationTitle("Archive")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    showFilters = true
+                } label: {
+                    Image(systemName: "line.3.horizontal.decrease.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(hasActiveFilters ? CloudwrkzColors.warning500 : CloudwrkzColors.primary400)
+                }
+            }
+        }
+        .sheet(isPresented: $showFilters) {
+            ArchiveFiltersView(filters: $filters)
+        }
         .onAppear { Task { await loadAll() } }
         .refreshable { await loadAll() }
         .tint(CloudwrkzColors.primary400)
@@ -82,15 +118,15 @@ struct ArchiveOverviewView: View {
             HStack(spacing: 8) {
                 ForEach(ArchiveTypeFilter.allCases) { filter in
                     Button {
-                        typeFilter = filter
+                        filters.type = filter
                     } label: {
                         Text(filter.rawValue)
-                            .font(.system(size: 14, weight: typeFilter == filter ? .semibold : .medium))
-                            .foregroundStyle(typeFilter == filter ? CloudwrkzColors.neutral950 : CloudwrkzColors.neutral400)
+                            .font(.system(size: 14, weight: filters.type == filter ? .semibold : .medium))
+                            .foregroundStyle(filters.type == filter ? CloudwrkzColors.neutral950 : CloudwrkzColors.neutral400)
                             .padding(.horizontal, 14)
                             .padding(.vertical, 8)
                             .background(
-                                typeFilter == filter
+                                filters.type == filter
                                     ? CloudwrkzColors.primary400
                                     : Color.clear,
                                 in: Capsule()
@@ -130,18 +166,12 @@ struct ArchiveOverviewView: View {
 
     @ViewBuilder
     private func archiveRow(for item: ArchiveItem) -> some View {
-        Group {
-            switch item {
-            case .ticket(let t):
-                NavigationLink(value: t) { ArchiveRowView(item: item) }.buttonStyle(.plain)
-            case .todo(let t):
-                NavigationLink(value: t) { ArchiveRowView(item: item) }.buttonStyle(.plain)
-            case .link(let l):
-                NavigationLink(value: l) { ArchiveRowView(item: item) }.buttonStyle(.plain)
-            case .timeEntry(let e):
-                NavigationLink(value: e) { ArchiveRowView(item: item) }.buttonStyle(.plain)
-            }
+        Button {
+            navigateToItem(item)
+        } label: {
+            ArchiveRowView(item: item)
         }
+        .buttonStyle(.plain)
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             Button {
                 Task { await unarchiveItem(item) }
@@ -156,6 +186,15 @@ struct ArchiveOverviewView: View {
             }
         }
         .disabled(isWorking)
+    }
+
+    private func navigateToItem(_ item: ArchiveItem) {
+        switch item {
+        case .ticket(let t): path.append(t)
+        case .todo(let t): path.append(t)
+        case .link(let l): path.append(l)
+        case .timeEntry(let e): path.append(e)
+        }
     }
 
     private func unarchiveItem(_ item: ArchiveItem) async {
@@ -248,7 +287,7 @@ struct ArchiveOverviewView: View {
             Image(systemName: "archivebox")
                 .font(.system(size: 44))
                 .foregroundStyle(CloudwrkzColors.neutral500)
-            Text("No \(typeFilter.rawValue.lowercased()) in archive")
+            Text("No \(filters.type.rawValue.lowercased()) in archive")
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(CloudwrkzColors.neutral200)
             Text("Change the filter above or archive items from their lists.")
@@ -359,24 +398,30 @@ private struct ArchiveRowView: View {
     let item: ArchiveItem
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                typePill(item.typeLabel)
-                if let date = item.archivedAt {
-                    Text(formatted(date))
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(CloudwrkzColors.neutral500)
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 8) {
+                    typePill(item.typeLabel)
+                    if let date = item.archivedAt {
+                        Text(formatted(date))
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(CloudwrkzColors.neutral500)
+                    }
+                    Spacer(minLength: 8)
                 }
-                Spacer(minLength: 8)
+                Text(item.title)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(CloudwrkzColors.neutral100)
+                    .lineLimit(2)
+                Text(item.subtitle)
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundStyle(CloudwrkzColors.neutral400)
+                    .lineLimit(1)
             }
-            Text(item.title)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(CloudwrkzColors.neutral100)
-                .lineLimit(2)
-            Text(item.subtitle)
-                .font(.system(size: 13, weight: .regular))
-                .foregroundStyle(CloudwrkzColors.neutral400)
-                .lineLimit(1)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            Image(systemName: "chevron.right")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(CloudwrkzColors.neutral500)
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -413,7 +458,17 @@ private struct ArchiveRowView: View {
 }
 
 #Preview {
-    NavigationStack {
-        ArchiveOverviewView()
+    struct PreviewWrapper: View {
+        @State private var path = NavigationPath()
+        var body: some View {
+            NavigationStack(path: $path) {
+                ArchiveOverviewView(path: $path)
+                    .navigationDestination(for: Ticket.self) { _ in Text("Ticket detail") }
+                    .navigationDestination(for: Todo.self) { _ in Text("Todo detail") }
+                    .navigationDestination(for: Link.self) { _ in Text("Link detail") }
+                    .navigationDestination(for: TimeEntry.self) { _ in Text("Time entry detail") }
+            }
+        }
     }
+    return PreviewWrapper()
 }
