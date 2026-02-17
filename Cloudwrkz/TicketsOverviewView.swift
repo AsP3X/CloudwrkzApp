@@ -14,6 +14,15 @@ struct TicketsOverviewView: View {
     @State private var filters = TicketFilters()
     @State private var showFilters = false
 
+    private var hasActiveFilters: Bool {
+        filters.status != .unresolved
+            || filters.sort != .newestFirst
+            || filters.createdFrom != nil
+            || filters.createdTo != nil
+            || filters.updatedFrom != nil
+            || filters.updatedTo != nil
+    }
+
     private let config = ServerConfig.load()
 
     var body: some View {
@@ -39,7 +48,7 @@ struct TicketsOverviewView: View {
                 } label: {
                     Image(systemName: "line.3.horizontal.decrease.circle.fill")
                         .font(.system(size: 22))
-                        .foregroundStyle(CloudwrkzColors.primary400)
+                        .foregroundStyle(hasActiveFilters ? CloudwrkzColors.warning500 : CloudwrkzColors.primary400)
                 }
             }
         }

@@ -37,6 +37,14 @@ struct TodosOverviewView: View {
         TodoOverviewViewStyle(rawValue: viewStyleRaw) ?? .card
     }
 
+    private var hasActiveFilters: Bool {
+        filters.status != .all
+            || filters.priority != .all
+            || filters.sort != .newestFirst
+            || filters.archive != .unarchived
+            || filters.includeSubtodos
+    }
+
     private let config = ServerConfig.load()
 
     var body: some View {
@@ -88,7 +96,7 @@ struct TodosOverviewView: View {
                 } label: {
                     Image(systemName: "line.3.horizontal.decrease.circle.fill")
                         .font(.system(size: 22))
-                        .foregroundStyle(CloudwrkzColors.primary400)
+                        .foregroundStyle(hasActiveFilters ? CloudwrkzColors.warning500 : CloudwrkzColors.primary400)
                 }
             }
         }

@@ -15,6 +15,13 @@ struct TimeTrackingOverviewView: View {
     @State private var errorMessage: String?
     @State private var filters = TimeTrackingFilters()
     @State private var showFilters = false
+
+    private var hasActiveFilters: Bool {
+        filters.status != .all
+            || filters.sort != .newestFirst
+            || filters.dateFrom != nil
+            || filters.dateTo != nil
+    }
     @State private var showStartTimer = false
     @State private var showAddEntry = false
     @State private var showActionMenu = false
@@ -74,7 +81,7 @@ struct TimeTrackingOverviewView: View {
                         Button { showFilters = true } label: {
                             Image(systemName: "line.3.horizontal.decrease.circle.fill")
                                 .font(.system(size: 22))
-                                .foregroundStyle(CloudwrkzColors.primary400)
+                                .foregroundStyle(hasActiveFilters ? CloudwrkzColors.warning500 : CloudwrkzColors.primary400)
                         }
                         Menu {
                             Button {

@@ -16,6 +16,12 @@ struct LinksOverviewView: View {
     @State private var refreshErrorMessage: String?
     @State private var filters = LinkFilters()
     @State private var showFilters = false
+
+    private var hasActiveFilters: Bool {
+        filters.collectionId != nil
+            || filters.isFavorite != .all
+            || filters.sort != .newestFirst
+    }
     @State private var showAddLink = false
     /// When true, tapping rows toggles selection instead of navigating. Driven by bulk "Select" action.
     @State private var selectionMode = false
@@ -98,7 +104,7 @@ struct LinksOverviewView: View {
                     } label: {
                         Image(systemName: "line.3.horizontal.decrease.circle.fill")
                             .font(.system(size: 22))
-                            .foregroundStyle(CloudwrkzColors.primary400)
+                            .foregroundStyle(hasActiveFilters ? CloudwrkzColors.warning500 : CloudwrkzColors.primary400)
                     }
                 }
             }
