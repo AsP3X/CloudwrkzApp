@@ -28,6 +28,7 @@ struct Link: Identifiable, Decodable, Hashable {
     let notes: String?
     let isFavorite: Bool
     let rating: Int?
+    let archivedAt: Date?
     let createdAt: Date
     let updatedAt: Date
     /// Optional for defensive decoding (server may omit in some responses).
@@ -138,6 +139,8 @@ struct Collection: Identifiable, Decodable, Hashable {
 struct LinkFilters: Equatable {
     var sort: LinkSortOption = .newestFirst
     var isFavorite: LinkFavoriteFilter = .all
+    /// When true, only show archived links; when false, only non-archived (default).
+    var archived: Bool = false
     /// When set, only show links in this collection; nil = all.
     var collectionId: String?
 

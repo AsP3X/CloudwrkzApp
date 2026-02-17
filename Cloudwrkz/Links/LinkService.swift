@@ -61,6 +61,7 @@ enum LinkService {
         queryItems.append(URLQueryItem(name: "sort", value: filters.sort.rawValue))
         queryItems.append(URLQueryItem(name: "page", value: String(page)))
         queryItems.append(URLQueryItem(name: "limit", value: String(limit)))
+        queryItems.append(URLQueryItem(name: "archived", value: filters.archived ? "true" : "false"))
         if filters.isFavorite != .all {
             queryItems.append(URLQueryItem(name: "isFavorite", value: filters.isFavorite.rawValue))
         }
@@ -292,6 +293,41 @@ enum LinkService {
                 return .failure(.serverError(message: message))
             default:
                 return .failure(.serverError(message: "Unexpected status \(http.statusCode)"))
+            }
+        } catch {
+            let description = (error as? URLError)?.localizedDescription ?? error.localizedDescription
+            return .failure(.networkError(description: description))
+        }
+    }
+
+    /// Unarchive a link (PUT with archivedAt: null).
+    static func unarchiveLink(config: ServerConfig, id: String) async -> Result<Void, LinkServiceError> {
+        guard let base = config.baseURL else { return .failure(.noServerURL) }
+        guard let token = AuthTokenStorage.getToken(), !token.isEmpty else { return .failure(.noToken) }
+        let pathSegments = linksPathSegments(loginPath: config.loginPath)
+        guard !pathSegments.isEmpty else { return .failure(.noServerURL) }
+        var requestURL = base
+        for segment in pathSegments { requestURL = requestURL.appending(path: segment) }
+        requestURL = requestURL.appending(path: id)
+        var request = URLRequest(url: requestURL)
+        request.httpMethod = "PUT"
+        request.timeoutInterval = timeout
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        AppIdentity.apply(to: &request)
+        let body: [String: Any?] = ["archivedAt": NSNull()]
+        request.httpBody = (try? JSONSerialization.data(withJSONObject: body))
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse else { return .failure(.serverError(message: "Invalid response")) }
+            switch http.statusCode {
+            case 200: return .success(())
+            case 401: SessionExpiredNotifier.notify(); return .failure(.unauthorized)
+            case 403, 400...599:
+                let message = (try? JSONDecoder().decode(MessageResponse.self, from: data))?.message ?? "Server error (\(http.statusCode))"
+                return .failure(.serverError(message: message))
+            default: return .failure(.serverError(message: "Unexpected status \(http.statusCode)"))
             }
         } catch {
             let description = (error as? URLError)?.localizedDescription ?? error.localizedDescription

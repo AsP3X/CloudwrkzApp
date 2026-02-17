@@ -73,6 +73,8 @@ struct ContentView: View {
                     LinksOverviewView()
                 } else if section == .timeTracking {
                     TimeTrackingOverviewView()
+                } else if section == .archive {
+                    ArchiveOverviewView()
                 } else {
                     DashboardSectionPlaceholderView(section: section)
                 }

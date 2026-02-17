@@ -89,6 +89,7 @@ enum TimeTrackingService {
         }
 
         queryItems.append(URLQueryItem(name: "sort", value: filters.sort.rawValue))
+        queryItems.append(URLQueryItem(name: "archive", value: filters.archive.rawValue))
 
         if let d = filters.dateFrom { queryItems.append(URLQueryItem(name: "dateFrom", value: isoDate(d))) }
         if let d = filters.dateTo { queryItems.append(URLQueryItem(name: "dateTo", value: isoDate(d))) }
@@ -236,6 +237,22 @@ enum TimeTrackingService {
         AppIdentity.apply(to: &request)
         request.httpBody = try? dateEncoder.encode(input)
 
+        return await executeVoid(request: request)
+    }
+
+    /// Unarchive a time entry (PATCH with archivedAt: null).
+    static func unarchiveTimeEntry(config: ServerConfig, id: String) async -> Result<Void, TimeTrackingServiceError> {
+        guard let url = buildURL(config: config, extraSegments: [id]) else { return .failure(.noServerURL) }
+        guard let token = AuthTokenStorage.getToken(), !token.isEmpty else { return .failure(.noToken) }
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        request.timeoutInterval = timeout
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        AppIdentity.apply(to: &request)
+        let body: [String: Any?] = ["archivedAt": NSNull()]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         return await executeVoid(request: request)
     }
 

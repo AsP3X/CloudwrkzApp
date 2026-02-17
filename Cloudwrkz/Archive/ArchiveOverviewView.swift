@@ -1,0 +1,419 @@
+//
+//  ArchiveOverviewView.swift
+//  Cloudwrkz
+//
+//  Enterprise archive list: tickets, todos, time entries, links. Liquid glass, transparent bar.
+//  Matches cloudwrkz dashboard archive design language.
+//
+
+import SwiftUI
+
+struct ArchiveOverviewView: View {
+    @State private var items: [ArchiveItem] = []
+    @State private var isLoading = true
+    @State private var errorMessage: String?
+    @State private var typeFilter: ArchiveTypeFilter = .all
+    @State private var itemToDelete: ArchiveItem?
+    @State private var isWorking = false
+
+    private var filteredItems: [ArchiveItem] {
+        let sorted = items.sorted { (a, b) in
+            let aDate = a.archivedAt ?? .distantPast
+            let bDate = b.archivedAt ?? .distantPast
+            return aDate > bDate
+        }
+        switch typeFilter {
+        case .all: return sorted
+        case .tickets: return sorted.filter { if case .ticket = $0 { return true }; return false }
+        case .todos: return sorted.filter { if case .todo = $0 { return true }; return false }
+        case .time: return sorted.filter { if case .timeEntry = $0 { return true }; return false }
+        case .links: return sorted.filter { if case .link = $0 { return true }; return false }
+        }
+    }
+
+    private let config = ServerConfig.load()
+
+    var body: some View {
+        ZStack {
+            background
+            if isLoading && items.isEmpty {
+                loadingView
+            } else if let error = errorMessage {
+                errorView(error)
+            } else if items.isEmpty {
+                emptyView
+            } else {
+                VStack(spacing: 0) {
+                    typeFilterBar
+                    archiveList
+                }
+            }
+        }
+        .navigationTitle("Archive")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .onAppear { Task { await loadAll() } }
+        .refreshable { await loadAll() }
+        .tint(CloudwrkzColors.primary400)
+        .confirmationDialog("Delete permanently?", isPresented: Binding(get: { itemToDelete != nil }, set: { if !$0 { itemToDelete = nil } }), titleVisibility: .visible) {
+            Button("Cancel", role: .cancel) { itemToDelete = nil }
+            Button("Delete", role: .destructive) {
+                if let item = itemToDelete {
+                    itemToDelete = nil
+                    Task { await deleteItem(item) }
+                }
+            }
+        } message: {
+            Text("This cannot be undone.")
+        }
+    }
+
+    private var background: some View {
+        LinearGradient(
+            colors: [CloudwrkzColors.primary950, CloudwrkzColors.neutral950],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .ignoresSafeArea()
+    }
+
+    private var typeFilterBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(ArchiveTypeFilter.allCases) { filter in
+                    Button {
+                        typeFilter = filter
+                    } label: {
+                        Text(filter.rawValue)
+                            .font(.system(size: 14, weight: typeFilter == filter ? .semibold : .medium))
+                            .foregroundStyle(typeFilter == filter ? CloudwrkzColors.neutral950 : CloudwrkzColors.neutral400)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(
+                                typeFilter == filter
+                                    ? CloudwrkzColors.primary400
+                                    : Color.clear,
+                                in: Capsule()
+                            )
+                            .overlay(
+                                Capsule()
+                                    .stroke(CloudwrkzColors.glassStrokeSubtle, lineWidth: 1)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+        }
+        .background(Color.clear)
+    }
+
+    private var archiveList: some View {
+        Group {
+            if filteredItems.isEmpty {
+                emptyFilteredView
+            } else {
+                List {
+                    ForEach(filteredItems) { item in
+                        archiveRow(for: item)
+                            .listRowInsets(EdgeInsets(top: 7, leading: 20, bottom: 7, trailing: 20))
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(Color.clear)
+                    }
+                }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func archiveRow(for item: ArchiveItem) -> some View {
+        Group {
+            switch item {
+            case .ticket(let t):
+                NavigationLink(value: t) { ArchiveRowView(item: item) }.buttonStyle(.plain)
+            case .todo(let t):
+                NavigationLink(value: t) { ArchiveRowView(item: item) }.buttonStyle(.plain)
+            case .link(let l):
+                NavigationLink(value: l) { ArchiveRowView(item: item) }.buttonStyle(.plain)
+            case .timeEntry(let e):
+                NavigationLink(value: e) { ArchiveRowView(item: item) }.buttonStyle(.plain)
+            }
+        }
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button {
+                Task { await unarchiveItem(item) }
+            } label: {
+                Label("Unarchive", systemImage: "arrow.uturn.backward")
+            }
+            .tint(CloudwrkzColors.primary400)
+            Button(role: .destructive) {
+                itemToDelete = item
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        }
+        .disabled(isWorking)
+    }
+
+    private func unarchiveItem(_ item: ArchiveItem) async {
+        guard !isWorking else { return }
+        isWorking = true
+        defer { Task { @MainActor in isWorking = false } }
+        var success = false
+        switch item {
+        case .ticket(let t):
+            if case .success = await TicketService.unarchiveTicket(config: config, id: t.id) { success = true }
+        case .todo(let t):
+            if case .success = await TodoService.unarchiveTodo(config: config, id: t.id) { success = true }
+        case .link(let l):
+            if case .success = await LinkService.unarchiveLink(config: config, id: l.id) { success = true }
+        case .timeEntry(let e):
+            if case .success = await TimeTrackingService.unarchiveTimeEntry(config: config, id: e.id) { success = true }
+        }
+        if success { await loadAll() }
+    }
+
+    private func deleteItem(_ item: ArchiveItem) async {
+        guard !isWorking else { return }
+        isWorking = true
+        defer { Task { @MainActor in isWorking = false } }
+        var success = false
+        switch item {
+        case .ticket(let t):
+            if case .success = await TicketService.deleteTicket(config: config, id: t.id) { success = true }
+        case .todo(let t):
+            if case .success = await TodoService.deleteTodo(config: config, id: t.id) { success = true }
+        case .link(let l):
+            if case .success = await LinkService.deleteLink(config: config, id: l.id) { success = true }
+        case .timeEntry(let e):
+            if case .success = await TimeTrackingService.deleteTimeEntry(config: config, id: e.id) { success = true }
+        }
+        if success { await loadAll() }
+    }
+
+    private var loadingView: some View {
+        VStack(spacing: 16) {
+            CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
+                .scaleEffect(1.2)
+            Text("Loading archive…")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(CloudwrkzColors.neutral400)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func errorView(_ message: String) -> some View {
+        VStack(spacing: 16) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 44))
+                .foregroundStyle(CloudwrkzColors.warning500)
+            Text("Couldn't load archive")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(CloudwrkzColors.neutral100)
+            Text(message)
+                .font(.system(size: 14, weight: .regular))
+                .foregroundStyle(CloudwrkzColors.neutral400)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+            Button("Retry") { Task { await loadAll() } }
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(CloudwrkzColors.primary400)
+                .padding(.top, 8)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var emptyView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "archivebox.fill")
+                .font(.system(size: 48))
+                .foregroundStyle(CloudwrkzColors.neutral500)
+            Text("No archived items")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(CloudwrkzColors.neutral100)
+            Text("Archived tickets, todos, time entries, and links will appear here.")
+                .font(.system(size: 14, weight: .regular))
+                .foregroundStyle(CloudwrkzColors.neutral500)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var emptyFilteredView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "archivebox")
+                .font(.system(size: 44))
+                .foregroundStyle(CloudwrkzColors.neutral500)
+            Text("No \(typeFilter.rawValue.lowercased()) in archive")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(CloudwrkzColors.neutral200)
+            Text("Change the filter above or archive items from their lists.")
+                .font(.system(size: 14, weight: .regular))
+                .foregroundStyle(CloudwrkzColors.neutral500)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.top, 40)
+    }
+
+    private func loadAll() async {
+        errorMessage = nil
+        isLoading = true
+
+        var ticketItems: [ArchiveItem] = []
+        var todoItems: [ArchiveItem] = []
+        var timeItems: [ArchiveItem] = []
+        var linkItems: [ArchiveItem] = []
+        var firstError: String?
+
+        var ticketFilters = TicketFilters()
+        ticketFilters.status = .all
+        ticketFilters.archive = .archived
+        switch await TicketService.fetchTickets(config: config, filters: ticketFilters) {
+        case .success(let list): ticketItems = list.compactMap { t in t.archivedAt != nil ? ArchiveItem.ticket(t) : nil }
+        case .failure(let e): if firstError == nil { firstError = messageFor(e) }
+        }
+
+        var todoFilters = TodoFilters()
+        todoFilters.status = .all
+        todoFilters.priority = .all
+        todoFilters.archive = .archived
+        switch await TodoService.fetchTodos(config: config, filters: todoFilters) {
+        case .success(let list): todoItems = list.compactMap { t in t.archivedAt != nil ? ArchiveItem.todo(t) : nil }
+        case .failure(let e): if firstError == nil { firstError = messageForTodo(e) }
+        }
+
+        var timeFilters = TimeTrackingFilters()
+        timeFilters.status = .all
+        timeFilters.archive = .archived
+        switch await TimeTrackingService.fetchTimeEntries(config: config, filters: timeFilters) {
+        case .success(let list): timeItems = list.compactMap { e in e.archivedAt != nil ? ArchiveItem.timeEntry(e) : nil }
+        case .failure(let e): if firstError == nil { firstError = messageForTime(e) }
+        }
+
+        var linkFilters = LinkFilters()
+        linkFilters.archived = true
+        switch await LinkService.fetchLinks(config: config, filters: linkFilters, page: 1, limit: 500) {
+        case .success(let response): linkItems = response.links.compactMap { l in l.archivedAt != nil ? ArchiveItem.link(l) : nil }
+        case .failure(let e): if firstError == nil { firstError = messageForLink(e) }
+        }
+
+        let all = ticketItems + todoItems + timeItems + linkItems
+        await MainActor.run {
+            items = all
+            errorMessage = firstError
+            isLoading = false
+        }
+    }
+
+    private func messageFor(_ error: TicketServiceError) -> String {
+        switch error {
+        case .noServerURL: return "No server configured."
+        case .noToken: return "Please sign in again."
+        case .unauthorized: return "Session expired. Sign in again."
+        case .serverError(let m): return m
+        case .networkError: return "Could not reach server."
+        }
+    }
+
+    private func messageForTodo(_ error: TodoServiceError) -> String {
+        switch error {
+        case .noServerURL: return "No server configured."
+        case .noToken: return "Please sign in again."
+        case .unauthorized: return "Session expired. Sign in again."
+        case .serverError(let m): return m
+        case .networkError: return "Could not reach server."
+        }
+    }
+
+    private func messageForTime(_ error: TimeTrackingServiceError) -> String {
+        switch error {
+        case .noServerURL: return "No server configured."
+        case .noToken: return "Please sign in again."
+        case .unauthorized: return "Session expired. Sign in again."
+        case .serverError(let m): return m
+        case .networkError: return "Could not reach server."
+        case .notFound: return "Not found."
+        }
+    }
+
+    private func messageForLink(_ error: LinkServiceError) -> String {
+        switch error {
+        case .noServerURL: return "No server configured."
+        case .noToken: return "Please sign in again."
+        case .unauthorized: return "Session expired. Sign in again."
+        case .serverError(let m): return m
+        case .networkError: return "Could not reach server."
+        }
+    }
+}
+
+// MARK: - Row (glass card, type pill, title, subtitle, archived date)
+
+private struct ArchiveRowView: View {
+    let item: ArchiveItem
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                typePill(item.typeLabel)
+                if let date = item.archivedAt {
+                    Text(formatted(date))
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(CloudwrkzColors.neutral500)
+                }
+                Spacer(minLength: 8)
+            }
+            Text(item.title)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(CloudwrkzColors.neutral100)
+                .lineLimit(2)
+            Text(item.subtitle)
+                .font(.system(size: 13, weight: .regular))
+                .foregroundStyle(CloudwrkzColors.neutral400)
+                .lineLimit(1)
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+        .glassCard(cornerRadius: 16)
+    }
+
+    private func typePill(_ label: String) -> some View {
+        let (color, bg) = typeStyle(label)
+        return Text(label)
+            .font(.system(size: 10, weight: .semibold))
+            .foregroundStyle(color)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(bg.opacity(0.25), in: Capsule())
+    }
+
+    private func typeStyle(_ label: String) -> (Color, Color) {
+        switch label {
+        case "Ticket": return (CloudwrkzColors.primary400, CloudwrkzColors.primary400)
+        case "ToDo": return (Color(red: 168/255, green: 85/255, blue: 247/255), Color(red: 168/255, green: 85/255, blue: 247/255))
+        case "Time": return (CloudwrkzColors.success500, CloudwrkzColors.success500)
+        case "Link": return (CloudwrkzColors.warning500, CloudwrkzColors.warning500)
+        default: return (CloudwrkzColors.neutral400, CloudwrkzColors.neutral400)
+        }
+    }
+
+    private func formatted(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.dateStyle = .medium
+        f.timeStyle = .short
+        return f.string(from: date)
+    }
+}
+
+#Preview {
+    NavigationStack {
+        ArchiveOverviewView()
+    }
+}

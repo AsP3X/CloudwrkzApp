@@ -25,6 +25,7 @@ struct Todo: Identifiable, Decodable, Hashable {
     let startDate: Date?
     let dueDate: Date?
     let completedDate: Date?
+    let archivedAt: Date?
     let createdAt: Date
     let updatedAt: Date
     let parentTodoId: String?
@@ -49,6 +50,7 @@ struct Todo: Identifiable, Decodable, Hashable {
         startDate = try c.decodeIfPresent(Date.self, forKey: .startDate)
         dueDate = try c.decodeIfPresent(Date.self, forKey: .dueDate)
         completedDate = try c.decodeIfPresent(Date.self, forKey: .completedDate)
+        archivedAt = try c.decodeIfPresent(Date.self, forKey: .archivedAt)
         createdAt = try c.decode(Date.self, forKey: .createdAt)
         updatedAt = try c.decode(Date.self, forKey: .updatedAt)
         parentTodoId = try c.decodeIfPresent(String.self, forKey: .parentTodoId)
@@ -63,7 +65,7 @@ struct Todo: Identifiable, Decodable, Hashable {
 
     private enum CodingKeys: String, CodingKey {
         case id, todoNumber, title, description, descriptionPlain, status, priority
-        case estimatedHours, startDate, dueDate, completedDate, createdAt, updatedAt
+        case estimatedHours, startDate, dueDate, completedDate, archivedAt, createdAt, updatedAt
         case parentTodoId, parentTodo, ticketId, assignedToId, assignedTo, ticket, subtodos, _count
     }
 

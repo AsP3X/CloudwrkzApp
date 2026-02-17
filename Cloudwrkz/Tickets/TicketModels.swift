@@ -21,6 +21,7 @@ struct Ticket: Identifiable, Decodable, Hashable {
     let type: String
     let status: String
     let priority: String
+    let archivedAt: Date?
     let createdAt: Date
     let updatedAt: Date
     let createdBy: TicketUser?
@@ -50,10 +51,23 @@ struct Ticket: Identifiable, Decodable, Hashable {
 struct TicketFilters: Equatable {
     var status: TicketStatusFilter = .unresolved
     var sort: TicketSortOption = .newestFirst
+    var archive: TicketArchiveFilter = .unarchived
     var createdFrom: Date?
     var createdTo: Date?
     var updatedFrom: Date?
     var updatedTo: Date?
+
+    enum TicketArchiveFilter: String, CaseIterable, Identifiable {
+        case unarchived = "unarchived"
+        case archived = "archived"
+        var id: String { rawValue }
+        var displayName: String {
+            switch self {
+            case .unarchived: return "Active"
+            case .archived: return "Archived"
+            }
+        }
+    }
 
     enum TicketStatusFilter: String, CaseIterable, Identifiable {
         case unresolved = "UNRESOLVED"

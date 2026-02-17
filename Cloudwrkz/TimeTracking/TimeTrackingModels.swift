@@ -172,8 +172,21 @@ enum TimeTrackingUtils {
 struct TimeTrackingFilters: Equatable {
     var status: TimeTrackingStatusFilter = .all
     var sort: TimeTrackingSortOption = .newestFirst
+    var archive: TimeTrackingArchiveFilter = .unarchived
     var dateFrom: Date?
     var dateTo: Date?
+
+    enum TimeTrackingArchiveFilter: String, CaseIterable, Identifiable {
+        case unarchived = "unarchived"
+        case archived = "archived"
+        var id: String { rawValue }
+        var displayName: String {
+            switch self {
+            case .unarchived: return "Active"
+            case .archived: return "Archived"
+            }
+        }
+    }
 
     enum TimeTrackingStatusFilter: String, CaseIterable, Identifiable {
         case all = "ALL"

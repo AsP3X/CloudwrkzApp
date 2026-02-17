@@ -147,8 +147,19 @@ enum TodoService {
         }
     }
 
-    /// PATCH .../todos/:id — update a todo (e.g. set status to COMPLETED).
+    /// PATCH .../todos/:id — update a todo (e.g. set status to COMPLETED, or unarchive with archivedAt: null).
     static func updateTodo(config: ServerConfig, id: String, status: String) async -> Result<Void, TodoServiceError> {
+        var body: [String: Any] = ["status": status]
+        return await patchTodo(config: config, id: id, body: body)
+    }
+
+    /// Unarchive a todo (PATCH with archivedAt: null).
+    static func unarchiveTodo(config: ServerConfig, id: String) async -> Result<Void, TodoServiceError> {
+        let body: [String: Any?] = ["archivedAt": NSNull()]
+        return await patchTodo(config: config, id: id, body: body as [String: Any])
+    }
+
+    private static func patchTodo(config: ServerConfig, id: String, body: [String: Any]) async -> Result<Void, TodoServiceError> {
         guard let requestURL = todoURL(config: config, id: id) else {
             return .failure(.noServerURL)
         }
@@ -162,7 +173,6 @@ enum TodoService {
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         AppIdentity.apply(to: &request)
-        let body: [String: String] = ["status": status]
         guard let jsonData = try? JSONSerialization.data(withJSONObject: body) else {
             return .failure(.serverError(message: "Invalid request"))
         }
