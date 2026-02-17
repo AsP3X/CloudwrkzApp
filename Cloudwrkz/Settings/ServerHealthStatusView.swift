@@ -315,5 +315,5 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
 }
 
 #Preview {
-    ServerHealthStatusView(config: ServerConfig.load())
+    ServerHealthStatusView(config: AppState().config)
 }

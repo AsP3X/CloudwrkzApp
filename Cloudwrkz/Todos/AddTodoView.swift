@@ -20,7 +20,7 @@ struct AddTodoView: View {
     @State private var errorMessage: String?
     @FocusState private var focusedField: Field?
 
-    private let config = ServerConfig.load()
+    @Environment(\.appState) private var appState
 
     enum Field {
         case title, description
@@ -143,7 +143,7 @@ struct AddTodoView: View {
         let description = descriptionText.trimmingCharacters(in: .whitespacesAndNewlines)
         let descriptionOpt = description.isEmpty ? nil : description
         let result = await TodoService.createTodo(
-            config: config,
+            config: appState.config,
             title: title,
             description: descriptionOpt,
             parentTodoId: parentTodoId

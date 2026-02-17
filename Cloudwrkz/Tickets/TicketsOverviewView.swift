@@ -23,7 +23,7 @@ struct TicketsOverviewView: View {
             || filters.updatedTo != nil
     }
 
-    private let config = ServerConfig.load()
+    @Environment(\.appState) private var appState
 
     var body: some View {
         ZStack {
@@ -142,7 +142,7 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
     private func loadTickets() async {
         errorMessage = nil
         isLoading = true
-        let result = await TicketService.fetchTickets(config: config, filters: filters)
+        let result = await TicketService.fetchTickets(config: appState.config, filters: filters)
         await MainActor.run {
             switch result {
             case .success(let list):

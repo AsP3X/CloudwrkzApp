@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct RegisterView: View {
+    @Environment(\.appState) private var appState
     @State private var name = ""
     @State private var email = ""
     @State private var password = ""
@@ -16,7 +17,6 @@ struct RegisterView: View {
     @State private var errorMessage: String?
     @FocusState private var focusedField: Field?
 
-    var serverConfig: ServerConfig = ServerConfig.load()
     var onSuccess: () -> Void = {}
     var onBack: () -> Void = {}
 
@@ -203,7 +203,7 @@ struct RegisterView: View {
             return
         }
 
-        if serverConfig.baseURL == nil {
+        if appState.config.baseURL == nil {
             errorMessage = "Configure server in settings."
             return
         }
@@ -216,7 +216,7 @@ struct RegisterView: View {
                 email: email,
                 password: password,
                 confirmPassword: confirmPassword,
-                config: serverConfig
+                config: appState.config
             )
             switch result {
             case .success:

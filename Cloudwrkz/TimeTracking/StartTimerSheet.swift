@@ -21,7 +21,7 @@ struct StartTimerSheet: View {
     @State private var isSubmitting = false
     @State private var errorMessage: String?
 
-    private let config = ServerConfig.load()
+    @Environment(\.appState) private var appState
 
     var body: some View {
         NavigationStack {
@@ -234,7 +234,7 @@ struct StartTimerSheet: View {
             billable: billable ? true : nil
         )
 
-        let result = await TimeTrackingService.createTimeEntry(config: config, input: input)
+        let result = await TimeTrackingService.createTimeEntry(config: appState.config, input: input)
 
         await MainActor.run {
             switch result {

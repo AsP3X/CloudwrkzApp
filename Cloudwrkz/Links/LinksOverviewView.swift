@@ -42,7 +42,7 @@ struct LinksOverviewView: View {
     /// Progress tracking for bulk actions (completed, total).
     @State private var bulkProgress: (completed: Int, total: Int) = (0, 0)
 
-    private let config = ServerConfig.load()
+    @Environment(\.appState) private var appState
 
     var body: some View {
         ZStack {
@@ -130,7 +130,7 @@ struct LinksOverviewView: View {
             EditLinkView(
                 link: link,
                 collections: collections,
-                serverBaseURL: config.baseURL,
+                serverBaseURL: appState.config.baseURL,
                 onSaved: {
                     editingLink = nil
                     Task {
@@ -299,7 +299,7 @@ struct LinksOverviewView: View {
                     let isSelected = selectedLinkIds.contains(link.id)
                     LinkRowView(
                         link: link,
-                        serverBaseURL: config.baseURL,
+                        serverBaseURL: appState.config.baseURL,
                         isSelected: isSelected,
                         selectionMode: selectionMode
                     )
@@ -375,7 +375,7 @@ struct LinksOverviewView: View {
     }
 
     private func loadCollections() async {
-        let result = await CollectionService.fetchCollections(config: config, archived: false)
+        let result = await CollectionService.fetchCollections(config: appState.config, archived: false)
         await MainActor.run {
             if case .success(let list) = result {
                 collections = list
@@ -390,7 +390,7 @@ struct LinksOverviewView: View {
             errorMessage = nil
             isLoading = true
         }
-        let result = await LinkService.fetchLinks(config: config, filters: filters, page: 1, limit: 100)
+        let result = await LinkService.fetchLinks(config: appState.config, filters: filters, page: 1, limit: 100)
         await MainActor.run {
             switch result {
             case .success(let response):
@@ -431,7 +431,7 @@ struct LinksOverviewView: View {
     // MARK: - Single & bulk link actions
 
     private func performSingleDelete(id: String) async {
-        let result = await LinkService.deleteLink(config: config, id: id)
+        let result = await LinkService.deleteLink(config: appState.config, id: id)
         await MainActor.run {
             switch result {
             case .success:
@@ -449,7 +449,7 @@ struct LinksOverviewView: View {
         await withTaskGroup(of: (String, Bool).self) { group in
             for id in ids {
                 group.addTask {
-                    let result = await LinkService.deleteLink(config: config, id: id)
+                    let result = await LinkService.deleteLink(config: appState.config, id: id)
                     switch result {
                     case .success: return (id, true)
                     case .failure: return (id, false)
@@ -482,7 +482,7 @@ struct LinksOverviewView: View {
         await withTaskGroup(of: Bool.self) { group in
             for id in ids {
                 group.addTask {
-                    let result = await LinkService.updateLink(config: config, id: id, collectionIds: collectionIds)
+                    let result = await LinkService.updateLink(config: appState.config, id: id, collectionIds: collectionIds)
                     switch result {
                     case .success: return true
                     case .failure: return false
@@ -515,7 +515,7 @@ struct LinksOverviewView: View {
         await withTaskGroup(of: Bool.self) { group in
             for id in ids {
                 group.addTask {
-                    let result = await LinkService.updateLink(config: config, id: id, extractMetadata: true)
+                    let result = await LinkService.updateLink(config: appState.config, id: id, extractMetadata: true)
                     switch result {
                     case .success: return true
                     case .failure: return false

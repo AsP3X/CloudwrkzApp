@@ -18,7 +18,7 @@ struct TimeEntryDetailView: View {
     @State private var timerTick = Date()
     @Environment(\.dismiss) private var dismiss
 
-    private let config = ServerConfig.load()
+    @Environment(\.appState) private var appState
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     private var current: TimeEntry { liveEntry ?? entry }
@@ -527,13 +527,13 @@ struct TimeEntryDetailView: View {
         let result: Result<Void, TimeTrackingServiceError>
         switch action {
         case .pause:
-            result = await TimeTrackingService.pauseTimeEntry(config: config, id: current.id)
+            result = await TimeTrackingService.pauseTimeEntry(config: appState.config, id: current.id)
         case .resume:
-            result = await TimeTrackingService.resumeTimeEntry(config: config, id: current.id)
+            result = await TimeTrackingService.resumeTimeEntry(config: appState.config, id: current.id)
         case .stop:
-            result = await TimeTrackingService.stopTimeEntry(config: config, id: current.id)
+            result = await TimeTrackingService.stopTimeEntry(config: appState.config, id: current.id)
         case .complete:
-            result = await TimeTrackingService.completeTimeEntry(config: config, id: current.id)
+            result = await TimeTrackingService.completeTimeEntry(config: appState.config, id: current.id)
         }
 
         if case .success = result {
@@ -543,14 +543,14 @@ struct TimeEntryDetailView: View {
     }
 
     private func deleteEntry() async {
-        let result = await TimeTrackingService.deleteTimeEntry(config: config, id: current.id)
+        let result = await TimeTrackingService.deleteTimeEntry(config: appState.config, id: current.id)
         if case .success = result {
             dismiss()
         }
     }
 
     private func refreshEntry() async {
-        let result = await TimeTrackingService.fetchTimeEntry(config: config, id: entry.id)
+        let result = await TimeTrackingService.fetchTimeEntry(config: appState.config, id: entry.id)
         if case .success(let updated) = result {
             await MainActor.run { liveEntry = updated }
         }

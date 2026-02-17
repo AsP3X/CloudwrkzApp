@@ -2,64 +2,30 @@
 //  RootView.swift
 //  Cloudwrkz
 //
-//  Flow: Splash → Login / Register → Main. Liquid glass only.
+//  Thin coordinator: composes AuthFlowController, SessionMonitor, ContentView, auth screens, and sheet/overlay presentation.
 //
 
 import SwiftUI
-import SwiftData
 import UIKit
-
-enum AuthScreen {
-    case splash
-    case login
-    case register
-    case main
-}
 
 struct RootView: View {
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.modelContext) private var modelContext
-    @State private var screen: AuthScreen = AuthTokenStorage.getToken() != nil ? .main : .splash
-    /// Used for WhatsApp/Telegram-style push (forward) vs pop (back) transitions.
-    @State private var isGoingBack = false
-    @State private var serverConfig = ServerConfig.load()
+    @Environment(\.appState) private var appState
+
+    @State private var authFlow = AuthFlowController()
+    @State private var sessionMonitor = SessionMonitor()
+
     @State private var showServerConfig = false
     @State private var showHealthStatus = false
     @State private var pendingServerConfigAfterDismiss = false
     @State private var pendingHealthStatusAfterDismiss = false
-    /// When true, main content is covered by biometric lock overlay until Face ID / Touch ID succeeds.
+
     @State private var isAppLocked = false
     @State private var isEvaluatingBiometric = false
-    /// Timer that periodically validates the session while the user is on the main screen.
-    @State private var sessionCheckTimer: Timer?
-    /// When true, the session-expired overlay is shown over everything.
-    @State private var showSessionExpired = false
 
     private let pushPopAnimation = Animation.easeInOut(duration: 0.32)
-    private let sessionCheckInterval: TimeInterval = 30
 
-    private func goForward(to newScreen: AuthScreen) {
-        isGoingBack = false
-        withAnimation(pushPopAnimation) { screen = newScreen }
-    }
-
-    private func goBack(to newScreen: AuthScreen) {
-        isGoingBack = true
-        DispatchQueue.main.async {
-            withAnimation(pushPopAnimation) { screen = newScreen }
-        }
-    }
-
-    /// Removes all user-related data and cache on logout.
     private func clearAllUserDataAndCache() {
-        // SwiftData: delete all persisted models (e.g. Item)
-        let descriptor = FetchDescriptor<Item>()
-        let items = (try? modelContext.fetch(descriptor)) ?? []
-        for item in items {
-            modelContext.delete(item)
-        }
-        try? modelContext.save()
-
         AuthTokenStorage.clear()
         UserProfileStorage.clear()
         AccountSettingsStorage.clear()
@@ -69,20 +35,20 @@ struct RootView: View {
     var body: some View {
         ZStack {
             ContentView(
-                isMainVisible: screen == .main,
+                isMainVisible: authFlow.screen == .main,
                 showServerConfig: $showServerConfig,
                 onLogout: {
                     clearAllUserDataAndCache()
-                    withAnimation(pushPopAnimation) { screen = .splash }
+                    withAnimation(pushPopAnimation) { authFlow.goForward(to: .splash) }
                 }
             )
-            .opacity(screen == .main ? 1 : 0)
+            .opacity(authFlow.screen == .main ? 1 : 0)
 
-            switch screen {
+            switch authFlow.screen {
             case .splash:
                 SplashView(
-                    onLogin: { goForward(to: .login) },
-                    onRegister: { goForward(to: .register) }
+                    onLogin: { authFlow.goForward(to: .login) },
+                    onRegister: { authFlow.goForward(to: .register) }
                 )
                 .transition(.asymmetric(
                     insertion: .move(edge: .leading),
@@ -90,39 +56,36 @@ struct RootView: View {
                 ))
             case .login:
                 LoginView(
-                    serverConfig: serverConfig,
-                    onSuccess: { goForward(to: .main) },
-                    onBack: { goBack(to: .splash) }
+                    onSuccess: { authFlow.goForward(to: .main) },
+                    onBack: { authFlow.goBack(to: .splash) }
                 )
                 .transition(.asymmetric(
-                    insertion: isGoingBack ? .move(edge: .leading) : .move(edge: .trailing),
-                    removal: isGoingBack ? .move(edge: .trailing) : .move(edge: .leading)
+                    insertion: authFlow.isGoingBack ? .move(edge: .leading) : .move(edge: .trailing),
+                    removal: authFlow.isGoingBack ? .move(edge: .trailing) : .move(edge: .leading)
                 ))
             case .register:
                 RegisterView(
-                    serverConfig: serverConfig,
-                    onSuccess: { goForward(to: .login) },
-                    onBack: { goBack(to: .splash) }
+                    onSuccess: { authFlow.goForward(to: .login) },
+                    onBack: { authFlow.goBack(to: .splash) }
                 )
                 .transition(.asymmetric(
-                    insertion: isGoingBack ? .move(edge: .leading) : .move(edge: .trailing),
-                    removal: isGoingBack ? .move(edge: .trailing) : .move(edge: .leading)
+                    insertion: authFlow.isGoingBack ? .move(edge: .leading) : .move(edge: .trailing),
+                    removal: authFlow.isGoingBack ? .move(edge: .trailing) : .move(edge: .leading)
                 ))
             case .main:
                 EmptyView()
             }
 
             // Tenant status and gear over splash/login/register.
-            // When back arrow is visible (login/register), leave 44pt for it and put health to the right; otherwise health on the left.
             VStack {
                 HStack(spacing: 0) {
-                    if screen == .login || screen == .register {
+                    if authFlow.screen == .login || authFlow.screen == .register {
                         Color.clear
                             .frame(width: 44, height: 44)
                             .contentShape(Rectangle())
                             .allowsHitTesting(false)
                     }
-                    TenantStatusView(config: serverConfig, onTap: { requestHealthStatus() })
+                    TenantStatusView(config: appState.config, onTap: { requestHealthStatus() })
                         .padding(.leading, 12)
                         .padding(.top, 12)
                     Spacer()
@@ -137,11 +100,10 @@ struct RootView: View {
                 }
                 Spacer()
             }
-            .allowsHitTesting(screen != .main)
-            .opacity(screen == .main ? 0 : 1)
+            .allowsHitTesting(authFlow.screen != .main)
+            .opacity(authFlow.screen == .main ? 0 : 1)
 
-            // Biometric lock overlay when app returned from background and user is on main.
-            if screen == .main, isAppLocked, !showSessionExpired {
+            if authFlow.screen == .main, isAppLocked, !sessionMonitor.showSessionExpired {
                 BiometricLockOverlayView(
                     onRetry: { await tryUnlockWithBiometric() },
                     isEvaluating: isEvaluatingBiometric
@@ -151,53 +113,46 @@ struct RootView: View {
                 .task { await tryUnlockWithBiometric() }
             }
 
-            // Session-expired overlay – shown above everything when session is revoked remotely.
-            if showSessionExpired {
+            if sessionMonitor.showSessionExpired {
                 SessionExpiredOverlayView {
-                    withAnimation(pushPopAnimation) {
-                        showSessionExpired = false
-                        screen = .splash
-                    }
+                    sessionMonitor.dismissSessionExpiredOverlay()
+                    withAnimation(pushPopAnimation) { authFlow.goForward(to: .splash) }
                 }
                 .transition(.opacity)
                 .zIndex(2)
             }
         }
-        .animation(pushPopAnimation, value: screen)
+        .animation(pushPopAnimation, value: authFlow.screen)
         .onChange(of: scenePhase) { _, newPhase in
-            if newPhase == .background, screen == .main, AccountSettingsStorage.biometricLockEnabled {
+            if newPhase == .background, authFlow.screen == .main, AccountSettingsStorage.biometricLockEnabled {
                 isAppLocked = true
             }
-            if newPhase == .active, screen == .main {
-                validateSession()
-                startSessionCheckTimer()
+            if newPhase == .active, authFlow.screen == .main {
+                sessionMonitor.validate(config: appState.config)
+                sessionMonitor.startTimer(config: appState.config)
             }
             if newPhase == .background || newPhase == .inactive {
-                stopSessionCheckTimer()
+                sessionMonitor.stopTimer()
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
-            // Fallback: scenePhase can be unreliable; ensure we lock when app actually enters background
-            if screen == .main, AccountSettingsStorage.biometricLockEnabled {
+            if authFlow.screen == .main, AccountSettingsStorage.biometricLockEnabled {
                 isAppLocked = true
             }
         }
-        .onChange(of: screen) { _, newScreen in
+        .onChange(of: authFlow.screen) { _, newScreen in
             if newScreen != .main {
                 isAppLocked = false
-                stopSessionCheckTimer()
+                sessionMonitor.stopTimer()
             } else {
-                validateSession()
-                startSessionCheckTimer()
+                sessionMonitor.validate(config: appState.config)
+                sessionMonitor.startTimer(config: appState.config)
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .sessionExpired)) { _ in
-            guard screen == .main, !showSessionExpired else { return }
-            stopSessionCheckTimer()
-            clearAllUserDataAndCache()
-            isAppLocked = false
-            withAnimation(.easeOut(duration: 0.35)) {
-                showSessionExpired = true
+        .onAppear {
+            sessionMonitor.onSessionExpired = {
+                clearAllUserDataAndCache()
+                isAppLocked = false
             }
         }
         .sheet(isPresented: $showServerConfig, onDismiss: {
@@ -206,7 +161,10 @@ struct RootView: View {
                 showHealthStatus = true
             }
         }) {
-            ServerConfigView(config: $serverConfig)
+            ServerConfigView(config: Binding(
+                get: { appState.config },
+                set: { appState.config = $0 }
+            ))
         }
         .sheet(isPresented: $showHealthStatus, onDismiss: {
             if pendingServerConfigAfterDismiss {
@@ -214,7 +172,7 @@ struct RootView: View {
                 showServerConfig = true
             }
         }) {
-            ServerHealthStatusView(config: serverConfig)
+            ServerHealthStatusView(config: appState.config)
         }
     }
 
@@ -236,39 +194,13 @@ struct RootView: View {
         }
     }
 
-    /// Calls the /me endpoint to verify the session is still valid.
-    /// If the server returns 401, `SessionExpiredNotifier` fires and RootView's
-    /// `.onReceive(.sessionExpired)` handles the logout automatically.
-    private func validateSession() {
-        guard screen == .main, AuthTokenStorage.getToken() != nil else { return }
-        Task {
-            let config = ServerConfig.load()
-            _ = await AuthService.fetchCurrentUser(config: config)
-        }
-    }
-
-    private func startSessionCheckTimer() {
-        stopSessionCheckTimer()
-        let timer = Timer.scheduledTimer(withTimeInterval: sessionCheckInterval, repeats: true) { _ in
-            validateSession()
-        }
-        sessionCheckTimer = timer
-    }
-
-    private func stopSessionCheckTimer() {
-        sessionCheckTimer?.invalidate()
-        sessionCheckTimer = nil
-    }
-
-    /// Runs Face ID / Touch ID. On success, clears app lock. Call when overlay appears or user taps Unlock.
     private func tryUnlockWithBiometric() async {
         guard AccountSettingsStorage.biometricLockEnabled, BiometricService.isAvailable else {
             await MainActor.run { isAppLocked = false }
             return
         }
         await MainActor.run { isEvaluatingBiometric = true }
-        // Brief delay so overlay is fully presented before system Face ID UI appears
-        try? await Task.sleep(nanoseconds: 300_000_000) // 0.3s
+        try? await Task.sleep(nanoseconds: 300_000_000)
         let success = await BiometricService.evaluate(reason: "Unlock Cloudwrkz")
         await MainActor.run {
             isEvaluatingBiometric = false
@@ -279,5 +211,5 @@ struct RootView: View {
 
 #Preview {
     RootView()
-        .modelContainer(for: Item.self, inMemory: true)
+        .environment(\.appState, AppState())
 }

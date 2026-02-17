@@ -321,5 +321,5 @@ struct ServerConfigView: View {
 }
 
 #Preview {
-    ServerConfigView(config: .constant(ServerConfig.load()))
+    ServerConfigView(config: .constant(AppState().config))
 }

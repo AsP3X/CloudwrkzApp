@@ -10,6 +10,7 @@ import AVFoundation
 
 struct QrLoginScannerView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.appState) private var appState
     var onSuccess: (() -> Void)?
     var onDismiss: (() -> Void)?
 
@@ -19,8 +20,6 @@ struct QrLoginScannerView: View {
     @State private var scannerKey = 0
     @State private var completedStepsCount = 0
     @State private var apiSucceeded = false
-
-    private let config = ServerConfig.load()
 
     private static let checklistSteps = [
         "Validating request",
@@ -230,7 +229,7 @@ struct QrLoginScannerView: View {
         }
 
         Task { @MainActor in
-            switch await QrLoginService.approve(requestId: requestId, config: config) {
+            switch await QrLoginService.approve(requestId: requestId, config: appState.config) {
             case .success:
                 successMessage = "The browser will sign you in shortly."
                 apiSucceeded = true

@@ -10,6 +10,7 @@ import SwiftUI
 
 struct AccountSettingsView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.appState) private var appState
 
     @State private var showServerConfig = false
     @State private var showChangePassword = false
@@ -18,8 +19,6 @@ struct AccountSettingsView: View {
     @State private var emailDigestEnabled = AccountSettingsStorage.emailDigestEnabled
     @State private var appearanceSelection = AccountSettingsStorage.appearance
     @State private var biometricLockEnabled = AccountSettingsStorage.biometricLockEnabled
-
-    @State private var serverConfig = ServerConfig.load()
     @State private var cacheClearedFeedback = false
     @State private var showCacheConfirm = false
     @State private var cacheSizeDisplay: String = ""
@@ -71,7 +70,10 @@ struct AccountSettingsView: View {
             .onChange(of: appearanceSelection) { _, v in AccountSettingsStorage.appearance = v }
             .onChange(of: biometricLockEnabled) { _, v in AccountSettingsStorage.biometricLockEnabled = v }
             .sheet(isPresented: $showServerConfig) {
-                ServerConfigView(config: $serverConfig)
+                ServerConfigView(config: Binding(
+                    get: { appState.config },
+                    set: { appState.config = $0 }
+                ))
             }
             .sheet(isPresented: $showChangePassword) {
                 ChangePasswordView(onSuccess: nil)
@@ -97,7 +99,6 @@ struct AccountSettingsView: View {
         emailDigestEnabled = AccountSettingsStorage.emailDigestEnabled
         appearanceSelection = AccountSettingsStorage.appearance
         biometricLockEnabled = AccountSettingsStorage.biometricLockEnabled
-        serverConfig = ServerConfig.load()
     }
 
     // MARK: - Section label
@@ -206,7 +207,7 @@ struct AccountSettingsView: View {
             AccountSettingsRow(
                 icon: "server.rack",
                 title: "Server configuration",
-                subtitle: serverConfig.tenant == .official ? "Official Cloudwrkz" : (serverConfig.serverDomain.isEmpty ? "On‑prem" : serverConfig.serverDomain)
+                subtitle: appState.config.tenant == .official ? "Official Cloudwrkz" : (appState.config.serverDomain.isEmpty ? "On‑prem" : appState.config.serverDomain)
             ) {
                 showServerConfig = true
             }

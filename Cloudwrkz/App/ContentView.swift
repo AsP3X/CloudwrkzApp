@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct ContentView: View {
+    @Environment(\.appState) private var appState
     @State private var path = NavigationPath()
 
     /// True when the main (dashboard) screen is shown. When this flips to true after login, we refresh profile so the avatar shows the new user.
@@ -86,7 +87,7 @@ struct ContentView: View {
                 TodoDetailView(todo: todo)
             }
             .navigationDestination(for: Link.self) { link in
-                LinkDetailView(link: link, serverBaseURL: ServerConfig.load().baseURL)
+                LinkDetailView(link: link, serverBaseURL: appState.config.baseURL)
             }
             .navigationDestination(for: TimeEntry.self) { entry in
                 TimeEntryDetailView(entry: entry)
@@ -95,8 +96,7 @@ struct ContentView: View {
                 refreshProfileFromStorage()
                 if AuthTokenStorage.getToken() != nil {
                     Task { @MainActor in
-                        let config = ServerConfig.load()
-                        switch await AuthService.fetchCurrentUser(config: config) {
+                        switch await AuthService.fetchCurrentUser(config: appState.config) {
                         case .success((let name, let email)):
                             if let n = name?.trimmingCharacters(in: .whitespaces), !n.isEmpty {
                                 UserProfileStorage.username = n
@@ -276,7 +276,7 @@ struct ContentView: View {
     /// Opens the selected search result: in-app detail for todo/timeentry, Safari for ticket/link/other.
     @MainActor
     private func openSearchResult(_ result: SearchResult) async {
-        let config = ServerConfig.load()
+        let config = appState.config
 
         switch result.type {
         case "task", "subtask":
@@ -299,7 +299,7 @@ struct ContentView: View {
     }
 
     private func openSearchResultInSafari(_ result: SearchResult) {
-        guard let base = ServerConfig.load().baseURL else { return }
+        guard let base = appState.config.baseURL else { return }
         let pathString = result.url.hasPrefix("/") ? String(result.url.dropFirst()) : result.url
         guard let url = URL(string: pathString, relativeTo: base) else { return }
         UIApplication.shared.open(url)

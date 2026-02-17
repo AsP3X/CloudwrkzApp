@@ -74,7 +74,7 @@ struct ArchiveOverviewView: View {
         }
     }
 
-    private let config = ServerConfig.load()
+    @Environment(\.appState) private var appState
 
     var body: some View {
         ZStack {
@@ -291,13 +291,13 @@ struct ArchiveOverviewView: View {
         var success = false
         switch item {
         case .ticket(let t):
-            if case .success = await TicketService.unarchiveTicket(config: config, id: t.id) { success = true }
+            if case .success = await TicketService.unarchiveTicket(config: appState.config, id: t.id) { success = true }
         case .todo(let t):
-            if case .success = await TodoService.unarchiveTodo(config: config, id: t.id) { success = true }
+            if case .success = await TodoService.unarchiveTodo(config: appState.config, id: t.id) { success = true }
         case .link(let l):
-            if case .success = await LinkService.unarchiveLink(config: config, id: l.id) { success = true }
+            if case .success = await LinkService.unarchiveLink(config: appState.config, id: l.id) { success = true }
         case .timeEntry(let e):
-            if case .success = await TimeTrackingService.unarchiveTimeEntry(config: config, id: e.id) { success = true }
+            if case .success = await TimeTrackingService.unarchiveTimeEntry(config: appState.config, id: e.id) { success = true }
         }
         if success { await loadAll() }
     }
@@ -309,13 +309,13 @@ struct ArchiveOverviewView: View {
         var success = false
         switch item {
         case .ticket(let t):
-            if case .success = await TicketService.deleteTicket(config: config, id: t.id) { success = true }
+            if case .success = await TicketService.deleteTicket(config: appState.config, id: t.id) { success = true }
         case .todo(let t):
-            if case .success = await TodoService.deleteTodo(config: config, id: t.id) { success = true }
+            if case .success = await TodoService.deleteTodo(config: appState.config, id: t.id) { success = true }
         case .link(let l):
-            if case .success = await LinkService.deleteLink(config: config, id: l.id) { success = true }
+            if case .success = await LinkService.deleteLink(config: appState.config, id: l.id) { success = true }
         case .timeEntry(let e):
-            if case .success = await TimeTrackingService.deleteTimeEntry(config: config, id: e.id) { success = true }
+            if case .success = await TimeTrackingService.deleteTimeEntry(config: appState.config, id: e.id) { success = true }
         }
         if success { await loadAll() }
     }
@@ -402,7 +402,7 @@ struct ArchiveOverviewView: View {
         var ticketFilters = TicketFilters()
         ticketFilters.status = .all
         ticketFilters.archive = .archived
-        switch await TicketService.fetchTickets(config: config, filters: ticketFilters) {
+        switch await TicketService.fetchTickets(config: appState.config, filters: ticketFilters) {
         case .success(let list): ticketItems = list.compactMap { t in t.archivedAt != nil ? ArchiveItem.ticket(t) : nil }
         case .failure(let e): if firstError == nil { firstError = messageFor(e) }
         }
@@ -412,7 +412,7 @@ struct ArchiveOverviewView: View {
         todoFilters.priority = .all
         todoFilters.archive = .archived
         todoFilters.includeSubtodos = true // include all archived todos (root + subtodos), matching web
-        switch await TodoService.fetchTodos(config: config, filters: todoFilters) {
+        switch await TodoService.fetchTodos(config: appState.config, filters: todoFilters) {
         case .success(let list): todoItems = list.compactMap { t in t.archivedAt != nil ? ArchiveItem.todo(t) : nil }
         case .failure(let e): if firstError == nil { firstError = messageForTodo(e) }
         }
@@ -420,7 +420,7 @@ struct ArchiveOverviewView: View {
         var timeFilters = TimeTrackingFilters()
         timeFilters.status = .all
         timeFilters.archive = .archived
-        switch await TimeTrackingService.fetchTimeEntries(config: config, filters: timeFilters) {
+        switch await TimeTrackingService.fetchTimeEntries(config: appState.config, filters: timeFilters) {
         case .success(let list): timeItems = list.compactMap { e in e.archivedAt != nil ? ArchiveItem.timeEntry(e) : nil }
         case .failure(let e): if firstError == nil { firstError = messageForTime(e) }
         }
@@ -431,7 +431,7 @@ struct ArchiveOverviewView: View {
         var linkPage = 1
         let linkPageSize = 100
         while true {
-            switch await LinkService.fetchLinks(config: config, filters: linkFilters, page: linkPage, limit: linkPageSize) {
+            switch await LinkService.fetchLinks(config: appState.config, filters: linkFilters, page: linkPage, limit: linkPageSize) {
             case .success(let response):
                 let pageItems = response.links.compactMap { l in l.archivedAt != nil ? ArchiveItem.link(l) : nil }
                 linkItems.append(contentsOf: pageItems)

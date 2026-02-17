@@ -38,7 +38,7 @@ struct EditLinkView: View {
     @State private var hasChanges = false
     @FocusState private var focusedField: Field?
 
-    private let config = ServerConfig.load()
+    @Environment(\.appState) private var appState
 
     private let linkTypes = ["WEBSITE", "FILE", "DOCUMENT", "VIDEO", "IMAGE", "OTHER"]
 
@@ -675,7 +675,7 @@ struct EditLinkView: View {
         guard !url.isEmpty else { return }
 
         isRefetchingMetadata = true
-        let result = await LinkService.fetchMetadata(config: config, url: url)
+        let result = await LinkService.fetchMetadata(config: appState.config, url: url)
         isRefetchingMetadata = false
         switch result {
         case .success(let meta):
@@ -700,7 +700,7 @@ struct EditLinkView: View {
         guard !url.isEmpty else { return }
 
         isRefetchingMetadata = true
-        let result = await LinkService.fetchMetadata(config: config, url: url)
+        let result = await LinkService.fetchMetadata(config: appState.config, url: url)
         isRefetchingMetadata = false
         switch result {
         case .success(let meta):
@@ -758,7 +758,7 @@ struct EditLinkView: View {
         let collectionIds: [String]? = selectedCollectionIds != originalCollectionIds ? Array(selectedCollectionIds) : nil
 
         let result = await LinkService.updateLink(
-            config: config,
+            config: appState.config,
             id: link.id,
             url: url,
             title: title,

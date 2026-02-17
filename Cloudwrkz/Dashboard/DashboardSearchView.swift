@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct DashboardSearchView: View {
+    @Environment(\.appState) private var appState
     var onDismiss: () -> Void
     /// Called when user taps a result; parent should dismiss and then open the detail (in-app or Safari).
     var onSelectResult: ((SearchResult) -> Void)?
@@ -233,7 +234,7 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
     private func performSearch(query: String) async {
         isLoading = true
         defer { isLoading = false }
-        let config = ServerConfig.load()
+        let config = appState.config
         switch await SearchService.search(config: config, query: query, limit: initialPageSize, offset: 0) {
         case .success(let response):
             results = response.results
@@ -260,7 +261,7 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
         isLoadingMore = true
         defer { isLoadingMore = false }
         let currentQuery = query.trimmingCharacters(in: .whitespaces)
-        let config = ServerConfig.load()
+        let config = appState.config
         switch await SearchService.search(config: config, query: currentQuery, limit: pageSize, offset: results.count) {
         case .success(let response):
             results.append(contentsOf: response.results)
@@ -278,7 +279,7 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
             onDismiss()
         } else {
             // Fallback: open detail page in Safari
-            guard let base = ServerConfig.load().baseURL else { return }
+            guard let base = appState.config.baseURL else { return }
             let path = result.url.hasPrefix("/") ? String(result.url.dropFirst()) : result.url
             guard let url = URL(string: path, relativeTo: base) else { return }
             UIApplication.shared.open(url)

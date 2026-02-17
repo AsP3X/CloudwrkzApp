@@ -25,7 +25,7 @@ struct AddTimeEntrySheet: View {
     @State private var isSubmitting = false
     @State private var errorMessage: String?
 
-    private let config = ServerConfig.load()
+    @Environment(\.appState) private var appState
 
     var body: some View {
         NavigationStack {
@@ -306,7 +306,7 @@ struct AddTimeEntrySheet: View {
             startedAt: startDate
         )
 
-        let result = await TimeTrackingService.addTimeEntry(config: config, input: input)
+        let result = await TimeTrackingService.addTimeEntry(config: appState.config, input: input)
 
         await MainActor.run {
             switch result {

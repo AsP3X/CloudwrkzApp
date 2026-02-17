@@ -6,26 +6,11 @@
 //
 
 import SwiftUI
-import SwiftData
 
 @main
 struct CloudwrkzApp: App {
     @AppStorage("cloudwrkz.account.appearance") private var appearance: String = "system"
-
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-        ])
-        let modelConfiguration = ModelConfiguration(
-            schema: schema,
-            isStoredInMemoryOnly: false
-        )
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
+    @State private var appState = AppState()
 
     private var resolvedColorScheme: ColorScheme? {
         switch appearance {
@@ -38,8 +23,8 @@ struct CloudwrkzApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                .environment(\.appState, appState)
                 .preferredColorScheme(resolvedColorScheme)
         }
-        .modelContainer(sharedModelContainer)
     }
 }

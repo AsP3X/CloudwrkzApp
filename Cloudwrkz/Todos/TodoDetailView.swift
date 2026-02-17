@@ -20,6 +20,7 @@ private enum SubtodoListItem: Identifiable {
 }
 
 struct TodoDetailView: View {
+    @Environment(\.appState) private var appState
     @State private var todo: Todo
     @State private var showTodoInfoSidebar = false
     @State private var showAddTodo = false
@@ -85,7 +86,7 @@ struct TodoDetailView: View {
     }
 
     private func loadTodo() async {
-        let result = await TodoService.fetchTodo(config: ServerConfig.load(), id: todo.id)
+        let result = await TodoService.fetchTodo(config: appState.config, id: todo.id)
         await MainActor.run {
             if case .success(let updated) = result {
                 withAnimation(.easeInOut(duration: 0.25)) {
@@ -100,7 +101,7 @@ struct TodoDetailView: View {
         if !immediate {
             try? await Task.sleep(nanoseconds: 400_000_000)
         }
-        let result = await TodoService.fetchTodo(config: ServerConfig.load(), id: todo.id)
+        let result = await TodoService.fetchTodo(config: appState.config, id: todo.id)
         await MainActor.run {
             if case .success(let updated) = result {
                 withAnimation(.easeInOut(duration: immediate ? 0.25 : 1.4)) {
@@ -351,22 +352,19 @@ struct TodoDetailView: View {
     }
 
     private func completeSubtodo(_ id: String, immediate: Bool = false) async {
-        let config = ServerConfig.load()
-        let result = await TodoService.updateTodo(config: config, id: id, status: "COMPLETED")
+        let result = await TodoService.updateTodo(config: appState.config, id: id, status: "COMPLETED")
         guard case .success = result else { return }
         await loadTodoAfterComplete(immediate: immediate)
     }
 
     private func uncompleteSubtodo(_ id: String, immediate: Bool = false) async {
-        let config = ServerConfig.load()
-        let result = await TodoService.updateTodo(config: config, id: id, status: "IN_PROGRESS")
+        let result = await TodoService.updateTodo(config: appState.config, id: id, status: "IN_PROGRESS")
         guard case .success = result else { return }
         await loadTodoAfterComplete(immediate: immediate)
     }
 
     private func deleteSubtodo(_ id: String) async {
-        let config = ServerConfig.load()
-        let result = await TodoService.deleteTodo(config: config, id: id)
+        let result = await TodoService.deleteTodo(config: appState.config, id: id)
         await MainActor.run {
             if case .failure = result {
                 // Optionally show an error
@@ -485,6 +483,7 @@ struct TodoDetailView: View {
 // MARK: - Todo info sidebar (sheet)
 
 private struct TodoInfoSidebarView: View {
+    @Environment(\.appState) private var appState
     let todo: Todo
     @Environment(\.dismiss) private var dismiss
     @State private var fetchedParentTitle: String?
@@ -540,8 +539,7 @@ private struct TodoInfoSidebarView: View {
     private func loadParentTitleIfNeeded() async {
         guard let parentId = todo.parentTodoId else { return }
         if todo.parentTodo?.title != nil || todo.parentTodo?.todoNumber != nil { return }
-        let config = ServerConfig.load()
-        let result = await TodoService.fetchTodo(config: config, id: parentId)
+        let result = await TodoService.fetchTodo(config: appState.config, id: parentId)
         await MainActor.run {
             if case .success(let parent) = result {
                 fetchedParentTitle = parent.title
@@ -672,11 +670,10 @@ private struct TodoInfoSidebarView: View {
 // MARK: - Todo detail by ID (loads then shows detail; used when navigating from subtodo row)
 
 struct TodoDetailLoaderView: View {
+    @Environment(\.appState) private var appState
     let todoId: String
     @State private var todo: Todo?
     @State private var errorMessage: String?
-
-    private let config = ServerConfig.load()
 
     var body: some View {
         Group {
@@ -692,7 +689,7 @@ struct TodoDetailLoaderView: View {
     }
 
     private func loadTodo() async {
-        let result = await TodoService.fetchTodo(config: config, id: todoId)
+        let result = await TodoService.fetchTodo(config: appState.config, id: todoId)
         await MainActor.run {
             switch result {
             case .success(let loaded):

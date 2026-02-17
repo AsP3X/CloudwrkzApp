@@ -16,6 +16,7 @@ private let profileImageMaxDimension: CGFloat = 1024
 
 struct ProfileEditView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.appState) private var appState
 
     var onSave: (() -> Void)?
 
@@ -196,7 +197,7 @@ CloudwrkzSpinner(tint: CloudwrkzColors.neutral100)
                 imageData = ProfileImageResizer.downscaleToUnderMaxBytes(uiImage, maxBytes: profileImageMaxBytes, maxDimension: profileImageMaxDimension) ?? imageData
             }
             await MainActor.run { isSaving = true }
-            let config = ServerConfig.load()
+            let config = appState.config
             let result = await ProfileService.uploadAvatar(config: config, imageData: imageData)
             await MainActor.run { isSaving = false }
             switch result {

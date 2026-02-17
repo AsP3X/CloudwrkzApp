@@ -45,7 +45,7 @@ struct TodosOverviewView: View {
             || filters.includeSubtodos
     }
 
-    private let config = ServerConfig.load()
+    @Environment(\.appState) private var appState
 
     var body: some View {
         ZStack {
@@ -347,19 +347,19 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
     }
 
     private func completeTodo(_ id: String) async {
-        let result = await TodoService.updateTodo(config: config, id: id, status: "COMPLETED")
+        let result = await TodoService.updateTodo(config: appState.config, id: id, status: "COMPLETED")
         guard case .success = result else { return }
         await loadTodos()
     }
 
     private func uncompleteTodo(_ id: String) async {
-        let result = await TodoService.updateTodo(config: config, id: id, status: "IN_PROGRESS")
+        let result = await TodoService.updateTodo(config: appState.config, id: id, status: "IN_PROGRESS")
         guard case .success = result else { return }
         await loadTodos()
     }
 
     private func deleteTodo(_ id: String) async {
-        _ = await TodoService.deleteTodo(config: config, id: id)
+        _ = await TodoService.deleteTodo(config: appState.config, id: id)
         await loadTodos()
     }
 
@@ -367,7 +367,7 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
     private func loadTodos() async {
         errorMessage = nil
         isLoading = true
-        let result = await TodoService.fetchTodos(config: config, filters: filters)
+        let result = await TodoService.fetchTodos(config: appState.config, filters: filters)
         await MainActor.run {
             switch result {
             case .success(let list):

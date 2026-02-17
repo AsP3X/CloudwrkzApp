@@ -26,7 +26,7 @@ struct AddLinkView: View {
     /// Cancellable task for debounced auto-fetch when URL is pasted or edited.
     @State private var fetchMetadataTask: Task<Void, Never>?
 
-    private let config = ServerConfig.load()
+    @Environment(\.appState) private var appState
     private let fetchMetadataDebounceSeconds: UInt64 = 600_000_000 // 0.6s in nanoseconds
 
     enum Field {
@@ -243,7 +243,7 @@ struct AddLinkView: View {
         }
         guard !url.isEmpty else { return }
         isExtractingMetadata = true
-        let result = await LinkService.fetchMetadata(config: config, url: url)
+        let result = await LinkService.fetchMetadata(config: appState.config, url: url)
         await MainActor.run {
             isExtractingMetadata = false
             switch result {
@@ -280,7 +280,7 @@ struct AddLinkView: View {
         isSaving = true
         let collectionIds: [String]? = selectedCollectionIds.isEmpty ? nil : Array(selectedCollectionIds)
         let result = await LinkService.createLink(
-            config: config,
+            config: appState.config,
             url: url,
             title: titleText.isEmpty ? nil : titleText,
             description: descriptionText.isEmpty ? nil : descriptionText,

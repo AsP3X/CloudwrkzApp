@@ -10,6 +10,7 @@ import SwiftUI
 
 struct ChangePasswordView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.appState) private var appState
 
     var onSuccess: (() -> Void)?
 
@@ -141,7 +142,7 @@ struct ChangePasswordView: View {
             return
         }
         await MainActor.run { isSaving = true }
-        let config = ServerConfig.load()
+        let config = appState.config
         let confirm = confirmPassword.trimmingCharacters(in: .whitespaces)
         let result = await AuthService.changePassword(currentPassword: current, newPassword: new, confirmPassword: confirm, config: config)
         await MainActor.run { isSaving = false }

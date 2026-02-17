@@ -33,7 +33,7 @@ struct TimeTrackingOverviewView: View {
     @State private var showBulkDeleteConfirm = false
     @State private var bulkActionInProgress = false
 
-    private let config = ServerConfig.load()
+    @Environment(\.appState) private var appState
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
@@ -414,11 +414,11 @@ struct TimeTrackingOverviewView: View {
         let result: Result<Void, TimeTrackingServiceError>
         switch action {
         case .pause:
-            result = await TimeTrackingService.pauseTimeEntry(config: config, id: entry.id)
+            result = await TimeTrackingService.pauseTimeEntry(config: appState.config, id: entry.id)
         case .resume:
-            result = await TimeTrackingService.resumeTimeEntry(config: config, id: entry.id)
+            result = await TimeTrackingService.resumeTimeEntry(config: appState.config, id: entry.id)
         case .stop:
-            result = await TimeTrackingService.stopTimeEntry(config: config, id: entry.id)
+            result = await TimeTrackingService.stopTimeEntry(config: appState.config, id: entry.id)
         }
 
         switch result {
@@ -432,7 +432,7 @@ struct TimeTrackingOverviewView: View {
     private func loadEntries() async {
         errorMessage = nil
         isLoading = true
-        let result = await TimeTrackingService.fetchTimeEntries(config: config, filters: filters)
+        let result = await TimeTrackingService.fetchTimeEntries(config: appState.config, filters: filters)
         await MainActor.run {
             switch result {
             case .success(let list):
@@ -472,7 +472,7 @@ struct TimeTrackingOverviewView: View {
     // MARK: - Single & bulk delete
 
     private func performSingleDelete(id: String) async {
-        let result = await TimeTrackingService.deleteTimeEntry(config: config, id: id)
+        let result = await TimeTrackingService.deleteTimeEntry(config: appState.config, id: id)
         if case .success = result {
             await MainActor.run { entries.removeAll { $0.id == id } }
         }
@@ -485,7 +485,7 @@ struct TimeTrackingOverviewView: View {
         await withTaskGroup(of: (String, Bool).self) { group in
             for id in ids {
                 group.addTask {
-                    let result = await TimeTrackingService.deleteTimeEntry(config: config, id: id)
+                    let result = await TimeTrackingService.deleteTimeEntry(config: appState.config, id: id)
                     switch result {
                     case .success: return (id, true)
                     case .failure: return (id, false)
@@ -508,7 +508,7 @@ struct TimeTrackingOverviewView: View {
         await MainActor.run { bulkActionInProgress = true }
         let ids = Array(selectedEntryIds)
         for id in ids {
-            _ = await TimeTrackingService.stopTimeEntry(config: config, id: id)
+            _ = await TimeTrackingService.stopTimeEntry(config: appState.config, id: id)
         }
         await MainActor.run {
             selectedEntryIds.removeAll()

@@ -94,6 +94,6 @@ CloudwrkzSpinner(tint: CloudwrkzColors.neutral400)
             endPoint: .bottomTrailing
         )
         .ignoresSafeArea()
-        TenantStatusView(config: ServerConfig.load())
+        TenantStatusView(config: AppState().config)
     }
 }

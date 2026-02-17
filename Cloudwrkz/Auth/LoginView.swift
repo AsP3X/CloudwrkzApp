@@ -8,13 +8,13 @@
 import SwiftUI
 
 struct LoginView: View {
+    @Environment(\.appState) private var appState
     @State private var email = ""
     @State private var password = ""
     @State private var isLoading = false
     @State private var errorMessage: String?
     @FocusState private var focusedField: Field?
 
-    var serverConfig: ServerConfig = ServerConfig.load()
     var onSuccess: () -> Void = {}
     var onBack: () -> Void = {}
 
@@ -143,14 +143,14 @@ struct LoginView: View {
             errorMessage = "Please enter email and password."
             return
         }
-        if serverConfig.baseURL == nil {
+        if appState.config.baseURL == nil {
             errorMessage = "Configure server in settings."
             return
         }
         isLoading = true
         Task { @MainActor in
             defer { isLoading = false }
-            let result = await AuthService.login(email: email, password: password, config: serverConfig)
+            let result = await AuthService.login(email: email, password: password, config: appState.config)
             switch result {
             case .success((let token, let user)):
                 AuthTokenStorage.save(token: token)

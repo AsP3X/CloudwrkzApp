@@ -34,7 +34,7 @@ struct EditTimeEntrySheet: View {
     @State private var hasChanges = false
     @FocusState private var focusedField: Field?
 
-    private let config = ServerConfig.load()
+    @Environment(\.appState) private var appState
 
     enum Field: Hashable {
         case name, description, location, tag
@@ -607,7 +607,7 @@ struct EditTimeEntrySheet: View {
             stoppedAt: hasEndDate ? endDate : nil
         )
 
-        let result = await TimeTrackingService.updateTimeEntry(config: config, id: entry.id, input: input)
+        let result = await TimeTrackingService.updateTimeEntry(config: appState.config, id: entry.id, input: input)
 
         isSaving = false
         switch result {

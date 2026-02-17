@@ -8,9 +8,10 @@
 import SwiftUI
 
 struct LinkDetailView: View {
+    @Environment(\.appState) private var appState
     let link: Link
-    /// Server base URL (e.g. https://cloudwrkz.com). Used to resolve relative favicon paths from the API.
-    var serverBaseURL: URL? = ServerConfig.load().baseURL
+    /// Server base URL (e.g. https://cloudwrkz.com). Used to resolve relative favicon paths from the API. Defaults to app state.
+    var serverBaseURL: URL?
 
     /// Cached so body doesn't re-run regex/URL parsing on every re-evaluation.
     @State private var cachedYouTubeVideoId: String?
@@ -132,7 +133,7 @@ struct LinkDetailView: View {
     }
 
     private var linkIcon: some View {
-        let faviconURL = link.faviconURL(serverBaseURL: serverBaseURL)
+        let faviconURL = link.faviconURL(serverBaseURL: serverBaseURL ?? appState.config.baseURL)
         return ZStack {
             RoundedRectangle(cornerRadius: 12)
                 .fill(CloudwrkzColors.primary500.opacity(0.15))
