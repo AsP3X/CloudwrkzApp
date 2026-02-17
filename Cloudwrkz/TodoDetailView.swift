@@ -76,7 +76,9 @@ struct TodoDetailView: View {
         let result = await TodoService.fetchTodo(config: ServerConfig.load(), id: todo.id)
         await MainActor.run {
             if case .success(let updated) = result {
-                todo = updated
+                withAnimation(.easeInOut(duration: 0.28)) {
+                    todo = updated
+                }
             }
         }
     }
@@ -128,7 +130,16 @@ struct TodoDetailView: View {
             descriptionCard
             ticketLinkCard
             subtodosSection
+            completedSection
         }
+    }
+
+    private var activeSubtodos: [Todo.TodoSubtask] {
+        (todo.subtodos ?? []).filter { $0.status != "COMPLETED" }
+    }
+
+    private var completedSubtodos: [Todo.TodoSubtask] {
+        (todo.subtodos ?? []).filter { $0.status == "COMPLETED" }
     }
 
     private var descriptionCard: some View {
@@ -186,46 +197,114 @@ struct TodoDetailView: View {
     }
 
     private var subtodosSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             sectionLabel("Subtodos")
-            Group {
-                if let subtodos = todo.subtodos, !subtodos.isEmpty {
+            if activeSubtodos.isEmpty && completedSubtodos.isEmpty {
+                subtodoPlaceholderRow
+                    .padding(.horizontal, 4)
+            } else if activeSubtodos.isEmpty {
+                subtodoEmptyActiveRow
+                    .padding(.horizontal, 4)
+            } else {
+                List {
+                    ForEach(activeSubtodos, id: \.id) { subtodo in
+                        NavigationLink(destination: TodoDetailLoaderView(todoId: subtodo.id)) {
+                            subtodoSettingsRow(subtodo)
+                        }
+                        .buttonStyle(.plain)
+                        .listRowInsets(EdgeInsets(top: 0, leading: 4, bottom: 0, trailing: 4))
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) {
+                                Task { await deleteSubtodo(subtodo.id) }
+                            } label: { Image(systemName: "trash") }
+                            .tint(.red)
+                            Button {
+                                Task { await completeSubtodo(subtodo.id) }
+                            } label: { Image(systemName: "checkmark") }
+                            .tint(CloudwrkzColors.success500)
+                        }
+                    }
+                }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .scrollDisabled(true)
+                .frame(minHeight: CGFloat(activeSubtodos.count) * 56)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var completedSection: some View {
+        Group {
+            if !completedSubtodos.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    sectionLabel("Completed")
                     List {
-                        ForEach(subtodos, id: \.id) { subtodo in
+                        ForEach(completedSubtodos, id: \.id) { subtodo in
                             NavigationLink(destination: TodoDetailLoaderView(todoId: subtodo.id)) {
-                                subtodoSettingsRow(subtodo)
+                                completedSubtodoRow(subtodo)
                             }
                             .buttonStyle(.plain)
-                            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                            .listRowInsets(EdgeInsets(top: 0, leading: 4, bottom: 0, trailing: 4))
                             .listRowSeparator(.hidden)
                             .listRowBackground(Color.clear)
                             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                 Button(role: .destructive) {
                                     Task { await deleteSubtodo(subtodo.id) }
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                                Button {
-                                    Task { await completeSubtodo(subtodo.id) }
-                                } label: {
-                                    Label("Complete", systemImage: "checkmark")
-                                }
-                                .tint(CloudwrkzColors.success500)
+                                } label: { Image(systemName: "trash") }
+                                .tint(.red)
                             }
                         }
                     }
                     .listStyle(.plain)
                     .scrollContentBackground(.hidden)
                     .scrollDisabled(true)
-                    .padding(16)
-                } else {
-                    subtodoPlaceholderRow
-                        .padding(16)
+                    .frame(minHeight: CGFloat(completedSubtodos.count) * 56)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .glassPanel(cornerRadius: 20, tint: CloudwrkzColors.primary500, tintOpacity: 0.04)
         }
+    }
+
+    private var subtodoEmptyActiveRow: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "circle")
+                .font(.system(size: 20))
+                .foregroundStyle(CloudwrkzColors.neutral500)
+                .frame(width: 28, height: 28)
+            Text("No active subtodos")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(CloudwrkzColors.neutral400)
+            Spacer()
+        }
+        .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Row for a completed subtodo: checkmark, strikethrough title, muted. List provides disclosure chevron.
+    private func completedSubtodoRow(_ subtodo: Todo.TodoSubtask) -> some View {
+        HStack(spacing: 14) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 20))
+                .foregroundStyle(CloudwrkzColors.success500)
+                .frame(width: 28, height: 28)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(subtodo.title)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(CloudwrkzColors.neutral400)
+                    .strikethrough(true, color: CloudwrkzColors.neutral500)
+                    .lineLimit(2)
+                Text(subtodoStatusSubtitle(subtodo))
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundStyle(CloudwrkzColors.neutral500)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
     }
 
     private func completeSubtodo(_ id: String) async {
@@ -264,7 +343,7 @@ struct TodoDetailView: View {
             .frame(height: 1)
     }
 
-    /// One subtodo as a row matching Account Settings (Change password) style: icon, title, subtitle, chevron.
+    /// One subtodo as a row: icon, title, subtitle. List provides disclosure chevron.
     private func subtodoSettingsRow(_ subtodo: Todo.TodoSubtask) -> some View {
         HStack(spacing: 14) {
             Image(systemName: "list.bullet.indent")
@@ -281,11 +360,8 @@ struct TodoDetailView: View {
                     .foregroundStyle(CloudwrkzColors.neutral500)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            Image(systemName: "chevron.right")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(CloudwrkzColors.neutral500)
         }
-        .padding(.vertical, 12)
+        .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
     }
