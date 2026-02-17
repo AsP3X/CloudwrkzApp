@@ -8,6 +8,11 @@
 
 import SwiftUI
 
+enum ArchiveOverviewViewStyle: String, CaseIterable {
+    case card = "card"
+    case list = "list"
+}
+
 struct ArchiveOverviewView: View {
     /// When provided, row tap pushes onto this path (no NavigationLink = no chevron). Swipe actions still work.
     @Binding var path: NavigationPath
@@ -19,6 +24,11 @@ struct ArchiveOverviewView: View {
     @State private var showFilters = false
     @State private var itemToDelete: ArchiveItem?
     @State private var isWorking = false
+    @AppStorage("archiveOverviewViewStyle") private var viewStyleRaw: String = ArchiveOverviewViewStyle.card.rawValue
+
+    private var viewStyle: ArchiveOverviewViewStyle {
+        ArchiveOverviewViewStyle(rawValue: viewStyleRaw) ?? .card
+    }
 
     private var hasActiveFilters: Bool {
         filters.type != .all || filters.sort != .newestArchivedFirst
@@ -67,7 +77,10 @@ struct ArchiveOverviewView: View {
             } else {
                 VStack(spacing: 0) {
                     typeFilterBar
-                    archiveList
+                    switch viewStyle {
+                    case .card: archiveCardView
+                    case .list: archiveList
+                    }
                 }
             }
         }
@@ -75,6 +88,24 @@ struct ArchiveOverviewView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Menu {
+                    Button {
+                        viewStyleRaw = ArchiveOverviewViewStyle.card.rawValue
+                    } label: {
+                        Label("Card view", systemImage: "square.grid.2x2")
+                    }
+                    Button {
+                        viewStyleRaw = ArchiveOverviewViewStyle.list.rawValue
+                    } label: {
+                        Label("List view", systemImage: "list.bullet")
+                    }
+                } label: {
+                    Image(systemName: viewStyle == .card ? "square.grid.2x2" : "list.bullet")
+                        .font(.system(size: 22))
+                        .foregroundStyle(CloudwrkzColors.primary400)
+                }
+            }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
                     showFilters = true
@@ -145,6 +176,27 @@ struct ArchiveOverviewView: View {
         .background(Color.clear)
     }
 
+    private var archiveCardView: some View {
+        Group {
+            if filteredItems.isEmpty {
+                emptyFilteredView
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 14) {
+                        ForEach(filteredItems) { item in
+                            archiveCardRow(for: item)
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+                    .padding(.bottom, 32)
+                }
+                .scrollContentBackground(.hidden)
+                .refreshable { await loadAll() }
+            }
+        }
+    }
+
     private var archiveList: some View {
         Group {
             if filteredItems.isEmpty {
@@ -153,15 +205,39 @@ struct ArchiveOverviewView: View {
                 List {
                     ForEach(filteredItems) { item in
                         archiveRow(for: item)
-                            .listRowInsets(EdgeInsets(top: 7, leading: 20, bottom: 7, trailing: 20))
+                            .listRowInsets(EdgeInsets(top: 5, leading: 20, bottom: 5, trailing: 20))
                             .listRowSeparator(.hidden)
                             .listRowBackground(Color.clear)
                     }
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
+                .refreshable { await loadAll() }
             }
         }
+    }
+
+    @ViewBuilder
+    private func archiveCardRow(for item: ArchiveItem) -> some View {
+        Button {
+            navigateToItem(item)
+        } label: {
+            ArchiveRowView(item: item)
+        }
+        .buttonStyle(.plain)
+        .contextMenu {
+            Button {
+                Task { await unarchiveItem(item) }
+            } label: {
+                Label("Unarchive", systemImage: "arrow.uturn.backward")
+            }
+            Button(role: .destructive) {
+                itemToDelete = item
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        }
+        .disabled(isWorking)
     }
 
     @ViewBuilder
@@ -169,7 +245,7 @@ struct ArchiveOverviewView: View {
         Button {
             navigateToItem(item)
         } label: {
-            ArchiveRowView(item: item)
+            ArchiveListRowView(item: item)
         }
         .buttonStyle(.plain)
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
@@ -392,7 +468,75 @@ struct ArchiveOverviewView: View {
     }
 }
 
-// MARK: - Row (glass card, type pill, title, subtitle, archived date)
+// MARK: - List row (compact liquid-glass bar: type pill, title, subtitle, date)
+
+private struct ArchiveListRowView: View {
+    let item: ArchiveItem
+
+    var body: some View {
+        HStack(spacing: 12) {
+            typePill(item.typeLabel)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.title)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(CloudwrkzColors.neutral100)
+                    .lineLimit(2)
+                HStack(spacing: 6) {
+                    Text(item.subtitle)
+                        .font(.system(size: 12, weight: .regular))
+                        .foregroundStyle(CloudwrkzColors.neutral500)
+                        .lineLimit(1)
+                    if let date = item.archivedAt {
+                        Text("·")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(CloudwrkzColors.neutral500)
+                        Text(shortDate(date))
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(CloudwrkzColors.neutral500)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(CloudwrkzColors.neutral500)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+        .glassCard(cornerRadius: 12)
+    }
+
+    private func typePill(_ label: String) -> some View {
+        let (color, bg) = typeStyle(label)
+        return Text(label)
+            .font(.system(size: 9, weight: .semibold))
+            .foregroundStyle(color)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(bg.opacity(0.25), in: Capsule())
+    }
+
+    private func typeStyle(_ label: String) -> (Color, Color) {
+        switch label {
+        case "Ticket": return (CloudwrkzColors.primary400, CloudwrkzColors.primary400)
+        case "ToDo": return (Color(red: 168/255, green: 85/255, blue: 247/255), Color(red: 168/255, green: 85/255, blue: 247/255))
+        case "Time": return (CloudwrkzColors.success500, CloudwrkzColors.success500)
+        case "Link": return (CloudwrkzColors.warning500, CloudwrkzColors.warning500)
+        default: return (CloudwrkzColors.neutral400, CloudwrkzColors.neutral400)
+        }
+    }
+
+    private func shortDate(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.dateStyle = .short
+        f.timeStyle = .none
+        return f.string(from: date)
+    }
+}
+
+// MARK: - Card row (full glass card, type pill, title, subtitle, archived date)
 
 private struct ArchiveRowView: View {
     let item: ArchiveItem
