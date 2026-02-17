@@ -468,7 +468,8 @@ private struct DisplayLanguageSheet: View {
     private static let options: [(id: String, titleKey: String)] = [
         ("system", "account_settings.language_system"),
         ("en", "account_settings.language_english"),
-        ("de", "account_settings.language_german")
+        ("de", "account_settings.language_german"),
+        ("ru", "account_settings.language_russian")
     ]
 
     static func displayName(for localeId: String) -> String {

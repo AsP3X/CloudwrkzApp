@@ -74,6 +74,8 @@
 
 "account_settings.language_german" = "German";
 
+"account_settings.language_russian" = "Russian";
+
 "account_settings.language_restart_hint" = "The new language will apply after you restart the app.";
 
 "account_settings.language_restart_message" = "The app needs to restart for the new language to take effect.";

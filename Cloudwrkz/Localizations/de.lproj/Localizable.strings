@@ -50,6 +50,8 @@
 
 "account_settings.language_german" = "Deutsch";
 
+"account_settings.language_russian" = "Russisch";
+
 "account_settings.language_restart_hint" = "Die neue Sprache wird nach einem Neustart der App aktiv.";
 
 "account_settings.language_restart_message" = "Die App muss neu gestartet werden, damit die neue Sprache wirksam wird.";
