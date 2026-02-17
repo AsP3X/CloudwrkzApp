@@ -31,7 +31,7 @@ struct ArchiveFiltersView: View {
                     .font(.system(size: 22, weight: .bold))
                     .foregroundStyle(CloudwrkzColors.neutral100)
             }
-            Text("Narrow by type, sort order, and when items were archived.")
+            Text("Narrow by search, type, sort order, and when items were archived.")
                 .font(.system(size: 15, weight: .regular))
                 .foregroundStyle(CloudwrkzColors.neutral400)
         }
@@ -53,8 +53,11 @@ struct ArchiveFiltersView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 28) {
                         headerSection
+                        searchSection
                         typeSection
                         sortSection
+                        dateSection
+                        resetSection
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 8)
@@ -102,6 +105,98 @@ struct ArchiveFiltersView: View {
             }
             .padding(20)
             .glassPanel(cornerRadius: 20, tint: CloudwrkzColors.primary500, tintOpacity: 0.04)
+        }
+    }
+
+    private var searchSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionHeader("Search")
+            TextField("Search in titles…", text: $filters.searchQuery)
+                .textFieldStyle(.plain)
+                .font(.system(size: 16, weight: .regular))
+                .foregroundStyle(CloudwrkzColors.neutral100)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(CloudwrkzColors.neutral900.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(CloudwrkzColors.glassStrokeSubtle, lineWidth: 1)
+                )
+                .autocorrectionDisabled()
+            .padding(20)
+            .glassPanel(cornerRadius: 20, tint: CloudwrkzColors.primary500, tintOpacity: 0.04)
+        }
+    }
+
+    private var dateSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionHeader("Archived date range (optional)")
+            VStack(alignment: .leading, spacing: 16) {
+                dateRow(label: "From", date: $filters.archivedFrom)
+                dateRow(label: "To", date: $filters.archivedTo)
+            }
+            .padding(20)
+            .glassPanel(cornerRadius: 20, tint: CloudwrkzColors.primary500, tintOpacity: 0.04)
+        }
+    }
+
+    private var resetSection: some View {
+        Button {
+            filters = ArchiveFilters()
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.counterclockwise")
+                    .font(.system(size: 14))
+                Text("Reset all filters")
+                    .font(.system(size: 15, weight: .semibold))
+            }
+            .foregroundStyle(CloudwrkzColors.neutral400)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .glassButtonSecondary()
+        }
+    }
+
+    private func dateRow(label: String, date: Binding<Date?>) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 12) {
+                Text(label)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(CloudwrkzColors.neutral400)
+                    .frame(width: 50, alignment: .leading)
+                if date.wrappedValue != nil {
+                    DatePicker("", selection: Binding(
+                        get: { date.wrappedValue ?? Date() },
+                        set: { date.wrappedValue = $0 }
+                    ), displayedComponents: .date)
+                    .datePickerStyle(.compact)
+                    .labelsHidden()
+                    .tint(CloudwrkzColors.primary400)
+                    Spacer()
+                    Button("Clear") {
+                        date.wrappedValue = nil
+                    }
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(CloudwrkzColors.primary400)
+                } else {
+                    Text("Not set")
+                        .font(.system(size: 15, weight: .regular))
+                        .foregroundStyle(CloudwrkzColors.neutral500)
+                    Spacer()
+                    Button("Set") {
+                        date.wrappedValue = Date()
+                    }
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(CloudwrkzColors.primary400)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(CloudwrkzColors.neutral900.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(CloudwrkzColors.glassStrokeSubtle, lineWidth: 1)
+            )
         }
     }
 

@@ -31,7 +31,11 @@ struct ArchiveOverviewView: View {
     }
 
     private var hasActiveFilters: Bool {
-        filters.type != .all || filters.sort != .newestArchivedFirst
+        filters.type != .all
+            || filters.sort != .newestArchivedFirst
+            || filters.archivedFrom != nil
+            || filters.archivedTo != nil
+            || !filters.searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private var filteredItems: [ArchiveItem] {
@@ -42,6 +46,13 @@ struct ArchiveOverviewView: View {
         case .todos: list = items.filter { if case .todo = $0 { return true }; return false }
         case .time: list = items.filter { if case .timeEntry = $0 { return true }; return false }
         case .links: list = items.filter { if case .link = $0 { return true }; return false }
+        }
+        let query = filters.searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !query.isEmpty {
+            let lower = query.lowercased()
+            list = list.filter {
+                $0.title.lowercased().contains(lower) || $0.subtitle.lowercased().contains(lower)
+            }
         }
         if let from = filters.archivedFrom {
             list = list.filter { ($0.archivedAt ?? .distantPast) >= from }
@@ -359,14 +370,16 @@ struct ArchiveOverviewView: View {
     }
 
     private var emptyFilteredView: some View {
-        VStack(spacing: 16) {
+        let isSearchOnly = !filters.searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && filters.type == .all && filters.archivedFrom == nil && filters.archivedTo == nil
+        return VStack(spacing: 16) {
             Image(systemName: "archivebox")
                 .font(.system(size: 44))
                 .foregroundStyle(CloudwrkzColors.neutral500)
-            Text("No \(filters.type.rawValue.lowercased()) in archive")
+            Text(isSearchOnly ? "No matches" : "No \(filters.type.rawValue.lowercased()) in archive")
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(CloudwrkzColors.neutral200)
-            Text("Change the filter above or archive items from their lists.")
+            Text(isSearchOnly ? "Try a different search or clear the filter." : "Change the filter above or archive items from their lists.")
                 .font(.system(size: 14, weight: .regular))
                 .foregroundStyle(CloudwrkzColors.neutral500)
                 .multilineTextAlignment(.center)
@@ -398,6 +411,7 @@ struct ArchiveOverviewView: View {
         todoFilters.status = .all
         todoFilters.priority = .all
         todoFilters.archive = .archived
+        todoFilters.includeSubtodos = true // include all archived todos (root + subtodos), matching web
         switch await TodoService.fetchTodos(config: config, filters: todoFilters) {
         case .success(let list): todoItems = list.compactMap { t in t.archivedAt != nil ? ArchiveItem.todo(t) : nil }
         case .failure(let e): if firstError == nil { firstError = messageForTodo(e) }
@@ -413,9 +427,22 @@ struct ArchiveOverviewView: View {
 
         var linkFilters = LinkFilters()
         linkFilters.archived = true
-        switch await LinkService.fetchLinks(config: config, filters: linkFilters, page: 1, limit: 500) {
-        case .success(let response): linkItems = response.links.compactMap { l in l.archivedAt != nil ? ArchiveItem.link(l) : nil }
-        case .failure(let e): if firstError == nil { firstError = messageForLink(e) }
+        // API caps limit at 100 per page; paginate to load all archived links so archive matches web.
+        var linkPage = 1
+        let linkPageSize = 100
+        while true {
+            switch await LinkService.fetchLinks(config: config, filters: linkFilters, page: linkPage, limit: linkPageSize) {
+            case .success(let response):
+                let pageItems = response.links.compactMap { l in l.archivedAt != nil ? ArchiveItem.link(l) : nil }
+                linkItems.append(contentsOf: pageItems)
+                if response.links.count < linkPageSize || linkPage >= response.totalPages {
+                    break
+                }
+                linkPage += 1
+            case .failure(let e):
+                if firstError == nil { firstError = messageForLink(e) }
+                break
+            }
         }
 
         let all = ticketItems + todoItems + timeItems + linkItems

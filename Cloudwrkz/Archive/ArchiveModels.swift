@@ -90,10 +90,12 @@ enum ArchiveSortOption: String, CaseIterable, Identifiable {
     }
 }
 
-/// Archive filter state (type, sort, date range). Used by filter sheet.
+/// Archive filter state (type, sort, date range, search). Used by filter sheet.
 struct ArchiveFilters: Equatable {
     var type: ArchiveTypeFilter = .all
     var sort: ArchiveSortOption = .newestArchivedFirst
     var archivedFrom: Date?
     var archivedTo: Date?
+    /// Search in item title and subtitle (empty = no search).
+    var searchQuery: String = ""
 }

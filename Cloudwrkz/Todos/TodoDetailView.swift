@@ -233,11 +233,8 @@ struct TodoDetailView: View {
     private var subtodosSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             sectionLabel("Subtodos")
-            if activeSubtodos.isEmpty && completedSubtodos.isEmpty {
+            if subtodoListItems.isEmpty {
                 subtodoPlaceholderRow
-                    .padding(.horizontal, 4)
-            } else if activeSubtodos.isEmpty && !completedSubtodos.isEmpty {
-                subtodoEmptyActiveRow
                     .padding(.horizontal, 4)
             } else {
                 List {
@@ -298,14 +295,15 @@ struct TodoDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    /// Row height must match actual row content: icon 28pt + padding(.vertical, 10) + title (up to 2 lines) + subtitle.
     private var listMinHeight: CGFloat {
-        let rowH: CGFloat = 56
-        let headerRowH: CGFloat = 32
+        let rowH: CGFloat = 76
+        let headerRowH: CGFloat = 40
         var h = CGFloat(activeSubtodos.count) * rowH
         if !completedSubtodos.isEmpty {
             h += headerRowH + CGFloat(completedSubtodos.count) * rowH
         }
-        return max(h, 60)
+        return max(h, 80)
     }
 
     private var subtodoEmptyActiveRow: some View {
