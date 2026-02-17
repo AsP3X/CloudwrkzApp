@@ -26,11 +26,11 @@ struct TicketFiltersView: View {
                 Image(systemName: "line.3.horizontal.decrease.circle.fill")
                     .font(.system(size: 28))
                     .foregroundStyle(CloudwrkzColors.primary400)
-                Text("Filter tickets")
+                Text("filter_tickets.title")
                     .font(.system(size: 22, weight: .bold))
                     .foregroundStyle(CloudwrkzColors.neutral100)
             }
-            Text("Narrow the list by status, sort order, and date range.")
+            Text("filter_tickets.subtitle")
                 .font(.system(size: 15, weight: .regular))
                 .foregroundStyle(CloudwrkzColors.neutral400)
         }
@@ -65,7 +65,7 @@ struct TicketFiltersView: View {
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
+                    Button("common.done") {
                         dismiss()
                     }
                     .font(.system(size: 17, weight: .semibold))
@@ -77,7 +77,7 @@ struct TicketFiltersView: View {
 
     private var statusSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("Status")
+            sectionHeader(String(localized: "common.status"))
             VStack(spacing: 10) {
                 ForEach(TicketFilters.TicketStatusFilter.allCases) { option in
                     filterRow(
@@ -95,7 +95,7 @@ struct TicketFiltersView: View {
 
     private var sortSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("Sort by")
+            sectionHeader(String(localized: "filter_todos.sort_by"))
             VStack(spacing: 10) {
                 ForEach(TicketFilters.TicketSortOption.allCases) { option in
                     filterRow(
@@ -113,12 +113,12 @@ struct TicketFiltersView: View {
 
     private var dateSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("Date range (optional)")
+            sectionHeader(String(localized: "filter_tickets.date_range"))
             VStack(alignment: .leading, spacing: 16) {
-                dateRow(label: "Created from", date: $filters.createdFrom)
-                dateRow(label: "Created to", date: $filters.createdTo)
-                dateRow(label: "Updated from", date: $filters.updatedFrom)
-                dateRow(label: "Updated to", date: $filters.updatedTo)
+                dateRow(label: String(localized: "filter_tickets.created_from"), date: $filters.createdFrom)
+                dateRow(label: String(localized: "filter_tickets.created_to"), date: $filters.createdTo)
+                dateRow(label: String(localized: "filter_tickets.updated_from"), date: $filters.updatedFrom)
+                dateRow(label: String(localized: "filter_tickets.updated_to"), date: $filters.updatedTo)
             }
             .padding(20)
             .glassPanel(cornerRadius: 20, tint: CloudwrkzColors.primary500, tintOpacity: 0.04)
@@ -166,17 +166,17 @@ struct TicketFiltersView: View {
                     .font(.system(size: 15, weight: .regular))
                     .foregroundStyle(CloudwrkzColors.neutral100)
                 Spacer()
-                Button("Clear") {
+                Button("filter_tickets.clear") {
                     date.wrappedValue = nil
                 }
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(CloudwrkzColors.primary400)
             } else {
-                Text("Not set")
+                Text("filter_tickets.not_set")
                     .font(.system(size: 15, weight: .regular))
                     .foregroundStyle(CloudwrkzColors.neutral500)
                 Spacer()
-                Button("Set") {
+                Button("filter_tickets.set") {
                     date.wrappedValue = Date()
                 }
                 .font(.system(size: 13, weight: .medium))

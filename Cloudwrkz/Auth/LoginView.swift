@@ -45,7 +45,7 @@ struct LoginView: View {
                 Spacer(minLength: 0)
 
                 VStack(spacing: 24) {
-                    Text("Sign in")
+                    Text("auth.sign_in")
                         .font(.system(size: 28, weight: .bold))
                         .foregroundStyle(CloudwrkzColors.textOnGradient)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -63,7 +63,7 @@ struct LoginView: View {
                             if isLoading {
                                 CloudwrkzSpinner(tint: .white)
                             } else {
-                                Text("Sign in")
+                                Text("auth.sign_in")
                                     .font(.system(size: 17, weight: .semibold))
                                     .foregroundStyle(CloudwrkzColors.textOnGradient)
                             }
@@ -85,11 +85,11 @@ struct LoginView: View {
     private var formFields: some View {
         VStack(spacing: 18) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("EMAIL")
+                Text("auth.email_label")
                     .font(.system(size: 11, weight: .semibold))
                     .tracking(0.6)
                     .foregroundStyle(CloudwrkzColors.neutral400)
-                TextField("you@company.com", text: $email)
+                TextField("auth.email_placeholder", text: $email)
                     .textContentType(.emailAddress)
                     .keyboardType(.emailAddress)
                     .autocapitalization(.none)
@@ -102,11 +102,11 @@ struct LoginView: View {
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("PASSWORD")
+                Text("auth.password_label")
                     .font(.system(size: 11, weight: .semibold))
                     .tracking(0.6)
                     .foregroundStyle(CloudwrkzColors.neutral400)
-                SecureField("Enter your password", text: $password)
+                SecureField("auth.password_placeholder", text: $password)
                     .textContentType(.password)
                     .focused($focusedField, equals: .password)
                     .foregroundStyle(CloudwrkzColors.neutral100)
@@ -140,11 +140,11 @@ struct LoginView: View {
         errorMessage = nil
         focusedField = nil
         if email.isEmpty || password.isEmpty {
-            errorMessage = "Please enter email and password."
+            errorMessage = String(localized: "auth.please_enter_email_password")
             return
         }
         if appState.config.baseURL == nil {
-            errorMessage = "Configure server in settings."
+            errorMessage = String(localized: "auth.configure_server")
             return
         }
         isLoading = true
@@ -174,13 +174,13 @@ struct LoginView: View {
     private func message(for failure: AuthLoginFailure) -> String {
         switch failure {
         case .noServerURL:
-            return "Configure server in settings."
+            return String(localized: "auth.configure_server")
         case .invalidCredentials:
-            return "Invalid email or password."
+            return String(localized: "auth.invalid_credentials")
         case .serverError(let message):
             return message
         case .networkError:
-            return "Could not reach server."
+            return String(localized: "auth.could_not_reach_server")
         }
     }
 }

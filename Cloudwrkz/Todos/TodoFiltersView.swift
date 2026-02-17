@@ -26,11 +26,11 @@ struct TodoFiltersView: View {
                 Image(systemName: "line.3.horizontal.decrease.circle.fill")
                     .font(.system(size: 28))
                     .foregroundStyle(CloudwrkzColors.primary400)
-                Text("Filter todos")
+                Text("filter_todos.title")
                     .font(.system(size: 22, weight: .bold))
                     .foregroundStyle(CloudwrkzColors.neutral100)
             }
-            Text("Narrow the list by scope, status, priority, sort, and archive.")
+            Text("filter_todos.subtitle")
                 .font(.system(size: 15, weight: .regular))
                 .foregroundStyle(CloudwrkzColors.neutral400)
         }
@@ -67,7 +67,7 @@ struct TodoFiltersView: View {
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
+                    Button("common.done") {
                         dismiss()
                     }
                     .font(.system(size: 17, weight: .semibold))
@@ -79,16 +79,16 @@ struct TodoFiltersView: View {
 
     private var scopeSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("Scope")
+            sectionHeader(String(localized: "filter_todos.scope"))
             VStack(spacing: 10) {
                 filterRow(
-                    title: "Top-level only",
+                    title: String(localized: "filter_todos.top_level_only"),
                     isSelected: !filters.includeSubtodos
                 ) {
                     filters.includeSubtodos = false
                 }
                 filterRow(
-                    title: "Include subtodos",
+                    title: String(localized: "filter_todos.include_subtodos"),
                     isSelected: filters.includeSubtodos
                 ) {
                     filters.includeSubtodos = true
@@ -101,7 +101,7 @@ struct TodoFiltersView: View {
 
     private var statusSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("Status")
+            sectionHeader(String(localized: "common.status"))
             VStack(spacing: 10) {
                 ForEach(TodoFilters.TodoStatusFilter.allCases) { option in
                     filterRow(
@@ -119,7 +119,7 @@ struct TodoFiltersView: View {
 
     private var prioritySection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("Priority")
+            sectionHeader(String(localized: "common.priority"))
             VStack(spacing: 10) {
                 ForEach(TodoFilters.TodoPriorityFilter.allCases) { option in
                     filterRow(
@@ -137,7 +137,7 @@ struct TodoFiltersView: View {
 
     private var sortSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("Sort by")
+            sectionHeader(String(localized: "filter_todos.sort_by"))
             VStack(spacing: 10) {
                 ForEach(TodoFilters.TodoSortOption.allCases) { option in
                     filterRow(
@@ -155,7 +155,7 @@ struct TodoFiltersView: View {
 
     private var archiveSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("Show")
+            sectionHeader(String(localized: "filter_todos.show"))
             VStack(spacing: 10) {
                 ForEach(TodoFilters.TodoArchiveFilter.allCases) { option in
                     filterRow(

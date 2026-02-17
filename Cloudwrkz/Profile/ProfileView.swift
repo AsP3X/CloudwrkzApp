@@ -30,7 +30,7 @@ struct ProfileView: View {
         }
         let trimmed = username?.trimmingCharacters(in: .whitespaces) ?? ""
         if !trimmed.isEmpty { return trimmed }
-        return "Profile"
+        return String(localized: "profile.title")
     }
 
     private static let memberSinceFormatter: DateFormatter = {
@@ -68,11 +68,11 @@ struct ProfileView: View {
                 }
                 .scrollContentBackground(.hidden)
             }
-            .navigationTitle("Profile")
+            .navigationTitle("profile.title")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
+                    Button("common.done") {
                         dismiss()
                     }
                     .foregroundStyle(CloudwrkzColors.primary400)
@@ -125,13 +125,13 @@ struct ProfileView: View {
             }
 
             if let first = UserProfileStorage.firstLoginAt {
-                Text("Member since \(Self.memberSinceFormatter.string(from: first))")
+                Text(String(format: String(localized: "profile.member_since"), Self.memberSinceFormatter.string(from: first)))
                     .font(.system(size: 12, weight: .regular))
                     .foregroundStyle(CloudwrkzColors.neutral500)
             }
 
             if let last = UserProfileStorage.lastSignedInAt {
-                Text("Last signed in \(Self.lastSignedInString(from: last))")
+                Text(String(format: String(localized: "profile.last_signed_in"), Self.lastSignedInString(from: last)))
                     .font(.system(size: 12, weight: .regular))
                     .foregroundStyle(CloudwrkzColors.neutral500)
             }
@@ -145,7 +145,7 @@ struct ProfileView: View {
 
     private var accountSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("ACCOUNT")
+            Text("profile.account")
                 .font(.system(size: 11, weight: .bold))
                 .tracking(0.8)
                 .foregroundStyle(CloudwrkzColors.neutral500)
@@ -153,8 +153,8 @@ struct ProfileView: View {
 
             ProfileGlassRowButton(
                 icon: "pencil.circle.fill",
-                title: "Edit profile",
-                subtitle: "Name and photo",
+                title: String(localized: "profile.edit_profile"),
+                subtitle: String(localized: "profile.edit_profile_subtitle"),
                 isDestructive: false
             ) {
                 showEditSheet = true
@@ -164,8 +164,8 @@ struct ProfileView: View {
 
             ProfileGlassRowButton(
                 icon: "gearshape.fill",
-                title: "Account settings",
-                subtitle: "Preferences and security",
+                title: String(localized: "profile.account_settings"),
+                subtitle: String(localized: "profile.account_settings_subtitle"),
                 isDestructive: false
             ) {
                 showAccountSettings = true
@@ -175,8 +175,8 @@ struct ProfileView: View {
 
             ProfileGlassRowButton(
                 icon: "bell.fill",
-                title: "Notifications",
-                subtitle: "Alerts and preferences",
+                title: String(localized: "profile.notifications"),
+                subtitle: String(localized: "profile.notifications_subtitle"),
                 isDestructive: false
             ) {
                 // Placeholder: future NotificationSettingsView
@@ -184,8 +184,8 @@ struct ProfileView: View {
 
             ProfileGlassRowButton(
                 icon: "questionmark.circle.fill",
-                title: "Help",
-                subtitle: "Support and documentation",
+                title: String(localized: "profile.help"),
+                subtitle: String(localized: "profile.help_subtitle"),
                 isDestructive: false
             ) {
                 // Placeholder: open help URL
@@ -197,7 +197,7 @@ struct ProfileView: View {
 
     private var sessionSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("SESSION")
+            Text("profile.session")
                 .font(.system(size: 11, weight: .bold))
                 .tracking(0.8)
                 .foregroundStyle(CloudwrkzColors.neutral500)
@@ -205,8 +205,8 @@ struct ProfileView: View {
 
             ProfileGlassRowButton(
                 icon: "rectangle.portrait.and.arrow.right",
-                title: "Log out",
-                subtitle: "Sign out of your account",
+                title: String(localized: "profile.log_out"),
+                subtitle: String(localized: "profile.log_out_subtitle"),
                 isDestructive: true
             ) {
                 dismiss()
@@ -220,7 +220,7 @@ struct ProfileView: View {
     // MARK: - App version
 
     private var versionSection: some View {
-        Text("Cloudwrkz \(appVersion)")
+        Text(String(format: String(localized: "profile.app_version"), appVersion))
             .font(.system(size: 12, weight: .regular))
             .foregroundStyle(CloudwrkzColors.neutral500)
             .frame(maxWidth: .infinity)

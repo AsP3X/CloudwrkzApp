@@ -63,7 +63,7 @@ struct DashboardSearchView: View {
             Button {
                 onDismiss()
             } label: {
-                Text("Cancel")
+                Text("common.cancel")
                     .font(.system(size: 17, weight: .medium))
                     .foregroundStyle(CloudwrkzColors.primary400)
             }
@@ -71,11 +71,11 @@ struct DashboardSearchView: View {
             Spacer(minLength: 0)
 
             VStack(spacing: 2) {
-                Text("Search")
+                Text("search.title")
                     .font(.system(size: 20, weight: .bold))
                     .tracking(-0.3)
                     .foregroundStyle(CloudwrkzColors.neutral100)
-                Text("Tickets, tasks, people & more")
+                Text("search.subtitle")
                     .font(.system(size: 12, weight: .regular))
                     .foregroundStyle(CloudwrkzColors.neutral500)
             }
@@ -96,7 +96,7 @@ struct DashboardSearchView: View {
                 .font(.system(size: 18, weight: .medium))
                 .foregroundStyle(CloudwrkzColors.neutral500)
 
-            TextField("", text: $query, prompt: Text("Search…").foregroundStyle(CloudwrkzColors.neutral500))
+            TextField("", text: $query, prompt: Text("search.placeholder").foregroundStyle(CloudwrkzColors.neutral500))
                 .font(.system(size: 17, weight: .regular))
                 .foregroundStyle(CloudwrkzColors.neutral100)
                 .focused($isFieldFocused)
@@ -171,7 +171,7 @@ struct DashboardSearchView: View {
             Spacer()
 CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
             .scaleEffect(1.2)
-            Text("Searching…")
+            Text("search.searching")
                 .font(.system(size: 15, weight: .medium))
                 .foregroundStyle(CloudwrkzColors.neutral500)
             Spacer()
@@ -201,7 +201,7 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
                         Spacer()
                         CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
                             .scaleEffect(0.8)
-                        Text("Loading more…")
+                        Text("search.loading_more")
                             .font(.system(size: 13, weight: .medium))
                             .foregroundStyle(CloudwrkzColors.neutral500)
                         Spacer()

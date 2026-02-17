@@ -47,7 +47,7 @@ struct RegisterView: View {
                 Spacer(minLength: 0)
 
                 VStack(spacing: 24) {
-                    Text("Create account")
+                    Text("splash.create_account")
                         .font(.system(size: 28, weight: .bold))
                         .foregroundStyle(CloudwrkzColors.textOnGradient)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -64,7 +64,7 @@ struct RegisterView: View {
                             if isLoading {
                                 CloudwrkzSpinner(tint: .white)
                             } else {
-                                Text("Create account")
+                                Text("splash.create_account")
                                     .font(.system(size: 17, weight: .semibold))
                                     .foregroundStyle(CloudwrkzColors.textOnGradient)
                             }
@@ -93,11 +93,11 @@ struct RegisterView: View {
     private var formFields: some View {
         VStack(spacing: 18) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("NAME")
+                Text("register.name_label")
                     .font(.system(size: 11, weight: .semibold))
                     .tracking(0.6)
                     .foregroundStyle(CloudwrkzColors.neutral400)
-                TextField("Your name", text: $name)
+                TextField("register.name_placeholder", text: $name)
                     .textContentType(.name)
                     .autocapitalization(.words)
                     .focused($focusedField, equals: .name)
@@ -108,11 +108,11 @@ struct RegisterView: View {
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("EMAIL")
+                Text("auth.email_label")
                     .font(.system(size: 11, weight: .semibold))
                     .tracking(0.6)
                     .foregroundStyle(CloudwrkzColors.neutral400)
-                TextField("you@company.com", text: $email)
+                TextField("auth.email_placeholder", text: $email)
                     .textContentType(.emailAddress)
                     .keyboardType(.emailAddress)
                     .autocapitalization(.none)
@@ -125,11 +125,11 @@ struct RegisterView: View {
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("PASSWORD")
+                Text("auth.password_label")
                     .font(.system(size: 11, weight: .semibold))
                     .tracking(0.6)
                     .foregroundStyle(CloudwrkzColors.neutral400)
-                SecureField("Choose a password", text: $password)
+                SecureField("register.choose_password_placeholder", text: $password)
                     .textContentType(.newPassword)
                     .focused($focusedField, equals: .password)
                     .foregroundStyle(CloudwrkzColors.neutral100)
@@ -139,11 +139,11 @@ struct RegisterView: View {
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("CONFIRM PASSWORD")
+                Text("register.confirm_password_label")
                     .font(.system(size: 11, weight: .semibold))
                     .tracking(0.6)
                     .foregroundStyle(CloudwrkzColors.neutral400)
-                SecureField("Confirm your password", text: $confirmPassword)
+                SecureField("register.confirm_password_placeholder", text: $confirmPassword)
                     .textContentType(.newPassword)
                     .focused($focusedField, equals: .confirmPassword)
                     .foregroundStyle(CloudwrkzColors.neutral100)
@@ -179,32 +179,32 @@ struct RegisterView: View {
 
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmedName.isEmpty {
-            errorMessage = "Please enter your name."
+            errorMessage = String(localized: "register.please_enter_name")
             return
         }
         if trimmedName.count < 2 {
-            errorMessage = "Name must be at least 2 characters."
+            errorMessage = String(localized: "register.name_min_length")
             return
         }
         if email.isEmpty {
-            errorMessage = "Please enter your email."
+            errorMessage = String(localized: "register.please_enter_email")
             return
         }
         if password.isEmpty {
-            errorMessage = "Please choose a password."
+            errorMessage = String(localized: "register.please_choose_password")
             return
         }
         if password != confirmPassword {
-            errorMessage = "Passwords do not match."
+            errorMessage = String(localized: "register.passwords_do_not_match")
             return
         }
         if password.count < 8 {
-            errorMessage = "Password must be at least 8 characters."
+            errorMessage = String(localized: "register.password_min_length")
             return
         }
 
         if appState.config.baseURL == nil {
-            errorMessage = "Configure server in settings."
+            errorMessage = String(localized: "auth.configure_server")
             return
         }
 
@@ -234,11 +234,11 @@ struct RegisterView: View {
     private func message(for failure: AuthRegisterFailure) -> String {
         switch failure {
         case .noServerURL:
-            return "Configure server in settings."
+            return String(localized: "auth.configure_server")
         case .serverError(let message):
             return message
         case .networkError:
-            return "Could not reach server."
+            return String(localized: "auth.could_not_reach_server")
         }
     }
 }

@@ -12,6 +12,7 @@ struct AccountSettingsStorage {
     private static let emailDigestKey = "cloudwrkz.account.emailDigest"
     private static let appearanceKey = "cloudwrkz.account.appearance"
     private static let biometricLockKey = "cloudwrkz.account.biometricLock"
+    private static let displayLanguageKey = "cloudwrkz.account.displayLanguage"
 
     /// Master switch for push notifications.
     static var notificationsEnabled: Bool {
@@ -42,11 +43,19 @@ struct AccountSettingsStorage {
         set { UserDefaults.standard.set(newValue, forKey: biometricLockKey) }
     }
 
+    /// Display language: "system" (follow device), or a locale identifier e.g. "en", "de".
+    /// Applied at app launch via AppleLanguages; change takes effect after restart.
+    static var displayLanguage: String {
+        get { UserDefaults.standard.string(forKey: displayLanguageKey) ?? "system" }
+        set { UserDefaults.standard.set(newValue, forKey: displayLanguageKey) }
+    }
+
     /// Clears all account settings on logout so the next user gets defaults.
     static func clear() {
         UserDefaults.standard.removeObject(forKey: notificationsEnabledKey)
         UserDefaults.standard.removeObject(forKey: emailDigestKey)
         UserDefaults.standard.removeObject(forKey: appearanceKey)
         UserDefaults.standard.removeObject(forKey: biometricLockKey)
+        UserDefaults.standard.removeObject(forKey: displayLanguageKey)
     }
 }

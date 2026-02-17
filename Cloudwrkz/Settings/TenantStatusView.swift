@@ -62,10 +62,10 @@ CloudwrkzSpinner(tint: CloudwrkzColors.neutral400)
 
     private var statusLabel: String {
         switch result {
-        case .checking: return "Checking…"
-        case .healthy: return "Healthy"
-        case .degraded: return "Degraded"
-        case .unreachable: return "Unreachable"
+        case .checking: return String(localized: "tenant_status.checking")
+        case .healthy: return String(localized: "tenant_status.healthy")
+        case .degraded: return String(localized: "tenant_status.degraded")
+        case .unreachable: return String(localized: "tenant_status.unreachable")
         }
     }
 

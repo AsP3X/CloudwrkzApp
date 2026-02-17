@@ -121,12 +121,12 @@ struct TodoFilters: Equatable {
 
         var displayName: String {
             switch self {
-            case .all: return "All statuses"
-            case .notStarted: return "Not started"
-            case .inProgress: return "In progress"
-            case .blocked: return "Blocked"
-            case .completed: return "Completed"
-            case .cancelled: return "Cancelled"
+            case .all: return String(localized: "filter_status.all_statuses")
+            case .notStarted: return String(localized: "filter_status.not_started")
+            case .inProgress: return String(localized: "filter_status.in_progress")
+            case .blocked: return String(localized: "filter_status.blocked")
+            case .completed: return String(localized: "filter_status.completed")
+            case .cancelled: return String(localized: "filter_status.cancelled")
             }
         }
     }
@@ -142,11 +142,11 @@ struct TodoFilters: Equatable {
 
         var displayName: String {
             switch self {
-            case .all: return "All priorities"
-            case .low: return "Low"
-            case .medium: return "Medium"
-            case .high: return "High"
-            case .urgent: return "Urgent"
+            case .all: return String(localized: "filter_priority.all_priorities")
+            case .low: return String(localized: "filter_priority.low")
+            case .medium: return String(localized: "filter_priority.medium")
+            case .high: return String(localized: "filter_priority.high")
+            case .urgent: return String(localized: "filter_priority.urgent")
             }
         }
     }
@@ -161,10 +161,10 @@ struct TodoFilters: Equatable {
 
         var displayName: String {
             switch self {
-            case .newestFirst: return "Newest first"
-            case .oldestFirst: return "Oldest first"
-            case .dueDateAsc: return "Due date (earliest)"
-            case .dueDateDesc: return "Due date (latest)"
+            case .newestFirst: return String(localized: "filter_sort.newest_first")
+            case .oldestFirst: return String(localized: "filter_sort.oldest_first")
+            case .dueDateAsc: return String(localized: "filter_sort.due_earliest")
+            case .dueDateDesc: return String(localized: "filter_sort.due_latest")
             }
         }
     }
@@ -177,8 +177,8 @@ struct TodoFilters: Equatable {
 
         var displayName: String {
             switch self {
-            case .unarchived: return "Active"
-            case .archived: return "Archived"
+            case .unarchived: return String(localized: "filter_archive.active")
+            case .archived: return String(localized: "filter_archive.archived")
             }
         }
     }

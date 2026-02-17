@@ -79,7 +79,7 @@ struct TicketDetailView: View {
                 .font(.system(size: 24, weight: .bold))
                 .foregroundStyle(CloudwrkzColors.neutral100)
                 .fixedSize(horizontal: false, vertical: true)
-            Text("Created \(Self.dateFormatter.string(from: ticket.createdAt))")
+            Text(String(format: String(localized: "common.created_date"), Self.dateFormatter.string(from: ticket.createdAt)))
                 .font(.system(size: 13, weight: .regular))
                 .foregroundStyle(CloudwrkzColors.neutral400)
         }
@@ -105,7 +105,7 @@ struct TicketDetailView: View {
                 Image(systemName: "doc.text.fill")
                     .font(.system(size: 16))
                     .foregroundStyle(CloudwrkzColors.primary400)
-                Text("Description")
+                Text("common.description")
                     .font(.system(size: 18, weight: .bold))
                     .foregroundStyle(CloudwrkzColors.neutral100)
             }
@@ -116,7 +116,7 @@ struct TicketDetailView: View {
                     .lineSpacing(6)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
-                Text("No description provided.")
+                Text("common.no_description")
                     .font(.system(size: 15, weight: .regular))
                     .foregroundStyle(CloudwrkzColors.neutral500)
                     .italic()
@@ -134,10 +134,10 @@ struct TicketDetailView: View {
                 .font(.system(size: 20))
                 .foregroundStyle(CloudwrkzColors.primary400.opacity(0.8))
             VStack(alignment: .leading, spacing: 4) {
-                Text("Comments & activity")
+                Text("common.comments_activity")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(CloudwrkzColors.neutral100)
-                Text("View and add comments in the web app.")
+                Text("common.view_comments_web")
                     .font(.system(size: 13, weight: .regular))
                     .foregroundStyle(CloudwrkzColors.neutral500)
             }
@@ -207,7 +207,7 @@ struct TicketDetailView: View {
             return String(assignee.email.prefix(upTo: assignee.email.firstIndex(of: "@") ?? assignee.email.endIndex))
         }
         if let group = ticket.assignedToGroup { return group.name }
-        return "Unassigned"
+        return String(localized: "todo.unassigned")
     }
 }
 
@@ -240,12 +240,12 @@ private struct TicketInfoSidebarView: View {
                 }
                 .scrollContentBackground(.hidden)
             }
-            .navigationTitle("Ticket information")
+            .navigationTitle("common.ticket_info")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
+                    Button("common.done") {
                         dismiss()
                     }
                     .font(.system(size: 16, weight: .semibold))
@@ -262,23 +262,23 @@ private struct TicketInfoSidebarView: View {
                 Image(systemName: "info.circle.fill")
                     .font(.system(size: 16))
                     .foregroundStyle(CloudwrkzColors.primary400)
-                Text("Ticket information")
+                Text("common.ticket_info")
                     .font(.system(size: 17, weight: .bold))
                     .foregroundStyle(CloudwrkzColors.neutral100)
             }
             VStack(alignment: .leading, spacing: 14) {
-                infoRow(label: "Ticket ID", value: ticket.ticketNumber, mono: true)
-                infoRow(label: "Type", value: ticket.type)
+                infoRow(label: String(localized: "common.ticket_id"), value: ticket.ticketNumber, mono: true)
+                infoRow(label: String(localized: "common.type"), value: ticket.type)
                 sidebarDivider
-                infoRow(label: "Status", value: ticket.status.replacingOccurrences(of: "_", with: " "))
-                infoRow(label: "Priority", value: ticket.priority)
+                infoRow(label: String(localized: "common.status"), value: ticket.status.replacingOccurrences(of: "_", with: " "))
+                infoRow(label: String(localized: "common.priority"), value: ticket.priority)
                 sidebarDivider
-                infoRow(label: "Created by", value: formatCreatedBy())
-                infoRow(label: "Assigned to", value: formatAssignedTo())
+                infoRow(label: String(localized: "common.created_by"), value: formatCreatedBy())
+                infoRow(label: String(localized: "common.assigned_to"), value: formatAssignedTo())
                 sidebarDivider
-                infoRow(label: "Created", value: Self.dateFormatter.string(from: ticket.createdAt))
+                infoRow(label: String(localized: "todo.created"), value: Self.dateFormatter.string(from: ticket.createdAt))
                 if ticket.updatedAt != ticket.createdAt {
-                    infoRow(label: "Last updated", value: Self.dateFormatter.string(from: ticket.updatedAt))
+                    infoRow(label: String(localized: "common.last_updated"), value: Self.dateFormatter.string(from: ticket.updatedAt))
                 }
                 if (ticket._count?.comments ?? 0) > 0 {
                     sidebarDivider
@@ -286,7 +286,7 @@ private struct TicketInfoSidebarView: View {
                         Image(systemName: "bubble.left.and.bubble.right")
                             .font(.system(size: 12))
                             .foregroundStyle(CloudwrkzColors.neutral400)
-                        Text("\(ticket._count!.comments) comment\(ticket._count!.comments == 1 ? "" : "s")")
+                        Text((ticket._count?.comments ?? 0) == 1 ? String(format: String(localized: "common.comment_count"), ticket._count?.comments ?? 0) : String(format: String(localized: "common.comments_count"), ticket._count?.comments ?? 0))
                             .font(.system(size: 13, weight: .medium))
                             .foregroundStyle(CloudwrkzColors.neutral200)
                     }
@@ -329,7 +329,7 @@ private struct TicketInfoSidebarView: View {
             return String(assignee.email.prefix(upTo: assignee.email.firstIndex(of: "@") ?? assignee.email.endIndex))
         }
         if let group = ticket.assignedToGroup { return group.name }
-        return "Unassigned"
+        return String(localized: "todo.unassigned")
     }
 }
 

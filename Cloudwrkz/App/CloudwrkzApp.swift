@@ -12,6 +12,19 @@ struct CloudwrkzApp: App {
     @AppStorage("cloudwrkz.account.appearance") private var appearance: String = "system"
     @State private var appState = AppState()
 
+    init() {
+        applyDisplayLanguage()
+    }
+
+    private func applyDisplayLanguage() {
+        let preferred = AccountSettingsStorage.displayLanguage
+        if preferred == "system" || preferred.isEmpty {
+            UserDefaults.standard.removeObject(forKey: "AppleLanguages")
+        } else {
+            UserDefaults.standard.set([preferred], forKey: "AppleLanguages")
+        }
+    }
+
     private var resolvedColorScheme: ColorScheme? {
         switch appearance {
         case "light": return .light

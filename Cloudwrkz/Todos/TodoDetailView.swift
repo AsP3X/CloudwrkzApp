@@ -140,7 +140,7 @@ struct TodoDetailView: View {
                 .font(.system(size: 24, weight: .bold))
                 .foregroundStyle(CloudwrkzColors.neutral100)
                 .fixedSize(horizontal: false, vertical: true)
-            Text("Created \(Self.dateFormatter.string(from: todo.createdAt))")
+            Text(String(format: String(localized: "common.created_date"), Self.dateFormatter.string(from: todo.createdAt)))
                 .font(.system(size: 13, weight: .regular))
                 .foregroundStyle(CloudwrkzColors.neutral400)
         }
@@ -183,7 +183,7 @@ struct TodoDetailView: View {
                 Image(systemName: "doc.text.fill")
                     .font(.system(size: 16))
                     .foregroundStyle(CloudwrkzColors.primary400)
-                Text("Description")
+                Text("common.description")
                     .font(.system(size: 18, weight: .bold))
                     .foregroundStyle(CloudwrkzColors.neutral100)
             }
@@ -194,7 +194,7 @@ struct TodoDetailView: View {
                     .lineSpacing(6)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
-                Text("No description provided.")
+                Text("common.no_description")
                     .font(.system(size: 15, weight: .regular))
                     .foregroundStyle(CloudwrkzColors.neutral500)
                     .italic()
@@ -214,7 +214,7 @@ struct TodoDetailView: View {
                         .font(.system(size: 20))
                         .foregroundStyle(CloudwrkzColors.primary400.opacity(0.8))
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Linked ticket")
+                        Text("common.linked_ticket")
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundStyle(CloudwrkzColors.neutral100)
                         Text("\(ticket.ticketNumber) – \(ticket.title)")
@@ -233,7 +233,7 @@ struct TodoDetailView: View {
 
     private var subtodosSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            sectionLabel("Subtodos")
+            sectionLabel(String(localized: "common.subtodos"))
             if subtodoListItems.isEmpty {
                 subtodoPlaceholderRow
                     .padding(.horizontal, 4)
@@ -242,7 +242,7 @@ struct TodoDetailView: View {
                     ForEach(subtodoListItems) { item in
                         switch item {
                         case .completedHeader:
-                            Text("COMPLETED")
+                            Text("todo.completed_header")
                                 .font(.system(size: 11, weight: .bold))
                                 .tracking(0.8)
                                 .foregroundStyle(CloudwrkzColors.neutral500)
@@ -313,7 +313,7 @@ struct TodoDetailView: View {
                 .font(.system(size: 20))
                 .foregroundStyle(CloudwrkzColors.neutral500)
                 .frame(width: 28, height: 28)
-            Text("No active subtodos")
+            Text("common.no_active_subtodos")
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(CloudwrkzColors.neutral400)
             Spacer()
@@ -428,10 +428,10 @@ struct TodoDetailView: View {
                 .foregroundStyle(CloudwrkzColors.neutral500)
                 .frame(width: 28, height: 28)
             VStack(alignment: .leading, spacing: 2) {
-                Text("No subtodos")
+                Text("common.no_subtodos")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(CloudwrkzColors.neutral100)
-                Text("Tap + to add one")
+                Text("common.tap_plus_to_add")
                     .font(.system(size: 12, weight: .regular))
                     .foregroundStyle(CloudwrkzColors.neutral500)
             }
@@ -517,12 +517,12 @@ private struct TodoInfoSidebarView: View {
                 }
                 .scrollContentBackground(.hidden)
             }
-            .navigationTitle("Todo information")
+            .navigationTitle("common.todo_info")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
+                    Button("common.done") {
                         dismiss()
                     }
                     .font(.system(size: 16, weight: .semibold))
@@ -554,29 +554,29 @@ private struct TodoInfoSidebarView: View {
                 Image(systemName: "info.circle.fill")
                     .font(.system(size: 16))
                     .foregroundStyle(CloudwrkzColors.primary400)
-                Text("Todo information")
+                Text("common.todo_info")
                     .font(.system(size: 17, weight: .bold))
                     .foregroundStyle(CloudwrkzColors.neutral100)
             }
             VStack(alignment: .leading, spacing: 14) {
                 if let num = todo.todoNumber {
-                    infoRow(label: "Todo ID", value: num, mono: true)
+                    infoRow(label: String(localized: "common.todo_id"), value: num, mono: true)
                 }
-                infoRow(label: "Status", value: todo.status.replacingOccurrences(of: "_", with: " "))
-                infoRow(label: "Priority", value: todo.priority)
+                infoRow(label: String(localized: "common.status"), value: todo.status.replacingOccurrences(of: "_", with: " "))
+                infoRow(label: String(localized: "common.priority"), value: todo.priority)
                 sidebarDivider
-                infoRow(label: "Assigned to", value: formatAssignedTo())
+                infoRow(label: String(localized: "common.assigned_to"), value: formatAssignedTo())
                 sidebarDivider
-                infoRow(label: "Created", value: Self.dateFormatter.string(from: todo.createdAt))
+                infoRow(label: String(localized: "todo.created"), value: Self.dateFormatter.string(from: todo.createdAt))
                 if todo.updatedAt != todo.createdAt {
-                    infoRow(label: "Last updated", value: Self.dateFormatter.string(from: todo.updatedAt))
+                    infoRow(label: String(localized: "common.last_updated"), value: Self.dateFormatter.string(from: todo.updatedAt))
                 }
                 if let due = todo.dueDate {
                     sidebarDivider
-                    infoRow(label: "Due date", value: Self.dateFormatter.string(from: due))
+                    infoRow(label: String(localized: "common.due_date"), value: Self.dateFormatter.string(from: due))
                 }
                 if let completed = todo.completedDate {
-                    infoRow(label: "Completed", value: Self.dateFormatter.string(from: completed))
+                    infoRow(label: String(localized: "common.completed"), value: Self.dateFormatter.string(from: completed))
                 }
                 if (todo._count?.subtodos ?? 0) > 0 {
                     sidebarDivider
@@ -584,14 +584,14 @@ private struct TodoInfoSidebarView: View {
                         Image(systemName: "list.bullet.indent")
                             .font(.system(size: 12))
                             .foregroundStyle(CloudwrkzColors.neutral400)
-                        Text("\(todo._count!.subtodos) subtodo\(todo._count!.subtodos == 1 ? "" : "s")")
+                        Text((todo._count?.subtodos ?? 0) == 1 ? String(format: String(localized: "common.subtodo_count"), todo._count?.subtodos ?? 0) : String(format: String(localized: "common.subtodos_count"), todo._count?.subtodos ?? 0))
                             .font(.system(size: 13, weight: .medium))
                             .foregroundStyle(CloudwrkzColors.neutral200)
                     }
                 }
                 if todo.ticket != nil {
                     sidebarDivider
-                    infoRow(label: "Linked ticket", value: todo.ticket!.ticketNumber)
+                    infoRow(label: String(localized: "common.linked_ticket"), value: todo.ticket!.ticketNumber)
                 }
             }
         }
@@ -636,7 +636,7 @@ private struct TodoInfoSidebarView: View {
                         .font(.system(size: 16))
                         .foregroundStyle(CloudwrkzColors.primary400)
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("PARENT TODO")
+                        Text("common.parent_todo")
                             .font(.system(size: 10, weight: .semibold))
                             .tracking(0.6)
                             .foregroundStyle(CloudwrkzColors.neutral500)
@@ -661,7 +661,7 @@ private struct TodoInfoSidebarView: View {
     }
 
     private func formatAssignedTo() -> String {
-        guard let assignee = todo.assignedTo else { return "Unassigned" }
+        guard let assignee = todo.assignedTo else { return String(localized: "todo.unassigned") }
         if let n = assignee.name, !n.isEmpty { return n }
         return String(assignee.email.prefix(upTo: assignee.email.firstIndex(of: "@") ?? assignee.email.endIndex))
     }
@@ -713,7 +713,7 @@ struct TodoDetailLoaderView: View {
             VStack(spacing: 16) {
                 CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
                     .scaleEffect(1.2)
-                Text("Loading…")
+                Text("common.loading")
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(CloudwrkzColors.neutral400)
             }
@@ -733,7 +733,7 @@ struct TodoDetailLoaderView: View {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 44))
                     .foregroundStyle(CloudwrkzColors.warning500)
-                Text("Couldn't load todo")
+                Text("common.load_todo_error")
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(CloudwrkzColors.neutral100)
                 Text(message)
@@ -748,11 +748,11 @@ struct TodoDetailLoaderView: View {
 
     private func message(for error: TodoServiceError) -> String {
         switch error {
-        case .noServerURL: return "No server configured."
-        case .noToken: return "Please sign in again."
-        case .unauthorized: return "Session expired. Sign in again."
+        case .noServerURL: return String(localized: "todo.no_server")
+        case .noToken: return String(localized: "todo.please_sign_in")
+        case .unauthorized: return String(localized: "todo.session_expired")
         case .serverError(let m): return m
-        case .networkError: return "Could not reach server."
+        case .networkError: return String(localized: "auth.could_not_reach_server")
         }
     }
 }
@@ -765,7 +765,7 @@ struct TodoDetailLoaderView: View {
     let decoder = JSONDecoder()
     decoder.dateDecodingStrategy = .iso8601
     guard let todo = try? decoder.decode(Todo.self, from: data) else {
-        return Text("Preview unavailable")
+        return Text("preview.unavailable")
     }
     return NavigationStack {
         TodoDetailView(todo: todo)

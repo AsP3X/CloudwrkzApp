@@ -14,10 +14,13 @@ struct AccountSettingsView: View {
 
     @State private var showServerConfig = false
     @State private var showChangePassword = false
+    @State private var showLanguagePicker = false
+    @State private var showRestartAlert = false
 
     @State private var notificationsEnabled = AccountSettingsStorage.notificationsEnabled
     @State private var emailDigestEnabled = AccountSettingsStorage.emailDigestEnabled
     @State private var appearanceSelection = AccountSettingsStorage.appearance
+    @State private var displayLanguageSelection = AccountSettingsStorage.displayLanguage
     @State private var biometricLockEnabled = AccountSettingsStorage.biometricLockEnabled
     @State private var cacheClearedFeedback = false
     @State private var showCacheConfirm = false
@@ -38,6 +41,7 @@ struct AccountSettingsView: View {
                     VStack(alignment: .leading, spacing: 24) {
                         notificationsSection
                         appearanceSection
+                        languageSection
                         securitySection
                         serverSection
                         dataPrivacySection
@@ -48,11 +52,11 @@ struct AccountSettingsView: View {
                 }
                 .scrollContentBackground(.hidden)
             }
-            .navigationTitle("Account Settings")
+            .navigationTitle("account_settings.title")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
+                    Button("common.done") {
                         dismiss()
                     }
                     .foregroundStyle(CloudwrkzColors.primary400)
@@ -69,6 +73,10 @@ struct AccountSettingsView: View {
             .onChange(of: emailDigestEnabled) { _, v in AccountSettingsStorage.emailDigestEnabled = v }
             .onChange(of: appearanceSelection) { _, v in AccountSettingsStorage.appearance = v }
             .onChange(of: biometricLockEnabled) { _, v in AccountSettingsStorage.biometricLockEnabled = v }
+            .onChange(of: displayLanguageSelection) { _, v in
+                AccountSettingsStorage.displayLanguage = v
+                Task { await syncDisplayLanguageToServer(v) }
+            }
             .sheet(isPresented: $showServerConfig) {
                 ServerConfigView(config: Binding(
                     get: { appState.config },
@@ -78,9 +86,25 @@ struct AccountSettingsView: View {
             .sheet(isPresented: $showChangePassword) {
                 ChangePasswordView(onSuccess: nil)
             }
-            .alert("Clear local cache?", isPresented: $showCacheConfirm) {
-                Button("Cancel", role: .cancel) { }
-                Button("Clear", role: .destructive) {
+            .sheet(isPresented: $showLanguagePicker) {
+                DisplayLanguageSheet(
+                    selection: $displayLanguageSelection,
+                    initialSelection: displayLanguageSelection,
+                    onDismiss: { didChange in
+                        showLanguagePicker = false
+                        if didChange {
+                            AccountSettingsStorage.displayLanguage = displayLanguageSelection
+                            Task {
+                                await syncDisplayLanguageToServer(displayLanguageSelection)
+                                await MainActor.run { showRestartAlert = true }
+                            }
+                        }
+                    }
+                )
+            }
+            .alert(String(localized: "account_settings.clear_cache_alert"), isPresented: $showCacheConfirm) {
+                Button("common.cancel", role: .cancel) { }
+                Button("common.clear", role: .destructive) {
                     LocalCacheService.clearAll()
                     cacheClearedFeedback = true
                     refreshCacheSize()
@@ -89,7 +113,15 @@ struct AccountSettingsView: View {
                     }
                 }
             } message: {
-                Text("This will remove approximately \(cacheSizeDisplay) of cached data from this device. This won’t affect your account or server data.")
+                Text(String(format: String(localized: "account_settings.clear_cache_message"), cacheSizeDisplay))
+            }
+            .alert(String(localized: "account_settings.language_restart_required"), isPresented: $showRestartAlert) {
+                Button(String(localized: "account_settings.later"), role: .cancel) { }
+                Button(String(localized: "account_settings.restart")) {
+                    exit(0)
+                }
+            } message: {
+                Text(String(localized: "account_settings.language_restart_message"))
             }
         }
     }
@@ -98,7 +130,13 @@ struct AccountSettingsView: View {
         notificationsEnabled = AccountSettingsStorage.notificationsEnabled
         emailDigestEnabled = AccountSettingsStorage.emailDigestEnabled
         appearanceSelection = AccountSettingsStorage.appearance
+        displayLanguageSelection = AccountSettingsStorage.displayLanguage
         biometricLockEnabled = AccountSettingsStorage.biometricLockEnabled
+    }
+
+    private func syncDisplayLanguageToServer(_ locale: String) async {
+        let effectiveLocale = locale == "system" ? Locale.current.language.languageCode?.identifier ?? "en" : locale
+        _ = await ProfileService.updatePreferences(config: appState.config, locale: effectiveLocale)
     }
 
     // MARK: - Section label
@@ -115,12 +153,12 @@ struct AccountSettingsView: View {
 
     private var notificationsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionLabel("Notifications")
+            sectionLabel(String(localized: "account_settings.notifications"))
             VStack(spacing: 0) {
                 settingsToggleRow(
                     icon: "bell.fill",
-                    title: "Push notifications",
-                    subtitle: "Alerts and updates"
+                    title: String(localized: "account_settings.push_notifications"),
+                    subtitle: String(localized: "account_settings.push_subtitle")
                 ) {
                     Toggle("", isOn: $notificationsEnabled)
                         .labelsHidden()
@@ -129,8 +167,8 @@ struct AccountSettingsView: View {
                 settingsDivider
                 settingsToggleRow(
                     icon: "envelope.fill",
-                    title: "Email digest",
-                    subtitle: "Daily or weekly summary"
+                    title: String(localized: "account_settings.email_digest"),
+                    subtitle: String(localized: "account_settings.email_digest_subtitle")
                 ) {
                     Toggle("", isOn: $emailDigestEnabled)
                         .labelsHidden()
@@ -146,20 +184,20 @@ struct AccountSettingsView: View {
 
     private var appearanceSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionLabel("Appearance")
+            sectionLabel(String(localized: "account_settings.appearance"))
             VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 8) {
                     Image(systemName: "paintbrush.fill")
                         .font(.system(size: 14))
                         .foregroundStyle(CloudwrkzColors.neutral500)
-                    Text("Theme")
+                    Text("account_settings.theme")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(CloudwrkzColors.neutral400)
                 }
-                Picker("Theme", selection: $appearanceSelection) {
-                    Text("System").tag("system")
-                    Text("Light").tag("light")
-                    Text("Dark").tag("dark")
+                Picker("account_settings.theme", selection: $appearanceSelection) {
+                    Text("account_settings.theme_system").tag("system")
+                    Text("account_settings.theme_light").tag("light")
+                    Text("account_settings.theme_dark").tag("dark")
                 }
                 .pickerStyle(.segmented)
                 .tint(CloudwrkzColors.primary400)
@@ -169,24 +207,39 @@ struct AccountSettingsView: View {
         }
     }
 
+    // MARK: - Language
+
+    private var languageSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionLabel(String(localized: "account_settings.language"))
+            AccountSettingsRow(
+                icon: "globe",
+                title: String(localized: "account_settings.language"),
+                subtitle: DisplayLanguageSheet.displayName(for: displayLanguageSelection)
+            ) {
+                showLanguagePicker = true
+            }
+        }
+    }
+
     // MARK: - Security
 
     private var securitySection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionLabel("Security")
+            sectionLabel(String(localized: "account_settings.security"))
             VStack(spacing: 0) {
                 settingsActionRow(
                     icon: "lock.rotation",
-                    title: "Change password",
-                    subtitle: "Update your password"
+                    title: String(localized: "account_settings.change_password"),
+                    subtitle: String(localized: "account_settings.change_password_subtitle")
                 ) {
                     showChangePassword = true
                 }
                 settingsDivider
                 settingsToggleRow(
                     icon: "faceid",
-                    title: "Biometric lock",
-                    subtitle: BiometricService.isAvailable ? "\(BiometricService.biometricTypeName) required when returning to app" : "Not available on this device"
+                    title: String(localized: "account_settings.biometric_lock"),
+                    subtitle: BiometricService.isAvailable ? String(format: String(localized: "account_settings.biometric_required"), BiometricService.biometricTypeName) : String(localized: "account_settings.biometric_not_available")
                 ) {
                     Toggle("", isOn: $biometricLockEnabled)
                         .labelsHidden()
@@ -203,10 +256,10 @@ struct AccountSettingsView: View {
 
     private var serverSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionLabel("Server")
+            sectionLabel(String(localized: "account_settings.server"))
             AccountSettingsRow(
                 icon: "server.rack",
-                title: "Server configuration",
+                title: String(localized: "account_settings.server_config"),
                 subtitle: appState.config.tenant == .official ? "Official Cloudwrkz" : (appState.config.serverDomain.isEmpty ? "On‑prem" : appState.config.serverDomain)
             ) {
                 showServerConfig = true
@@ -218,22 +271,22 @@ struct AccountSettingsView: View {
 
     private var dataPrivacySection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionLabel("Data & Privacy")
+            sectionLabel(String(localized: "account_settings.data_privacy"))
             VStack(spacing: 0) {
                 settingsActionRow(
                     icon: "trash",
-                    title: "Clear local cache",
+                    title: String(localized: "account_settings.clear_cache"),
                     subtitle: cacheClearedFeedback
-                        ? "Cache cleared"
-                        : (cacheSizeDisplay.isEmpty ? "Free up space" : "Approximately \(cacheSizeDisplay) on this device")
+                        ? String(localized: "account_settings.cache_cleared")
+                        : (cacheSizeDisplay.isEmpty ? String(localized: "account_settings.free_up_space") : String(format: String(localized: "account_settings.cache_size_on_device"), cacheSizeDisplay))
                 ) {
                     handleClearCacheTapped()
                 }
                 settingsDivider
                 settingsActionRow(
                     icon: "hand.raised.fill",
-                    title: "Privacy policy",
-                    subtitle: "How we handle your data"
+                    title: String(localized: "account_settings.privacy_policy"),
+                    subtitle: String(localized: "account_settings.privacy_subtitle")
                 ) {
                     // Placeholder: open URL
                 }
@@ -401,6 +454,124 @@ private struct AccountSettingsRowButtonStyle: ButtonStyle {
         configuration.label
             .opacity(configuration.isPressed ? 0.85 : 1)
             .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
+    }
+}
+
+// MARK: - Display language picker sheet (transparent toolbar, liquid glass)
+
+private struct DisplayLanguageSheet: View {
+    @Binding var selection: String
+    var initialSelection: String
+    var onDismiss: (Bool) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    private static let options: [(id: String, titleKey: String)] = [
+        ("system", "account_settings.language_system"),
+        ("en", "account_settings.language_english")
+    ]
+
+    static func displayName(for localeId: String) -> String {
+        options.first(where: { $0.id == localeId }).map { String(localized: String.LocalizationValue($0.titleKey)) }
+            ?? (localeId.isEmpty ? String(localized: String.LocalizationValue("account_settings.language_system")) : localeId)
+    }
+
+    private var background: some View {
+        LinearGradient(
+            colors: [CloudwrkzColors.primary950, CloudwrkzColors.neutral950],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .ignoresSafeArea()
+    }
+
+    private var headerSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 12) {
+                Image(systemName: "globe")
+                    .font(.system(size: 28))
+                    .foregroundStyle(CloudwrkzColors.primary400)
+                Text("account_settings.language")
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundStyle(CloudwrkzColors.neutral100)
+            }
+            Text("account_settings.language_restart_hint")
+                .font(.system(size: 15, weight: .regular))
+                .foregroundStyle(CloudwrkzColors.neutral400)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, 4)
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                background
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 20) {
+                        headerSection
+                        VStack(spacing: 10) {
+                            ForEach(Self.options, id: \.id) { option in
+                                languageRow(
+                                    title: String(localized: String.LocalizationValue(option.titleKey)),
+                                    isSelected: selection == option.id
+                                ) {
+                                    selection = option.id
+                                }
+                            }
+                        }
+                        .padding(20)
+                        .glassPanel(cornerRadius: 20, tint: CloudwrkzColors.primary500, tintOpacity: 0.04)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 8)
+                    .padding(.bottom, 32)
+                }
+                .scrollContentBackground(.hidden)
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("common.done") {
+                        let didChange = selection != initialSelection
+                        onDismiss(didChange)
+                        dismiss()
+                    }
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(CloudwrkzColors.primary400)
+                }
+            }
+        }
+    }
+
+    private func languageRow(title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 16) {
+                Text(title)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(CloudwrkzColors.neutral100)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 20))
+                        .foregroundStyle(CloudwrkzColors.primary400)
+                }
+            }
+            .padding(.vertical, 12)
+            .padding(.horizontal, 16)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(isSelected ? CloudwrkzColors.glassFillHighlight : CloudwrkzColors.glassFillSubtle)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(
+                                isSelected ? CloudwrkzColors.primary400.opacity(0.5) : CloudwrkzColors.glassStrokeSubtle,
+                                lineWidth: isSelected ? 1.5 : 1
+                            )
+                    )
+            )
+        }
+        .buttonStyle(.plain)
     }
 }
 

@@ -35,7 +35,7 @@ struct ProfileMenuPopoverView: View {
             ?? ""
         let emailPrefix = emailPrefix(from: emailForPrefix)
         if !emailPrefix.isEmpty { return emailPrefix }
-        return "Profile"
+        return String(localized: "profile.title")
     }
 
     /// Part before @ (matches cloudwrkz formatUserName fallback).
@@ -56,13 +56,13 @@ struct ProfileMenuPopoverView: View {
             VStack(alignment: .leading, spacing: 0) {
                 headerSection
                 divider
-                sectionLabel("ACCOUNT")
+                sectionLabel(String(localized: "profile.account"))
                 viewProfileRow
                 if onQrLogin != nil {
                     qrLoginRow
                 }
                 if onLogout != nil {
-                    sectionLabel("SESSION")
+                    sectionLabel(String(localized: "profile.session"))
                     logOutRow
                 }
             }
@@ -87,7 +87,7 @@ struct ProfileMenuPopoverView: View {
                 Text(displayName)
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(CloudwrkzColors.neutral100)
-                Text("Signed in")
+                Text("profile.signed_in")
                     .font(.system(size: 13, weight: .regular))
                     .foregroundStyle(CloudwrkzColors.neutral500)
             }
@@ -115,8 +115,8 @@ struct ProfileMenuPopoverView: View {
     private var viewProfileRow: some View {
         MenuRowButton(
             icon: "person.circle.fill",
-            title: "View Profile",
-            subtitle: "Name, avatar, settings"
+            title: String(localized: "profile.view_profile"),
+            subtitle: String(localized: "profile.view_profile_subtitle")
         ) {
             onViewProfile()
         }
@@ -125,8 +125,8 @@ struct ProfileMenuPopoverView: View {
     private var qrLoginRow: some View {
         MenuRowButton(
             icon: "qrcode",
-            title: "Login with QR code",
-            subtitle: "Sign in on the website by scanning"
+            title: String(localized: "profile.qr_login"),
+            subtitle: String(localized: "profile.qr_login_subtitle")
         ) {
             onQrLogin?()
         }
@@ -135,8 +135,8 @@ struct ProfileMenuPopoverView: View {
     private var logOutRow: some View {
         MenuRowButton(
             icon: "rectangle.portrait.and.arrow.right",
-            title: "Log out",
-            subtitle: "Sign out of your account",
+            title: String(localized: "profile.log_out"),
+            subtitle: String(localized: "profile.log_out_subtitle"),
             isDestructive: true
         ) {
             onLogout?()

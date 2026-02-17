@@ -28,7 +28,7 @@ struct SplashView: View {
                         .font(.system(size: 52, weight: .medium))
                         .foregroundStyle(CloudwrkzColors.textOnGradient)
 
-                    Text("Cloudwrkz")
+                    Text("splash.app_name")
                         .font(.system(size: 34, weight: .bold))
                         .foregroundStyle(CloudwrkzColors.textOnGradient)
                 }
@@ -42,7 +42,7 @@ struct SplashView: View {
                 // Buttons at bottom, no background panel
                 VStack(spacing: 14) {
                     Button(action: onLogin) {
-                        Text("Sign in")
+                        Text("splash.sign_in")
                             .font(.system(size: 17, weight: .semibold))
                             .foregroundStyle(CloudwrkzColors.textOnGradient)
                             .frame(maxWidth: .infinity)
@@ -51,7 +51,7 @@ struct SplashView: View {
                     .glassButtonPrimary()
 
                     Button(action: onRegister) {
-                        Text("Create account")
+                        Text("splash.create_account")
                             .font(.system(size: 17, weight: .semibold))
                             .foregroundStyle(CloudwrkzColors.primary400)
                             .frame(maxWidth: .infinity)

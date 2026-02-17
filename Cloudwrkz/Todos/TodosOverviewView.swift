@@ -63,7 +63,7 @@ struct TodosOverviewView: View {
                 }
             }
         }
-        .navigationTitle("ToDo")
+        .navigationTitle("todo.nav_title")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .overlay(alignment: .bottomTrailing) {
@@ -77,12 +77,12 @@ struct TodosOverviewView: View {
                     Button {
                         viewStyleRaw = TodoOverviewViewStyle.card.rawValue
                     } label: {
-                        Label("Card view", systemImage: "square.grid.2x2")
+                        Label("todo.card_view", systemImage: "square.grid.2x2")
                     }
                     Button {
                         viewStyleRaw = TodoOverviewViewStyle.list.rawValue
                     } label: {
-                        Label("List view", systemImage: "list.bullet")
+                        Label("todo.list_view", systemImage: "list.bullet")
                     }
                 } label: {
                     Image(systemName: viewStyle == .card ? "square.grid.2x2" : "list.bullet")
@@ -149,7 +149,7 @@ struct TodosOverviewView: View {
         VStack(spacing: 16) {
 CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
             .scaleEffect(1.2)
-            Text("Loading todos…")
+            Text("todo.loading")
                 .font(.system(size: 15, weight: .medium))
                 .foregroundStyle(CloudwrkzColors.neutral400)
         }
@@ -161,7 +161,7 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.system(size: 44))
                 .foregroundStyle(CloudwrkzColors.warning500)
-            Text("Couldn't load todos")
+            Text("todo.load_error")
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(CloudwrkzColors.neutral100)
             Text(message)
@@ -169,7 +169,7 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
                 .foregroundStyle(CloudwrkzColors.neutral400)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
-            Button("Retry") { Task { await loadTodos() } }
+            Button("todo.retry") { Task { await loadTodos() } }
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(CloudwrkzColors.primary400)
                 .padding(.top, 8)
@@ -182,10 +182,10 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
             Image(systemName: "checklist")
                 .font(.system(size: 48))
                 .foregroundStyle(CloudwrkzColors.neutral500)
-            Text("No todos")
+            Text("todo.no_todos")
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(CloudwrkzColors.neutral100)
-            Text("Change filters or tap + to add a todo.")
+            Text("todo.empty_hint")
                 .font(.system(size: 14, weight: .regular))
                 .foregroundStyle(CloudwrkzColors.neutral500)
                 .multilineTextAlignment(.center)
@@ -234,7 +234,7 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
             ForEach(todoListRowItems) { item in
                 switch item {
                 case .completedHeader:
-                    Text("COMPLETED")
+                    Text("todo.completed_header")
                         .font(.system(size: 11, weight: .bold))
                         .tracking(0.8)
                         .foregroundStyle(CloudwrkzColors.neutral500)
@@ -383,11 +383,11 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
 
     private func message(for error: TodoServiceError) -> String {
         switch error {
-        case .noServerURL: return "No server configured."
-        case .noToken: return "Please sign in again."
-        case .unauthorized: return "Session expired. Sign in again."
+        case .noServerURL: return String(localized: "todo.no_server")
+        case .noToken: return String(localized: "todo.please_sign_in")
+        case .unauthorized: return String(localized: "todo.session_expired")
         case .serverError(let m): return m
-        case .networkError: return "Could not reach server."
+        case .networkError: return String(localized: "auth.could_not_reach_server")
         }
     }
 }
@@ -428,11 +428,11 @@ private struct TodoRowView: View {
 
             HStack(spacing: 16) {
                 if let assignee = todo.assignedTo {
-                    labelValue("Assigned", formatUser(assignee))
+                    labelValue(String(localized: "todo.assigned"), formatUser(assignee))
                 } else {
-                    labelValue("Assigned", "Unassigned")
+                    labelValue(String(localized: "todo.assigned"), String(localized: "todo.unassigned"))
                 }
-                labelValue("Created", formatted(todo.createdAt))
+                labelValue(String(localized: "todo.created"), formatted(todo.createdAt))
                 if let ticket = todo.ticket {
                     HStack(spacing: 4) {
                         Image(systemName: "ticket")
@@ -446,7 +446,7 @@ private struct TodoRowView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "list.bullet.indent")
                             .font(.system(size: 12))
-                        Text("\(todo._count!.subtodos)")
+                        Text("\(todo._count?.subtodos ?? 0)")
                             .font(.system(size: 12, weight: .medium))
                     }
                     .foregroundStyle(CloudwrkzColors.neutral200)

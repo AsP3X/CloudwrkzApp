@@ -17,10 +17,10 @@ private extension TenantType {
         }
     }
 
-    var tagline: String {
+    var localizedTagline: String {
         switch self {
-        case .official: return "Use the official Cloudwrkz service"
-        case .onprem: return "Company or self‑hosted deployment"
+        case .official: return String(localized: "server_config.tenant_official")
+        case .onprem: return String(localized: "server_config.tenant_onprem")
         }
     }
 }
@@ -73,7 +73,7 @@ struct ServerConfigView: View {
             
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
+                    Button("common.done") {
                         config.save()
                         dismiss()
                     }
@@ -106,11 +106,11 @@ struct ServerConfigView: View {
                 Image(systemName: "gearshape.2.fill")
                     .font(.system(size: 28))
                     .foregroundStyle(CloudwrkzColors.primary400)
-                Text("Server configuration")
+                Text("server_config.title")
                     .font(.system(size: 22, weight: .bold))
                     .foregroundStyle(CloudwrkzColors.neutral100)
             }
-            Text("Choose your environment and connection details.")
+            Text("server_config.subtitle")
                 .font(.system(size: 15, weight: .regular))
                 .foregroundStyle(CloudwrkzColors.neutral400)
         }
@@ -122,7 +122,7 @@ struct ServerConfigView: View {
 
     private var tenantSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("Environment")
+            sectionHeader(String(localized: "server_config.environment"))
 
             VStack(spacing: 10) {
                 ForEach(TenantType.allCases) { tenant in
@@ -149,7 +149,7 @@ struct ServerConfigView: View {
                     Text(tenant.rawValue)
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(CloudwrkzColors.neutral100)
-                    Text(tenant.tagline)
+                    Text(tenant.localizedTagline)
                         .font(.system(size: 13, weight: .regular))
                         .foregroundStyle(CloudwrkzColors.neutral500)
                 }
@@ -181,20 +181,20 @@ struct ServerConfigView: View {
 
     private var connectionSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            sectionHeader("Connection details")
+            sectionHeader(String(localized: "server_config.connection_details"))
 
             VStack(alignment: .leading, spacing: 16) {
                 labeledField(
-                    label: "Server domain",
-                    placeholder: "e.g. mycompany.com",
+                    label: String(localized: "server_config.server_domain"),
+                    placeholder: String(localized: "server_config.domain_placeholder"),
                     icon: "globe",
                     text: $config.serverDomain,
                     field: .domain
                 )
 
                 labeledField(
-                    label: "Port (optional)",
-                    placeholder: "e.g. 8443",
+                    label: String(localized: "server_config.port_optional"),
+                    placeholder: String(localized: "server_config.port_placeholder"),
                     icon: "number",
                     text: portBinding,
                     field: .port,
@@ -205,7 +205,7 @@ struct ServerConfigView: View {
                     Image(systemName: "lock.fill")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(CloudwrkzColors.neutral500)
-                    Toggle("Use HTTPS", isOn: $config.useHTTPS)
+                    Toggle("server_config.use_https", isOn: $config.useHTTPS)
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(CloudwrkzColors.neutral100)
                         .tint(CloudwrkzColors.primary400)
@@ -258,18 +258,18 @@ struct ServerConfigView: View {
 
     private var loginPathSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            sectionHeader("Login API path")
+            sectionHeader(String(localized: "server_config.login_path"))
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 6) {
                     Image(systemName: "key.fill")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(CloudwrkzColors.neutral500)
-                    Text("Path (no leading slash)")
+                    Text("server_config.path_no_slash")
                         .font(.system(size: 12, weight: .semibold))
                         .tracking(0.4)
                         .foregroundStyle(CloudwrkzColors.neutral400)
                 }
-                TextField("api/login", text: $config.loginPath)
+                TextField("server_config.login_path_placeholder", text: $config.loginPath)
                     .keyboardType(.URL)
                     .textContentType(.URL)
                     .autocapitalization(.none)
@@ -279,7 +279,7 @@ struct ServerConfigView: View {
                     .padding(.horizontal, 16)
                     .padding(.vertical, 14)
                     .glassField(cornerRadius: 12)
-                Text("If login returns 404, set this to the path your website uses (e.g. api/login).")
+                Text("server_config.login_path_hint")
                     .font(.system(size: 12, weight: .regular))
                     .foregroundStyle(CloudwrkzColors.neutral500)
             }
@@ -292,7 +292,7 @@ struct ServerConfigView: View {
 
     private func resolvedURLSection(_ url: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            sectionHeader("Active endpoint")
+            sectionHeader(String(localized: "server_config.active_endpoint"))
             HStack(spacing: 10) {
                 Image(systemName: "link")
                     .font(.system(size: 14))

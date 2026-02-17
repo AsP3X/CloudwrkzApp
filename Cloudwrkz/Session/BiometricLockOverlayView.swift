@@ -25,11 +25,11 @@ struct BiometricLockOverlayView: View {
                     .font(.system(size: 56))
                     .foregroundStyle(CloudwrkzColors.primary400)
 
-                Text("App locked")
+                Text("biometric.app_locked")
                     .font(.system(size: 22, weight: .semibold))
                     .foregroundStyle(CloudwrkzColors.neutral100)
 
-                Text("Use \(BiometricService.biometricTypeName) to unlock")
+                Text(String(format: String(localized: "biometric.use_to_unlock"), BiometricService.biometricTypeName))
                     .font(.system(size: 15, weight: .regular))
                     .foregroundStyle(CloudwrkzColors.neutral400)
                     .multilineTextAlignment(.center)
@@ -43,7 +43,7 @@ struct BiometricLockOverlayView: View {
                     Button {
                         Task { await onRetry() }
                     } label: {
-                        Text("Unlock with \(BiometricService.biometricTypeName)")
+                        Text(String(format: String(localized: "biometric.unlock_with"), BiometricService.biometricTypeName))
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)

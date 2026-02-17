@@ -67,7 +67,7 @@ struct LinksOverviewView: View {
                     }
             }
         }
-        .navigationTitle("Links")
+        .navigationTitle("links.nav_title")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .overlay(alignment: .bottomTrailing) {
@@ -78,7 +78,7 @@ struct LinksOverviewView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 if selectionMode {
-                    Button("Done") {
+                    Button("common.done") {
                         selectionMode = false
                         selectedLinkIds.removeAll()
                     }
@@ -88,7 +88,7 @@ struct LinksOverviewView: View {
             }
             ToolbarItem(placement: .navigationBarTrailing) {
                 if selectionMode {
-                    Button(selectedLinkIds.count == links.count ? "Deselect All" : "Select All") {
+                    Button(selectedLinkIds.count == links.count ? String(localized: "links.deselect_all") : String(localized: "links.select_all")) {
                         if selectedLinkIds.count == links.count {
                             selectedLinkIds.removeAll()
                             selectionMode = false
@@ -245,7 +245,7 @@ struct LinksOverviewView: View {
         VStack(spacing: 16) {
             CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
                 .scaleEffect(1.2)
-            Text("Loading links…")
+            Text("links.loading")
                 .font(.system(size: 15, weight: .medium))
                 .foregroundStyle(CloudwrkzColors.neutral400)
         }
@@ -257,7 +257,7 @@ struct LinksOverviewView: View {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.system(size: 44))
                 .foregroundStyle(CloudwrkzColors.warning500)
-            Text("Couldn't load links")
+            Text("links.load_error")
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(CloudwrkzColors.neutral100)
             Text(message)
@@ -265,7 +265,7 @@ struct LinksOverviewView: View {
                 .foregroundStyle(CloudwrkzColors.neutral400)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
-            Button("Retry") { Task { await loadLinks() } }
+            Button("todo.retry") { Task { await loadLinks() } }
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(CloudwrkzColors.primary400)
                 .padding(.top, 8)
@@ -278,12 +278,12 @@ struct LinksOverviewView: View {
             Image(systemName: "link")
                 .font(.system(size: 48))
                 .foregroundStyle(CloudwrkzColors.neutral500)
-            Text("No links")
+            Text("links.no_links")
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(CloudwrkzColors.neutral100)
             Text(filters.collectionId != nil
-                 ? "No links in this collection."
-                 : "Add and organize bookmarks in the web app.")
+                 ? String(localized: "links.no_links_in_collection")
+                 : String(localized: "links.empty_web_hint"))
                 .font(.system(size: 14, weight: .regular))
                 .foregroundStyle(CloudwrkzColors.neutral500)
                 .multilineTextAlignment(.center)
@@ -313,18 +313,18 @@ struct LinksOverviewView: View {
                         Button {
                             toggleSelection(for: link)
                         } label: {
-                            Label(isSelected ? "Deselect" : "Select", systemImage: isSelected ? "minus.circle" : "checkmark.circle")
+                            Label(isSelected ? String(localized: "links.deselect") : String(localized: "links.select"), systemImage: isSelected ? "minus.circle" : "checkmark.circle")
                         }
                         if !selectionMode {
                             Button {
                                 editingLink = link
                             } label: {
-                                Label("Edit", systemImage: "pencil")
+                                Label("links.edit", systemImage: "pencil")
                             }
                             Button(role: .destructive) {
                                 pendingDeleteLink = link
                             } label: {
-                                Label("Delete", systemImage: "trash")
+                                Label("links.delete", systemImage: "trash")
                             }
                         }
                     }
@@ -357,7 +357,7 @@ struct LinksOverviewView: View {
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(CloudwrkzColors.neutral100)
             Spacer()
-            Button("Dismiss") {
+            Button("links.dismiss") {
                 refreshErrorMessage = nil
             }
             .font(.system(size: 13, weight: .semibold))
@@ -467,7 +467,7 @@ struct LinksOverviewView: View {
             if selectedLinkIds.isEmpty { selectionMode = false }
             bulkActionInProgress = false
             if failCount > 0 {
-                refreshErrorMessage = "Failed to delete \(failCount) link\(failCount == 1 ? "" : "s")."
+                refreshErrorMessage = String(format: String(localized: "links.failed_delete"), failCount)
             }
         }
         if !succeededIds.isEmpty {
@@ -498,7 +498,7 @@ struct LinksOverviewView: View {
             selectionMode = false
             bulkActionInProgress = false
             if failCount > 0 {
-                refreshErrorMessage = "Failed to update \(failCount) link\(failCount == 1 ? "" : "s")."
+                refreshErrorMessage = String(format: String(localized: "links.failed_update"), failCount)
             }
         }
         await loadLinks()
@@ -535,7 +535,7 @@ struct LinksOverviewView: View {
             bulkActionInProgress = false
             bulkProgress = (0, 0)
             if failCount > 0 {
-                refreshErrorMessage = "Failed to refresh \(failCount) link\(failCount == 1 ? "" : "s")."
+                refreshErrorMessage = String(format: String(localized: "links.failed_refresh"), failCount)
             }
         }
         await loadLinks()
@@ -550,7 +550,7 @@ struct LinksOverviewView: View {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(CloudwrkzColors.primary400)
-                Text("\(selectedLinkIds.count) selected")
+                Text(String(format: String(localized: "links.selected_count"), selectedLinkIds.count))
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(CloudwrkzColors.neutral100)
             }
@@ -677,11 +677,11 @@ struct LinksOverviewView: View {
                         Image(systemName: "trash")
                             .font(.system(size: 20, weight: .semibold))
                             .foregroundStyle(CloudwrkzColors.error500)
-                        Text("Delete \(selectedLinkIds.count) links?")
+                        Text(String(format: String(localized: "links.delete_n_links"), selectedLinkIds.count))
                             .font(.system(size: 20, weight: .semibold))
                             .foregroundStyle(CloudwrkzColors.neutral100)
                     }
-                    Text("The selected links will be permanently removed. This action can't be undone.")
+                    Text("links.delete_links_message")
                         .font(.system(size: 14, weight: .regular))
                         .foregroundStyle(CloudwrkzColors.neutral400)
                         .multilineTextAlignment(.center)
@@ -693,7 +693,7 @@ struct LinksOverviewView: View {
                     Button {
                         showBulkDeleteConfirm = false
                     } label: {
-                        Text("Cancel")
+                        Text("common.cancel")
                             .font(.system(size: 16, weight: .medium))
                             .foregroundStyle(CloudwrkzColors.neutral100)
                             .frame(maxWidth: .infinity)
@@ -716,7 +716,7 @@ struct LinksOverviewView: View {
                         showBulkDeleteConfirm = false
                         Task { await performBulkDelete() }
                     } label: {
-                        Text("Delete")
+                        Text("links.delete")
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundStyle(CloudwrkzColors.neutral950)
                             .frame(maxWidth: .infinity)
@@ -791,7 +791,7 @@ struct LinksOverviewView: View {
                         .scaleEffect(1.4)
                 }
 
-                Text(hasProgress ? "Refreshing icons…" : "Processing…")
+                Text(hasProgress ? String(localized: "links.refreshing_icons") : String(localized: "links.processing"))
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(CloudwrkzColors.neutral400)
             }
@@ -833,11 +833,11 @@ struct LinksOverviewView: View {
                         Image(systemName: "trash")
                             .font(.system(size: 20, weight: .semibold))
                             .foregroundStyle(CloudwrkzColors.error500)
-                        Text("Delete link?")
+                        Text("links.delete_link")
                             .font(.system(size: 20, weight: .semibold))
                             .foregroundStyle(CloudwrkzColors.neutral100)
                     }
-                    Text("“\(link.title)” will be removed from this list. This action can’t be undone.")
+                    Text(String(format: String(localized: "links.delete_link_message"), link.title))
                         .font(.system(size: 14, weight: .regular))
                         .foregroundStyle(CloudwrkzColors.neutral400)
                         .multilineTextAlignment(.center)
@@ -849,7 +849,7 @@ struct LinksOverviewView: View {
                     Button {
                         pendingDeleteLink = nil
                     } label: {
-                        Text("Cancel")
+                        Text("common.cancel")
                             .font(.system(size: 16, weight: .medium))
                             .foregroundStyle(CloudwrkzColors.neutral100)
                             .frame(maxWidth: .infinity)
@@ -873,7 +873,7 @@ struct LinksOverviewView: View {
                         pendingDeleteLink = nil
                         Task { await performSingleDelete(id: linkId) }
                     } label: {
-                        Text("Delete")
+                        Text("links.delete")
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundStyle(CloudwrkzColors.neutral950)
                             .frame(maxWidth: .infinity)
@@ -1150,11 +1150,11 @@ struct LinkFiltersView: View {
                                 Image(systemName: "line.3.horizontal.decrease.circle.fill")
                                     .font(.system(size: 28))
                                     .foregroundStyle(CloudwrkzColors.primary400)
-                                Text("Filter links")
+                                Text("links.filter_links")
                                     .font(.system(size: 22, weight: .bold))
                                     .foregroundStyle(CloudwrkzColors.neutral100)
                             }
-                            Text("Sort and filter your saved links.")
+                            Text("links.filter_subtitle")
                                 .font(.system(size: 15, weight: .regular))
                                 .foregroundStyle(CloudwrkzColors.neutral400)
                         }
@@ -1163,10 +1163,10 @@ struct LinkFiltersView: View {
 
                         if !collections.isEmpty {
                             VStack(alignment: .leading, spacing: 12) {
-                                sectionHeader("Collection")
+                                sectionHeader(String(localized: "links.collection"))
                                 VStack(spacing: 10) {
                                     filterRow(
-                                        title: "All links",
+                                        title: String(localized: "links.all_links"),
                                         isSelected: filters.collectionId == nil
                                     ) {
                                         filters.collectionId = nil
@@ -1186,7 +1186,7 @@ struct LinkFiltersView: View {
                         }
 
                         VStack(alignment: .leading, spacing: 12) {
-                            sectionHeader("Show")
+                            sectionHeader(String(localized: "filter_todos.show"))
                             VStack(spacing: 10) {
                                 ForEach(LinkFilters.LinkFavoriteFilter.allCases) { option in
                                     filterRow(
@@ -1202,7 +1202,7 @@ struct LinkFiltersView: View {
                         }
 
                         VStack(alignment: .leading, spacing: 12) {
-                            sectionHeader("Sort by")
+                            sectionHeader(String(localized: "filter_todos.sort_by"))
                             VStack(spacing: 10) {
                                 ForEach(LinkFilters.LinkSortOption.allCases) { option in
                                     filterRow(
@@ -1226,7 +1226,7 @@ struct LinkFiltersView: View {
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
+                    Button("common.done") {
                         dismiss()
                     }
                     .font(.system(size: 17, weight: .semibold))
@@ -1262,12 +1262,12 @@ private struct BulkCollectionChooserView: View {
                 VStack(spacing: 0) {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 24) {
-                            Text("Choose the collections to assign to \(linkCount) link\(linkCount == 1 ? "" : "s").")
+                            Text(String(format: String(localized: "links.choose_collections"), linkCount))
                                 .font(.system(size: 15, weight: .regular))
                                 .foregroundStyle(CloudwrkzColors.neutral400)
 
                             if collections.isEmpty {
-                                Text("No collections available.")
+                                Text("links.no_collections")
                                     .font(.system(size: 15, weight: .regular))
                                     .foregroundStyle(CloudwrkzColors.neutral500)
                                     .padding(20)
@@ -1297,7 +1297,7 @@ private struct BulkCollectionChooserView: View {
                             onApply(selectedIds)
                             dismiss()
                         } label: {
-                            Text("Apply to \(linkCount) link\(linkCount == 1 ? "" : "s")")
+                            Text(String(format: String(localized: "links.apply_to_links"), linkCount))
                                 .font(.system(size: 17, weight: .semibold))
                                 .foregroundStyle(CloudwrkzColors.neutral950)
                                 .frame(maxWidth: .infinity)
@@ -1315,13 +1315,13 @@ private struct BulkCollectionChooserView: View {
                     .background(CloudwrkzColors.neutral950.opacity(0.95))
                 }
             }
-            .navigationTitle("Assign Collections")
+            .navigationTitle("links.assign_collections")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbarBackground(CloudwrkzColors.neutral950.opacity(0.95), for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button("add_todo.cancel") { dismiss() }
                         .font(.system(size: 17, weight: .medium))
                         .foregroundStyle(CloudwrkzColors.neutral400)
                 }

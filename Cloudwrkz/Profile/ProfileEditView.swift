@@ -66,18 +66,18 @@ CloudwrkzSpinner(tint: CloudwrkzColors.neutral100)
                     }
                 }
             }
-            .navigationTitle("Edit Profile")
+            .navigationTitle("profile.edit_profile_nav")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
+                    Button("add_todo.cancel") {
                         dismiss()
                     }
                     .foregroundStyle(CloudwrkzColors.primary400)
                     .accessibilityLabel("Cancel")
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    Button("add_todo.save") {
                         Task { await saveAndDismiss() }
                     }
                     .font(.system(size: 17, weight: .semibold))
@@ -127,7 +127,7 @@ CloudwrkzSpinner(tint: CloudwrkzColors.neutral100)
             .buttonStyle(.plain)
             .accessibilityLabel("Change profile photo")
 
-            Text("Tap to change photo")
+            Text("profile.tap_to_change_photo")
                 .font(.system(size: 13, weight: .regular))
                 .foregroundStyle(CloudwrkzColors.neutral500)
         }
@@ -138,12 +138,12 @@ CloudwrkzSpinner(tint: CloudwrkzColors.neutral100)
 
     private var nameSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("NAME")
+            Text("profile.name_label")
                 .font(.system(size: 11, weight: .bold))
                 .tracking(0.8)
                 .foregroundStyle(CloudwrkzColors.neutral500)
 
-            TextField("First name", text: $firstName)
+            TextField("profile.first_name", text: $firstName)
                 .textContentType(.givenName)
                 .autocapitalization(.words)
                 .focused($focusedField, equals: .firstName)
@@ -151,7 +151,7 @@ CloudwrkzSpinner(tint: CloudwrkzColors.neutral100)
                 .padding(14)
                 .glassField(cornerRadius: 12)
 
-            TextField("Last name", text: $lastName)
+            TextField("profile.last_name", text: $lastName)
                 .textContentType(.familyName)
                 .autocapitalization(.words)
                 .focused($focusedField, equals: .lastName)
@@ -210,6 +210,7 @@ CloudwrkzSpinner(tint: CloudwrkzColors.neutral100)
                 case .unauthorized: "Session expired. Please sign in again."
                 case .serverError(let msg): msg
                 case .networkError(let desc): desc
+                case .encodingFailed: "Failed to prepare upload."
                 }
                 await MainActor.run { saveError = message }
                 return

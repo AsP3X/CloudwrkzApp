@@ -63,8 +63,8 @@ struct TicketFilters: Equatable {
         var id: String { rawValue }
         var displayName: String {
             switch self {
-            case .unarchived: return "Active"
-            case .archived: return "Archived"
+            case .unarchived: return String(localized: "filter_archive.active")
+            case .archived: return String(localized: "filter_archive.archived")
             }
         }
     }
@@ -83,14 +83,14 @@ struct TicketFilters: Equatable {
 
         var displayName: String {
             switch self {
-            case .unresolved: return "Unresolved"
-            case .all: return "All statuses"
-            case .open: return "Open"
-            case .inProgress: return "In Progress"
-            case .pending: return "Pending"
-            case .resolved: return "Resolved"
-            case .closed: return "Closed"
-            case .cancelled: return "Cancelled"
+            case .unresolved: return String(localized: "filter_status.unresolved")
+            case .all: return String(localized: "filter_status.all_statuses")
+            case .open: return String(localized: "filter_status.open")
+            case .inProgress: return String(localized: "filter_status.in_progress")
+            case .pending: return String(localized: "filter_status.pending")
+            case .resolved: return String(localized: "filter_status.resolved")
+            case .closed: return String(localized: "filter_status.closed")
+            case .cancelled: return String(localized: "filter_status.cancelled")
             }
         }
     }
@@ -105,10 +105,10 @@ struct TicketFilters: Equatable {
 
         var displayName: String {
             switch self {
-            case .newestFirst: return "Newest first"
-            case .oldestFirst: return "Oldest first"
-            case .recentlyUpdated: return "Recently updated"
-            case .leastRecentlyUpdated: return "Least recently updated"
+            case .newestFirst: return String(localized: "filter_sort.newest_first")
+            case .oldestFirst: return String(localized: "filter_sort.oldest_first")
+            case .recentlyUpdated: return String(localized: "filter_sort.recently_updated")
+            case .leastRecentlyUpdated: return String(localized: "filter_sort.least_recently_updated")
             }
         }
     }

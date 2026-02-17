@@ -201,7 +201,7 @@ struct RootView: View {
         }
         await MainActor.run { isEvaluatingBiometric = true }
         try? await Task.sleep(nanoseconds: 300_000_000)
-        let success = await BiometricService.evaluate(reason: "Unlock Cloudwrkz")
+        let success = await BiometricService.evaluate(reason: String(localized: "biometric.unlock_reason"))
         await MainActor.run {
             isEvaluatingBiometric = false
             if success { isAppLocked = false }

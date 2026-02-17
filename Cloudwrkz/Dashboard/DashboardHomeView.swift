@@ -33,7 +33,7 @@ struct DashboardHomeView: View {
     }
 
     private var welcomeSection: some View {
-        Text("Welcome back. Choose a section from the menu or use the shortcuts below.")
+        Text("dashboard.welcome_back")
             .font(.system(size: 15, weight: .regular))
             .foregroundStyle(CloudwrkzColors.neutral400)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -41,7 +41,7 @@ struct DashboardHomeView: View {
 
     private var quickAccessSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("QUICK ACCESS")
+            Text("dashboard.quick_access")
                 .font(.system(size: 11, weight: .bold))
                 .tracking(0.8)
                 .foregroundStyle(CloudwrkzColors.neutral500)

@@ -47,7 +47,7 @@ struct AddTodoView: View {
     }
 
     private var navigationTitle: String {
-        parentTodoId != nil ? "Add Subtodo" : "Add Todo"
+        parentTodoId != nil ? String(localized: "add_todo.subtodo_title") : String(localized: "add_todo.title")
     }
 
     var body: some View {
@@ -57,7 +57,7 @@ struct AddTodoView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
                         if parentTodoId != nil, let parentTitle = parentTodoTitle, !parentTitle.isEmpty {
-                            sectionLabel("Parent")
+                            sectionLabel(String(localized: "add_todo.parent_label"))
                             HStack(spacing: 8) {
                                 Image(systemName: "list.bullet.indent")
                                     .font(.system(size: 14))
@@ -72,8 +72,8 @@ struct AddTodoView: View {
                             .glassPanel(cornerRadius: 12, tint: CloudwrkzColors.primary500, tintOpacity: 0.04)
                         }
 
-                        sectionLabel("Title")
-                        TextField("Todo title", text: $titleText)
+                        sectionLabel(String(localized: "add_todo.title_label"))
+                        TextField("add_todo.title_placeholder", text: $titleText)
                             .textFieldStyle(.plain)
                             .font(.system(size: 16, weight: .regular))
                             .foregroundStyle(CloudwrkzColors.neutral100)
@@ -81,8 +81,8 @@ struct AddTodoView: View {
                             .padding(14)
                             .glassField(cornerRadius: 12)
 
-                        sectionLabel("Description (optional)")
-                        TextField("Description", text: $descriptionText)
+                        sectionLabel(String(localized: "add_todo.description_optional"))
+                        TextField("add_todo.description_placeholder", text: $descriptionText)
                             .textFieldStyle(.plain)
                             .font(.system(size: 16, weight: .regular))
                             .foregroundStyle(CloudwrkzColors.neutral100)
@@ -113,13 +113,13 @@ struct AddTodoView: View {
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
+                    Button("add_todo.cancel") {
                         dismiss()
                     }
                     .foregroundStyle(CloudwrkzColors.primary400)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    Button("add_todo.save") {
                         Task { await save() }
                     }
                     .font(.system(size: 17, weight: .semibold))
@@ -162,11 +162,11 @@ struct AddTodoView: View {
 
     private func message(for error: TodoServiceError) -> String {
         switch error {
-        case .noServerURL: return "No server configured."
-        case .noToken: return "Please sign in again."
-        case .unauthorized: return "Session expired. Sign in again."
+        case .noServerURL: return String(localized: "todo.no_server")
+        case .noToken: return String(localized: "todo.please_sign_in")
+        case .unauthorized: return String(localized: "todo.session_expired")
         case .serverError(let m): return m
-        case .networkError: return "Could not reach server."
+        case .networkError: return String(localized: "auth.could_not_reach_server")
         }
     }
 }

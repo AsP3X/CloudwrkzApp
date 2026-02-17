@@ -38,7 +38,7 @@ struct TicketsOverviewView: View {
                 ticketList
             }
         }
-        .navigationTitle("Tickets")
+        .navigationTitle("ticket.nav_title")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
@@ -73,7 +73,7 @@ struct TicketsOverviewView: View {
         VStack(spacing: 16) {
 CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
             .scaleEffect(1.2)
-            Text("Loading tickets…")
+            Text("ticket.loading")
                 .font(.system(size: 15, weight: .medium))
                 .foregroundStyle(CloudwrkzColors.neutral400)
         }
@@ -85,7 +85,7 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.system(size: 44))
                 .foregroundStyle(CloudwrkzColors.warning500)
-            Text("Couldn’t load tickets")
+            Text("ticket.load_error")
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(CloudwrkzColors.neutral100)
             Text(message)
@@ -93,7 +93,7 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
                 .foregroundStyle(CloudwrkzColors.neutral400)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
-            Button("Retry") { Task { await loadTickets() } }
+            Button("todo.retry") { Task { await loadTickets() } }
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(CloudwrkzColors.primary400)
                 .padding(.top, 8)
@@ -106,10 +106,10 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
             Image(systemName: "ticket.fill")
                 .font(.system(size: 48))
                 .foregroundStyle(CloudwrkzColors.neutral500)
-            Text("No tickets")
+            Text("ticket.no_tickets")
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(CloudwrkzColors.neutral100)
-            Text("Change filters or create a ticket in the web app.")
+            Text("ticket.empty_hint")
                 .font(.system(size: 14, weight: .regular))
                 .foregroundStyle(CloudwrkzColors.neutral500)
                 .multilineTextAlignment(.center)
@@ -158,11 +158,11 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
 
     private func message(for error: TicketServiceError) -> String {
         switch error {
-        case .noServerURL: return "No server configured."
-        case .noToken: return "Please sign in again."
-        case .unauthorized: return "Session expired. Sign in again."
+        case .noServerURL: return String(localized: "todo.no_server")
+        case .noToken: return String(localized: "todo.please_sign_in")
+        case .unauthorized: return String(localized: "todo.session_expired")
         case .serverError(let m): return m
-        case .networkError: return "Could not reach server."
+        case .networkError: return String(localized: "auth.could_not_reach_server")
         }
     }
 }
@@ -202,18 +202,18 @@ private struct TicketRowView: View {
 
             HStack(spacing: 16) {
                 if let assignee = ticket.assignedTo {
-                    labelValue("Assigned", formatUser(assignee))
+                    labelValue(String(localized: "todo.assigned"), formatUser(assignee))
                 } else if let group = ticket.assignedToGroup {
-                    labelValue("Group", group.name)
+                    labelValue(String(localized: "ticket.group"), group.name)
                 } else {
-                    labelValue("Assigned", "Unassigned")
+                    labelValue(String(localized: "todo.assigned"), String(localized: "todo.unassigned"))
                 }
-                labelValue("Created", formatted(ticket.createdAt))
+                labelValue(String(localized: "todo.created"), formatted(ticket.createdAt))
                 if (ticket._count?.comments ?? 0) > 0 {
                     HStack(spacing: 4) {
                         Image(systemName: "bubble.left.and.bubble.right")
                             .font(.system(size: 12))
-                        Text("\(ticket._count!.comments)")
+                        Text("\(ticket._count?.comments ?? 0)")
                             .font(.system(size: 12, weight: .medium))
                     }
                     .foregroundStyle(CloudwrkzColors.neutral200)

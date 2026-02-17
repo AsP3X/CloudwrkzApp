@@ -47,9 +47,11 @@ final class SessionMonitor {
 
     func startTimer(config: ServerConfig) {
         stopTimer()
-        sessionCheckTimer = Timer.scheduledTimer(withTimeInterval: sessionCheckInterval, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: sessionCheckInterval, repeats: true) { [weak self] _ in
             self?.validate(config: config)
         }
+        RunLoop.main.add(timer, forMode: .common)
+        sessionCheckTimer = timer
     }
 
     func stopTimer() {

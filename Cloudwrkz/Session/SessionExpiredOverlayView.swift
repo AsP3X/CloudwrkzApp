@@ -50,11 +50,11 @@ struct SessionExpiredOverlayView: View {
                     .opacity(appeared ? 1 : 0)
 
                     VStack(spacing: 10) {
-                        Text("Session Ended")
+                        Text("session.session_ended")
                             .font(.system(size: 24, weight: .bold))
                             .foregroundStyle(CloudwrkzColors.neutral100)
 
-                        Text("Your session was terminated from another device or by an administrator. Please sign in again to continue.")
+                        Text("session.ended_message")
                             .font(.system(size: 15, weight: .regular))
                             .foregroundStyle(CloudwrkzColors.neutral400)
                             .multilineTextAlignment(.center)
@@ -76,7 +76,7 @@ struct SessionExpiredOverlayView: View {
                         HStack(spacing: 10) {
                             Image(systemName: "arrow.right.circle.fill")
                                 .font(.system(size: 18, weight: .medium))
-                            Text("Back to Sign In")
+                            Text("session.back_to_sign_in")
                                 .font(.system(size: 17, weight: .semibold))
                         }
                         .foregroundStyle(.white)

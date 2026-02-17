@@ -50,13 +50,14 @@ struct PullDownToSearchView: UIViewRepresentable {
             switch recognizer.state {
             case .changed:
                 if translation.y > dragThreshold, holdTimer == nil {
-                    holdTimer = Timer.scheduledTimer(withTimeInterval: holdDuration, repeats: false) { [weak self] _ in
+                    let timer = Timer(timeInterval: holdDuration, repeats: false) { [weak self] _ in
                         guard let self else { return }
                         self.holdTimer?.invalidate()
                         self.holdTimer = nil
                         DispatchQueue.main.async { self.onTrigger() }
                     }
-                    RunLoop.main.add(holdTimer!, forMode: .common)
+                    RunLoop.main.add(timer, forMode: .common)
+                    holdTimer = timer
                 }
             case .ended, .cancelled:
                 holdTimer?.invalidate()

@@ -18,7 +18,16 @@ enum DashboardSection: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var title: String { rawValue }
+    var title: String {
+        switch self {
+        case .home: return String(localized: "dashboard.section.home")
+        case .tickets: return String(localized: "dashboard.section.tickets")
+        case .todos: return String(localized: "dashboard.section.todos")
+        case .links: return String(localized: "dashboard.section.links")
+        case .timeTracking: return String(localized: "dashboard.section.time_tracking")
+        case .archive: return String(localized: "dashboard.section.archive")
+        }
+    }
 
     var iconName: String {
         switch self {
@@ -34,12 +43,12 @@ enum DashboardSection: String, CaseIterable, Identifiable {
     /// Short subtitle for sidebar or home quick-access.
     var subtitle: String {
         switch self {
-        case .home: return "Overview"
-        case .tickets: return "Support tickets"
-        case .todos: return "Tasks"
-        case .links: return "Saved links"
-        case .timeTracking: return "My time"
-        case .archive: return "Archived items"
+        case .home: return String(localized: "dashboard.section.overview")
+        case .tickets: return String(localized: "dashboard.section.support_tickets")
+        case .todos: return String(localized: "dashboard.section.tasks")
+        case .links: return String(localized: "dashboard.section.saved_links")
+        case .timeTracking: return String(localized: "dashboard.section.my_time")
+        case .archive: return String(localized: "dashboard.section.archived_items")
         }
     }
 }
