@@ -1,0 +1,573 @@
+/*
+  Localizable.strings (German)
+  Generated from Localizable.xcstrings
+*/
+
+/* A line of text showing the ticket number and title, truncated to two lines. */
+"%@ – %@" = "%1$@ – %2$@";
+
+/* A text label with two lines, showing a title and a path. The first argument is the title text. The second argument is the path text. */
+"%@ — %@" = "%1$@ — %2$@";
+
+"%lld result%@" = "%1$lld Ergebnis%2$@";
+
+/* A text overlay showing the number of icons that have been successfully refreshed or processed. */
+"%lld/%lld" = "%1$lld/%2$lld";
+
+"account_settings.appearance" = "Darstellung";
+
+"account_settings.biometric_lock" = "Biometrische Sperre";
+
+"account_settings.biometric_not_available" = "Auf diesem Gerät nicht verfügbar";
+
+"account_settings.biometric_required" = "%@ beim Zurückkehren zur App erforderlich";
+
+"account_settings.cache_cleared" = "Cache geleert";
+
+"account_settings.cache_size_on_device" = "Etwa %@ auf diesem Gerät";
+
+"account_settings.change_password" = "Passwort ändern";
+
+"account_settings.change_password_subtitle" = "Passwort aktualisieren";
+
+"account_settings.clear_cache" = "Lokalen Cache leeren";
+
+"account_settings.clear_cache_alert" = "Lokalen Cache leeren?";
+
+"account_settings.clear_cache_message" = "Dies entfernt etwa %@ zwischengespeicherte Daten von diesem Gerät. Dein Konto und Serverdaten sind nicht betroffen.";
+
+"account_settings.data_privacy" = "Daten & Datenschutz";
+
+"account_settings.email_digest" = "E-Mail-Zusammenfassung";
+
+"account_settings.email_digest_subtitle" = "Tägliche oder wöchentliche Zusammenfassung";
+
+"account_settings.free_up_space" = "Speicherplatz freigeben";
+
+"account_settings.language" = "Sprache";
+
+"account_settings.language_english" = "Englisch";
+
+"account_settings.language_german" = "Deutsch";
+
+"account_settings.language_restart_hint" = "Die neue Sprache wird nach einem Neustart der App aktiv.";
+
+"account_settings.language_restart_message" = "Die App muss neu gestartet werden, damit die neue Sprache wirksam wird.";
+
+"account_settings.language_restart_required" = "App-Neustart erforderlich";
+
+"account_settings.language_system" = "System";
+
+"account_settings.later" = "Später";
+
+"account_settings.notifications" = "Benachrichtigungen";
+
+"account_settings.privacy_policy" = "Datenschutzrichtlinie";
+
+"account_settings.privacy_subtitle" = "Umgang mit deinen Daten";
+
+"account_settings.push_notifications" = "Push-Benachrichtigungen";
+
+"account_settings.push_subtitle" = "Hinweise und Aktualisierungen";
+
+"account_settings.restart" = "Neustart";
+
+"account_settings.security" = "Sicherheit";
+
+"account_settings.server" = "Server";
+
+"account_settings.server_config" = "Serverkonfiguration";
+
+"account_settings.theme" = "Design";
+
+"account_settings.theme_dark" = "Dunkel";
+
+"account_settings.theme_light" = "Hell";
+
+"account_settings.theme_system" = "System";
+
+"account_settings.title" = "Kontoeinstellungen";
+
+"add_todo.cancel" = "Abbrechen";
+
+"add_todo.description_optional" = "Beschreibung (optional)";
+
+"add_todo.description_placeholder" = "Beschreibung";
+
+"add_todo.parent_label" = "Übergeordnet";
+
+"add_todo.save" = "Speichern";
+
+"add_todo.subtodo_title" = "Unteraufgabe hinzufügen";
+
+"add_todo.title" = "Aufgabe hinzufügen";
+
+"add_todo.title_label" = "Titel";
+
+"add_todo.title_placeholder" = "Titel der Aufgabe";
+
+"auth.configure_server" = "Server in den Einstellungen konfigurieren.";
+
+"auth.could_not_reach_server" = "Server konnte nicht erreicht werden.";
+
+"auth.email_label" = "E-MAIL";
+
+"auth.email_placeholder" = "sie@firma.de";
+
+"auth.invalid_credentials" = "Ungültige E-Mail oder Passwort.";
+
+"auth.password_label" = "PASSWORT";
+
+"auth.password_placeholder" = "Passwort eingeben";
+
+"auth.please_enter_email_password" = "Bitte E-Mail und Passwort eingeben.";
+
+"auth.sign_in" = "Anmelden";
+
+"biometric.app_locked" = "App gesperrt";
+
+"biometric.unlock_reason" = "Cloudwrkz entsperren";
+
+"biometric.unlock_with" = "Mit %@ entsperren";
+
+"biometric.use_to_unlock" = "%@ zum Entsperren verwenden";
+
+"common.assigned_to" = "Zugewiesen an";
+
+"common.cancel" = "Abbrechen";
+
+"common.clear" = "Löschen";
+
+"common.comment_count" = "%d Kommentar";
+
+"common.comments_activity" = "Kommentare & Aktivität";
+
+"common.comments_count" = "%d Kommentare";
+
+"common.completed" = "Abgeschlossen";
+
+"common.created_by" = "Erstellt von";
+
+"common.created_date" = "Erstellt %@";
+
+"common.description" = "Beschreibung";
+
+"common.done" = "Fertig";
+
+"common.due_date" = "Fällig am";
+
+"common.last_updated" = "Zuletzt aktualisiert";
+
+"common.linked_ticket" = "Verknüpftes Ticket";
+
+"common.load_todo_error" = "Aufgabe konnte nicht geladen werden";
+
+"common.loading" = "Laden…";
+
+"common.no_active_subtodos" = "Keine aktiven Unteraufgaben";
+
+"common.no_description" = "Keine Beschreibung.";
+
+"common.no_subtodos" = "Keine Unteraufgaben";
+
+"common.parent_todo" = "ÜBERGEORDNETE AUFGABE";
+
+"common.priority" = "Priorität";
+
+"common.status" = "Status";
+
+"common.subtodo_count" = "%d Unteraufgabe";
+
+"common.subtodos" = "Unteraufgaben";
+
+"common.subtodos_count" = "%d Unteraufgaben";
+
+"common.tap_plus_to_add" = "Tippe auf +, um eine hinzuzufügen";
+
+"common.ticket_id" = "Ticket-ID";
+
+"common.ticket_info" = "Ticketinformationen";
+
+"common.todo_id" = "Aufgaben-ID";
+
+"common.todo_info" = "Aufgabeninformationen";
+
+"common.type" = "Typ";
+
+"common.view_comments_web" = "Kommentare in der Web-App ansehen und hinzufügen.";
+
+"dashboard.menu.back_to_dashboard" = "Zurück zum Dashboard";
+
+"dashboard.menu.options" = "Optionen";
+
+"dashboard.menu.server_config_subtitle" = "Umgebung und Verbindung";
+
+"dashboard.menu.subtitle" = "Dashboard-Optionen und Konto.";
+
+"dashboard.menu.title" = "Menü";
+
+"dashboard.quick_access" = "SCHNELLZUGRIFF";
+
+"dashboard.section.archive" = "Archiv";
+
+"dashboard.section.archived_items" = "Archivierte Elemente";
+
+"dashboard.section.home" = "Start";
+
+"dashboard.section.links" = "Links";
+
+"dashboard.section.my_time" = "Meine Zeit";
+
+"dashboard.section.overview" = "Übersicht";
+
+"dashboard.section.saved_links" = "Gespeicherte Links";
+
+"dashboard.section.support_tickets" = "Support-Tickets";
+
+"dashboard.section.tasks" = "Aufgaben";
+
+"dashboard.section.tickets" = "Tickets";
+
+"dashboard.section.time_tracking" = "Zeiterfassung";
+
+"dashboard.section.todos" = "ToDo";
+
+"dashboard.title" = "Übersicht";
+
+"dashboard.welcome_back" = "Willkommen zurück. Wähle einen Bereich im Menü oder nutze die Verknüpfungen unten.";
+
+"filter_archive.active" = "Aktiv";
+
+"filter_archive.archived" = "Archiviert";
+
+"filter_priority.all_priorities" = "Alle Prioritäten";
+
+"filter_priority.high" = "Hoch";
+
+"filter_priority.low" = "Niedrig";
+
+"filter_priority.medium" = "Mittel";
+
+"filter_priority.urgent" = "Dringend";
+
+"filter_sort.due_earliest" = "Fälligkeit (früheste zuerst)";
+
+"filter_sort.due_latest" = "Fälligkeit (späteste zuerst)";
+
+"filter_sort.least_recently_updated" = "Am längsten nicht aktualisiert";
+
+"filter_sort.newest_first" = "Neueste zuerst";
+
+"filter_sort.oldest_first" = "Älteste zuerst";
+
+"filter_sort.recently_updated" = "Kürzlich aktualisiert";
+
+"filter_status.all_statuses" = "Alle Status";
+
+"filter_status.blocked" = "Blockiert";
+
+"filter_status.cancelled" = "Abgebrochen";
+
+"filter_status.closed" = "Geschlossen";
+
+"filter_status.completed" = "Abgeschlossen";
+
+"filter_status.in_progress" = "In Bearbeitung";
+
+"filter_status.not_started" = "Nicht begonnen";
+
+"filter_status.open" = "Offen";
+
+"filter_status.pending" = "Ausstehend";
+
+"filter_status.resolved" = "Gelöst";
+
+"filter_status.unresolved" = "Ungelöst";
+
+"filter_tickets.clear" = "Löschen";
+
+"filter_tickets.created_from" = "Erstellt von";
+
+"filter_tickets.created_to" = "Erstellt bis";
+
+"filter_tickets.date_range" = "Datumsbereich (optional)";
+
+"filter_tickets.not_set" = "Nicht festgelegt";
+
+"filter_tickets.set" = "Festlegen";
+
+"filter_tickets.subtitle" = "Liste nach Status, Sortierung und Datumsbereich eingrenzen.";
+
+"filter_tickets.title" = "Tickets filtern";
+
+"filter_tickets.updated_from" = "Aktualisiert von";
+
+"filter_tickets.updated_to" = "Aktualisiert bis";
+
+"filter_todos.include_subtodos" = "Unteraufgaben einbeziehen";
+
+"filter_todos.scope" = "Bereich";
+
+"filter_todos.show" = "Anzeigen";
+
+"filter_todos.sort_by" = "Sortieren nach";
+
+"filter_todos.subtitle" = "Liste nach Bereich, Status, Priorität, Sortierung und Archiv eingrenzen.";
+
+"filter_todos.title" = "Aufgaben filtern";
+
+"filter_todos.top_level_only" = "Nur oberste Ebene";
+
+"links.all" = "Alle";
+
+"links.all_links" = "Alle Links";
+
+"links.apply_to_links" = "Auf %d Link(s) anwenden";
+
+"links.assign_collections" = "Sammlungen zuweisen";
+
+"links.choose_collections" = "Sammlungen für %d Link(s) auswählen.";
+
+"links.collection" = "Sammlung";
+
+"links.delete" = "Löschen";
+
+"links.delete_link" = "Link löschen?";
+
+"links.delete_link_message" = "\"%@\" wird aus dieser Liste entfernt. Diese Aktion kann nicht rückgängig gemacht werden.";
+
+"links.delete_links_message" = "Die ausgewählten Links werden dauerhaft entfernt. Diese Aktion kann nicht rückgängig gemacht werden.";
+
+"links.delete_n_links" = "%d Links löschen?";
+
+"links.deselect" = "Abwählen";
+
+"links.deselect_all" = "Alle abwählen";
+
+"links.dismiss" = "Schließen";
+
+"links.edit" = "Bearbeiten";
+
+"links.empty_web_hint" = "Lesezeichen in der Web-App hinzufügen und verwalten.";
+
+"links.failed_delete" = "%d Link(s) konnten nicht gelöscht werden.";
+
+"links.failed_refresh" = "%d Link(s) konnten nicht aktualisiert werden.";
+
+"links.failed_update" = "%d Link(s) konnten nicht aktualisiert werden.";
+
+"links.filter_links" = "Links filtern";
+
+"links.filter_subtitle" = "Gespeicherte Links sortieren und filtern.";
+
+"links.load_error" = "Links konnten nicht geladen werden";
+
+"links.loading" = "Links werden geladen…";
+
+"links.nav_title" = "Links";
+
+"links.no_collections" = "Keine Sammlungen verfügbar.";
+
+"links.no_links" = "Keine Links";
+
+"links.no_links_in_collection" = "Keine Links in dieser Sammlung.";
+
+"links.processing" = "Wird verarbeitet…";
+
+"links.refreshing_icons" = "Symbole werden aktualisiert…";
+
+"links.select" = "Auswählen";
+
+"links.select_all" = "Alle auswählen";
+
+"links.selected_count" = "%d ausgewählt";
+
+"preview.unavailable" = "Vorschau nicht verfügbar";
+
+"profile.account" = "KONTO";
+
+"profile.account_settings" = "Kontoeinstellungen";
+
+"profile.account_settings_subtitle" = "Einstellungen und Sicherheit";
+
+"profile.app_version" = "Cloudwrkz %@";
+
+"profile.edit_profile" = "Profil bearbeiten";
+
+"profile.edit_profile_nav" = "Profil bearbeiten";
+
+"profile.edit_profile_subtitle" = "Name und Foto";
+
+"profile.first_name" = "Vorname";
+
+"profile.help" = "Hilfe";
+
+"profile.help_subtitle" = "Support und Dokumentation";
+
+"profile.last_name" = "Nachname";
+
+"profile.last_signed_in" = "Zuletzt angemeldet %@";
+
+"profile.log_out" = "Abmelden";
+
+"profile.log_out_subtitle" = "Von deinem Konto abmelden";
+
+"profile.member_since" = "Mitglied seit %@";
+
+"profile.name_label" = "NAME";
+
+"profile.notifications" = "Benachrichtigungen";
+
+"profile.notifications_subtitle" = "Hinweise und Einstellungen";
+
+"profile.qr_login" = "Mit QR-Code anmelden";
+
+"profile.qr_login_subtitle" = "Auf der Website anmelden durch Scannen";
+
+"profile.session" = "SESSION";
+
+"profile.signed_in" = "Angemeldet";
+
+"profile.tap_to_change_photo" = "Tippen zum Ändern des Fotos";
+
+"profile.title" = "Profil";
+
+"profile.view_profile" = "Profil anzeigen";
+
+"profile.view_profile_subtitle" = "Name, Avatar, Einstellungen";
+
+"qr_login.exchanging_keys" = "Schlüssel werden ausgetauscht";
+
+"qr_login.generating_keys" = "Schlüssel werden erzeugt";
+
+"qr_login.logged_in" = "Angemeldet";
+
+"qr_login.validating" = "Anfrage wird geprüft";
+
+"qr_login.validating_final" = "Wird geprüft…";
+
+"register.choose_password_placeholder" = "Passwort wählen";
+
+"register.confirm_password_label" = "PASSWORT BESTÄTIGEN";
+
+"register.confirm_password_placeholder" = "Passwort bestätigen";
+
+"register.name_label" = "NAME";
+
+"register.name_min_length" = "Der Name muss mindestens 2 Zeichen haben.";
+
+"register.name_placeholder" = "Dein Name";
+
+"register.password_min_length" = "Das Passwort muss mindestens 8 Zeichen haben.";
+
+"register.passwords_do_not_match" = "Die Passwörter stimmen nicht überein.";
+
+"register.please_choose_password" = "Bitte wähle ein Passwort.";
+
+"register.please_enter_email" = "Bitte gib deine E-Mail-Adresse ein.";
+
+"register.please_enter_name" = "Bitte gib deinen Namen ein.";
+
+"search.loading_more" = "Weitere werden geladen…";
+
+"search.placeholder" = "Suchen…";
+
+"search.searching" = "Suche…";
+
+"search.subtitle" = "Tickets, Aufgaben, Personen & mehr";
+
+"search.title" = "Suchen";
+
+"server_config.active_endpoint" = "Aktiver Endpunkt";
+
+"server_config.connection_details" = "Verbindungsdetails";
+
+"server_config.domain_placeholder" = "z. B. meinefirma.de";
+
+"server_config.environment" = "Umgebung";
+
+"server_config.login_path" = "Login-API-Pfad";
+
+"server_config.login_path_hint" = "Wenn der Login 404 zurückgibt, setze dies auf den Pfad deiner Website (z. B. api/login).";
+
+"server_config.login_path_placeholder" = "api/login";
+
+"server_config.path_no_slash" = "Pfad (ohne führenden Schrägstrich)";
+
+"server_config.port_optional" = "Port (optional)";
+
+"server_config.port_placeholder" = "z. B. 8443";
+
+"server_config.server_domain" = "Server-Domain";
+
+"server_config.subtitle" = "Umgebung und Verbindungsdetails wählen.";
+
+"server_config.tenant_official" = "Offiziellen Cloudwrkz-Dienst nutzen";
+
+"server_config.tenant_onprem" = "Firmen- oder eigene Bereitstellung";
+
+"server_config.title" = "Serverkonfiguration";
+
+"server_config.use_https" = "HTTPS verwenden";
+
+"session.back_to_sign_in" = "Zurück zur Anmeldung";
+
+"session.ended_message" = "Deine Sitzung wurde von einem anderen Gerät oder einem Administrator beendet. Bitte melde dich erneut an, um fortzufahren.";
+
+"session.session_ended" = "Sitzung beendet";
+
+"splash.app_name" = "Cloudwrkz";
+
+"splash.create_account" = "Konto erstellen";
+
+"splash.sign_in" = "Anmelden";
+
+"tenant_status.checking" = "Wird geprüft…";
+
+"tenant_status.degraded" = "Eingeschränkt";
+
+"tenant_status.healthy" = "Gesund";
+
+"tenant_status.unreachable" = "Nicht erreichbar";
+
+"ticket.empty_hint" = "Filter ändern oder ein Ticket in der Web-App erstellen.";
+
+"ticket.group" = "Gruppe";
+
+"ticket.load_error" = "Tickets konnten nicht geladen werden";
+
+"ticket.loading" = "Tickets werden geladen…";
+
+"ticket.nav_title" = "Tickets";
+
+"ticket.no_tickets" = "Keine Tickets";
+
+"todo.assigned" = "Zugewiesen";
+
+"todo.card_view" = "Kartenansicht";
+
+"todo.completed_header" = "ABGESCHLOSSEN";
+
+"todo.created" = "Erstellt";
+
+"todo.empty_hint" = "Filter ändern oder auf + tippen, um eine Aufgabe hinzuzufügen.";
+
+"todo.list_view" = "Listenansicht";
+
+"todo.load_error" = "Aufgaben konnten nicht geladen werden";
+
+"todo.loading" = "Aufgaben werden geladen…";
+
+"todo.nav_title" = "ToDo";
+
+"todo.no_server" = "Kein Server konfiguriert.";
+
+"todo.no_todos" = "Keine Aufgaben";
+
+"todo.please_sign_in" = "Bitte melde dich erneut an.";
+
+"todo.retry" = "Erneut versuchen";
+
+"todo.session_expired" = "Sitzung abgelaufen. Bitte erneut anmelden.";
+
+"todo.unassigned" = "Nicht zugewiesen";

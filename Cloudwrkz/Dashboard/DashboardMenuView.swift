@@ -62,11 +62,11 @@ struct DashboardMenuView: View {
                 Image(systemName: "line.3.horizontal.circle.fill")
                     .font(.system(size: 28))
                     .foregroundStyle(CloudwrkzColors.primary400)
-                Text("Menu")
+                Text("dashboard.menu.title")
                     .font(.system(size: 22, weight: .bold))
                     .foregroundStyle(CloudwrkzColors.neutral100)
             }
-            Text("Dashboard options and account.")
+            Text("dashboard.menu.subtitle")
                 .font(.system(size: 15, weight: .regular))
                 .foregroundStyle(CloudwrkzColors.neutral400)
         }
@@ -76,18 +76,18 @@ struct DashboardMenuView: View {
 
     private var menuSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("Options")
+            sectionHeader(String(localized: "dashboard.menu.options"))
 
             VStack(spacing: 10) {
-                menuRow(icon: "house.fill", title: "Home", subtitle: "Back to dashboard") {
+                menuRow(icon: "house.fill", title: String(localized: "dashboard.section.home"), subtitle: String(localized: "dashboard.menu.back_to_dashboard")) {
                     dismissMenu()
                 }
-                menuRow(icon: "gearshape.2.fill", title: "Server configuration", subtitle: "Environment and connection") {
+                menuRow(icon: "gearshape.2.fill", title: String(localized: "account_settings.server_config"), subtitle: String(localized: "dashboard.menu.server_config_subtitle")) {
                     dismissMenu()
                     onOpenServerConfig()
                 }
                 if onLogout != nil {
-                    menuRow(icon: "rectangle.portrait.and.arrow.right", title: "Log out", subtitle: "Sign out of your account", isDestructive: true) {
+                    menuRow(icon: "rectangle.portrait.and.arrow.right", title: String(localized: "profile.log_out"), subtitle: String(localized: "profile.log_out_subtitle"), isDestructive: true) {
                         dismissMenu()
                         onLogout?()
                     }
