@@ -9,6 +9,8 @@ import SwiftUI
 
 struct DashboardSearchView: View {
     var onDismiss: () -> Void
+    /// Called when user taps a result; parent should dismiss and then open the detail (in-app or Safari).
+    var onSelectResult: ((SearchResult) -> Void)?
 
     @State private var query = ""
     @State private var results: [SearchResult] = []
@@ -271,11 +273,17 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
     }
 
     private func openResult(_ result: SearchResult) {
-        guard let base = ServerConfig.load().baseURL else { return }
-        let path = result.url.hasPrefix("/") ? String(result.url.dropFirst()) : result.url
-        guard let url = URL(string: path, relativeTo: base) else { return }
-        UIApplication.shared.open(url)
-        onDismiss()
+        if let onSelectResult = onSelectResult {
+            onSelectResult(result)
+            onDismiss()
+        } else {
+            // Fallback: open detail page in Safari
+            guard let base = ServerConfig.load().baseURL else { return }
+            let path = result.url.hasPrefix("/") ? String(result.url.dropFirst()) : result.url
+            guard let url = URL(string: path, relativeTo: base) else { return }
+            UIApplication.shared.open(url)
+            onDismiss()
+        }
     }
 }
 
@@ -317,6 +325,8 @@ private struct SearchResultRow: View {
                     .foregroundStyle(CloudwrkzColors.neutral500)
             }
             .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
             .glassPanel(cornerRadius: 16, tint: nil, tintOpacity: 0.04)
         }
         .buttonStyle(.plain)

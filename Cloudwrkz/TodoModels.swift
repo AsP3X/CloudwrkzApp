@@ -28,12 +28,44 @@ struct Todo: Identifiable, Decodable, Hashable {
     let createdAt: Date
     let updatedAt: Date
     let parentTodoId: String?
+    let parentTodo: TodoParentRef?
     let ticketId: String?
     let assignedToId: String?
     let assignedTo: TodoUser?
     let ticket: TodoTicketRef?
     let subtodos: [TodoSubtask]?
     let _count: TodoCount?
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        todoNumber = try c.decodeIfPresent(String.self, forKey: .todoNumber)
+        title = try c.decode(String.self, forKey: .title)
+        description = try c.decodeIfPresent(String.self, forKey: .description)
+        descriptionPlain = try c.decodeIfPresent(String.self, forKey: .descriptionPlain)
+        status = try c.decode(String.self, forKey: .status)
+        priority = try c.decode(String.self, forKey: .priority)
+        estimatedHours = try c.decodeIfPresent(Double.self, forKey: .estimatedHours)
+        startDate = try c.decodeIfPresent(Date.self, forKey: .startDate)
+        dueDate = try c.decodeIfPresent(Date.self, forKey: .dueDate)
+        completedDate = try c.decodeIfPresent(Date.self, forKey: .completedDate)
+        createdAt = try c.decode(Date.self, forKey: .createdAt)
+        updatedAt = try c.decode(Date.self, forKey: .updatedAt)
+        parentTodoId = try c.decodeIfPresent(String.self, forKey: .parentTodoId)
+        parentTodo = try c.decodeIfPresent(TodoParentRef.self, forKey: .parentTodo)
+        ticketId = try c.decodeIfPresent(String.self, forKey: .ticketId)
+        assignedToId = try c.decodeIfPresent(String.self, forKey: .assignedToId)
+        assignedTo = try c.decodeIfPresent(TodoUser.self, forKey: .assignedTo)
+        ticket = try c.decodeIfPresent(TodoTicketRef.self, forKey: .ticket)
+        subtodos = try c.decodeIfPresent([TodoSubtask].self, forKey: .subtodos)
+        _count = try c.decodeIfPresent(TodoCount.self, forKey: ._count)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, todoNumber, title, description, descriptionPlain, status, priority
+        case estimatedHours, startDate, dueDate, completedDate, createdAt, updatedAt
+        case parentTodoId, parentTodo, ticketId, assignedToId, assignedTo, ticket, subtodos, _count
+    }
 
     struct TodoSubtask: Decodable, Hashable, Identifiable {
         let id: String
@@ -46,6 +78,12 @@ struct Todo: Identifiable, Decodable, Hashable {
         let id: String
         let name: String?
         let email: String
+    }
+
+    struct TodoParentRef: Decodable, Hashable {
+        let id: String
+        let title: String
+        let todoNumber: String?
     }
 
     struct TodoTicketRef: Decodable, Hashable {

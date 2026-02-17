@@ -107,23 +107,11 @@ enum TodoService {
 
     /// GET .../todos/:id — fetch a single todo with subtodos (for detail refresh).
     static func fetchTodo(config: ServerConfig, id: String) async -> Result<Todo, TodoServiceError> {
-        guard let base = config.baseURL else {
+        guard let requestURL = todoURL(config: config, id: id) else {
             return .failure(.noServerURL)
         }
         guard let token = AuthTokenStorage.getToken(), !token.isEmpty else {
             return .failure(.noToken)
-        }
-        let pathSegments = todosPathSegments(loginPath: config.loginPath)
-        guard !pathSegments.isEmpty else {
-            return .failure(.noServerURL)
-        }
-        var url = base
-        for segment in pathSegments {
-            url = url.appending(path: segment)
-        }
-        url = url.appending(path: id)
-        guard let requestURL = URL(string: url.absoluteString) else {
-            return .failure(.noServerURL)
         }
         var request = URLRequest(url: requestURL)
         request.httpMethod = "GET"
@@ -157,6 +145,102 @@ enum TodoService {
             let description = (error as? URLError)?.localizedDescription ?? error.localizedDescription
             return .failure(.networkError(description: description))
         }
+    }
+
+    /// PATCH .../todos/:id — update a todo (e.g. set status to COMPLETED).
+    static func updateTodo(config: ServerConfig, id: String, status: String) async -> Result<Void, TodoServiceError> {
+        guard let requestURL = todoURL(config: config, id: id) else {
+            return .failure(.noServerURL)
+        }
+        guard let token = AuthTokenStorage.getToken(), !token.isEmpty else {
+            return .failure(.noToken)
+        }
+        var request = URLRequest(url: requestURL)
+        request.httpMethod = "PATCH"
+        request.timeoutInterval = timeout
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        AppIdentity.apply(to: &request)
+        let body: [String: String] = ["status": status]
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: body) else {
+            return .failure(.serverError(message: "Invalid request"))
+        }
+        request.httpBody = jsonData
+
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse else {
+                return .failure(.serverError(message: "Invalid response"))
+            }
+            switch http.statusCode {
+            case 200:
+                return .success(())
+            case 401:
+                SessionExpiredNotifier.notify()
+                return .failure(.unauthorized)
+            case 404:
+                return .failure(.serverError(message: "Todo not found"))
+            case 400...599:
+                return .failure(.serverError(message: "Server error (\(http.statusCode))"))
+            default:
+                return .failure(.serverError(message: "Unexpected status \(http.statusCode)"))
+            }
+        } catch {
+            let description = (error as? URLError)?.localizedDescription ?? error.localizedDescription
+            return .failure(.networkError(description: description))
+        }
+    }
+
+    /// DELETE .../todos/:id — delete a todo (and its subtodos).
+    static func deleteTodo(config: ServerConfig, id: String) async -> Result<Void, TodoServiceError> {
+        guard let requestURL = todoURL(config: config, id: id) else {
+            return .failure(.noServerURL)
+        }
+        guard let token = AuthTokenStorage.getToken(), !token.isEmpty else {
+            return .failure(.noToken)
+        }
+        var request = URLRequest(url: requestURL)
+        request.httpMethod = "DELETE"
+        request.timeoutInterval = timeout
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        AppIdentity.apply(to: &request)
+
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse else {
+                return .failure(.serverError(message: "Invalid response"))
+            }
+            switch http.statusCode {
+            case 200:
+                return .success(())
+            case 401:
+                SessionExpiredNotifier.notify()
+                return .failure(.unauthorized)
+            case 404:
+                return .failure(.serverError(message: "Todo not found"))
+            case 400...599:
+                return .failure(.serverError(message: "Server error (\(http.statusCode))"))
+            default:
+                return .failure(.serverError(message: "Unexpected status \(http.statusCode)"))
+            }
+        } catch {
+            let description = (error as? URLError)?.localizedDescription ?? error.localizedDescription
+            return .failure(.networkError(description: description))
+        }
+    }
+
+    private static func todoURL(config: ServerConfig, id: String) -> URL? {
+        guard let base = config.baseURL else { return nil }
+        let pathSegments = todosPathSegments(loginPath: config.loginPath)
+        guard !pathSegments.isEmpty else { return nil }
+        var url = base
+        for segment in pathSegments {
+            url = url.appending(path: segment)
+        }
+        url = url.appending(path: id)
+        return URL(string: url.absoluteString)
     }
 
     /// POST to same path as GET (api/auth/todos or api/todos). Creates a todo or subtodo.

@@ -188,25 +188,66 @@ struct TodoDetailView: View {
     private var subtodosSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             sectionLabel("Subtodos")
-            VStack(spacing: 0) {
+            Group {
                 if let subtodos = todo.subtodos, !subtodos.isEmpty {
-                    ForEach(Array(subtodos.enumerated()), id: \.element.id) { index, subtodo in
-                        NavigationLink(destination: TodoDetailLoaderView(todoId: subtodo.id)) {
-                            subtodoSettingsRow(subtodo)
-                        }
-                        .buttonStyle(.plain)
-                        if index < subtodos.count - 1 {
-                            settingsDivider
+                    List {
+                        ForEach(subtodos, id: \.id) { subtodo in
+                            NavigationLink(destination: TodoDetailLoaderView(todoId: subtodo.id)) {
+                                subtodoSettingsRow(subtodo)
+                            }
+                            .buttonStyle(.plain)
+                            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(Color.clear)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button(role: .destructive) {
+                                    Task { await deleteSubtodo(subtodo.id) }
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                                Button {
+                                    Task { await completeSubtodo(subtodo.id) }
+                                } label: {
+                                    Label("Complete", systemImage: "checkmark")
+                                }
+                                .tint(CloudwrkzColors.success500)
+                            }
                         }
                     }
+                    .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
+                    .scrollDisabled(true)
+                    .padding(16)
                 } else {
                     subtodoPlaceholderRow
+                        .padding(16)
                 }
             }
-            .padding(16)
             .glassPanel(cornerRadius: 20, tint: CloudwrkzColors.primary500, tintOpacity: 0.04)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func completeSubtodo(_ id: String) async {
+        let config = ServerConfig.load()
+        let result = await TodoService.updateTodo(config: config, id: id, status: "COMPLETED")
+        await MainActor.run {
+            if case .failure = result {
+                // Optionally show an error; for now just skip refresh
+            }
+        }
+        await loadTodo()
+    }
+
+    private func deleteSubtodo(_ id: String) async {
+        let config = ServerConfig.load()
+        let result = await TodoService.deleteTodo(config: config, id: id)
+        await MainActor.run {
+            if case .failure = result {
+                // Optionally show an error
+            }
+        }
+        await loadTodo()
     }
 
     private func sectionLabel(_ text: String) -> some View {
@@ -319,6 +360,8 @@ struct TodoDetailView: View {
 private struct TodoInfoSidebarView: View {
     let todo: Todo
     @Environment(\.dismiss) private var dismiss
+    @State private var fetchedParentTitle: String?
+    @State private var fetchedParentTodoNumber: String?
 
     private static let dateFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -337,16 +380,20 @@ private struct TodoInfoSidebarView: View {
                 )
                 .ignoresSafeArea()
                 ScrollView {
-                    todoInfoContent
-                        .padding(20)
-                        .padding(.bottom, 32)
+                    VStack(alignment: .leading, spacing: 18) {
+                        if todo.parentTodoId != nil {
+                            parentTodoCard
+                        }
+                        todoInfoContent
+                    }
+                    .padding(20)
+                    .padding(.bottom, 32)
                 }
                 .scrollContentBackground(.hidden)
             }
             .navigationTitle("Todo information")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarBackground(CloudwrkzColors.neutral950.opacity(0.95), for: .navigationBar)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
@@ -357,6 +404,22 @@ private struct TodoInfoSidebarView: View {
                 }
             }
             .tint(CloudwrkzColors.primary400)
+        }
+        .task(id: todo.parentTodoId) {
+            await loadParentTitleIfNeeded()
+        }
+    }
+
+    private func loadParentTitleIfNeeded() async {
+        guard let parentId = todo.parentTodoId else { return }
+        if todo.parentTodo?.title != nil || todo.parentTodo?.todoNumber != nil { return }
+        let config = ServerConfig.load()
+        let result = await TodoService.fetchTodo(config: config, id: parentId)
+        await MainActor.run {
+            if case .success(let parent) = result {
+                fetchedParentTitle = parent.title
+                fetchedParentTodoNumber = parent.todoNumber
+            }
         }
     }
 
@@ -423,6 +486,47 @@ private struct TodoInfoSidebarView: View {
                 .foregroundStyle(CloudwrkzColors.neutral100)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var parentTodoCard: some View {
+        Group {
+            if let parentId = todo.parentTodoId {
+                parentTodoRow(parentId: parentId)
+            }
+        }
+        .padding(22)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassCard(cornerRadius: 20)
+    }
+
+    private func parentTodoRow(parentId: String) -> some View {
+        let number = todo.parentTodo?.todoNumber ?? fetchedParentTodoNumber
+        let name = todo.parentTodo?.title ?? fetchedParentTitle
+        let displayText = "\(number ?? "…") - \(name ?? "…")"
+        let hasNumber = number != nil
+        return NavigationLink(destination: TodoDetailLoaderView(todoId: parentId)) {
+            HStack(spacing: 8) {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.up.doc")
+                        .font(.system(size: 16))
+                        .foregroundStyle(CloudwrkzColors.primary400)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("PARENT TODO")
+                            .font(.system(size: 10, weight: .semibold))
+                            .tracking(0.6)
+                            .foregroundStyle(CloudwrkzColors.neutral500)
+                        Text(displayText)
+                            .font(.system(size: 14, weight: hasNumber ? .semibold : .regular, design: hasNumber ? .monospaced : .default))
+                            .foregroundStyle(CloudwrkzColors.neutral100)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(CloudwrkzColors.neutral500)
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     private var sidebarDivider: some View {

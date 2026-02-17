@@ -34,6 +34,8 @@ struct ContentView: View {
     @State private var showSearch = false
     /// When true, show search after the current sheet/fullScreenCover has finished dismissing (avoids "already presenting").
     @State private var pendingSearchAfterDismiss = false
+    /// Search result selected before dismissing; handled in fullScreenCover onDismiss to open detail in-app or Safari.
+    @State private var pendingSearchResult: SearchResult?
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -183,8 +185,19 @@ struct ContentView: View {
                     onProfileUpdated: { refreshProfileFromStorage() }
                 )
             }
-            .fullScreenCover(isPresented: $showSearch) {
-                DashboardSearchView(onDismiss: { showSearch = false })
+            .fullScreenCover(isPresented: $showSearch, onDismiss: {
+                if let result = pendingSearchResult {
+                    pendingSearchResult = nil
+                    Task { await openSearchResult(result) }
+                }
+            }) {
+                DashboardSearchView(
+                    onDismiss: { showSearch = false },
+                    onSelectResult: { result in
+                        pendingSearchResult = result
+                        showSearch = false
+                    }
+                )
             }
             .fullScreenCover(isPresented: $showQrScanner) {
                 QrLoginScannerView(onDismiss: { showQrScanner = false })
@@ -256,6 +269,38 @@ struct ContentView: View {
         } else {
             showSearch = true
         }
+    }
+
+    /// Opens the selected search result: in-app detail for todo/timeentry, Safari for ticket/link/other.
+    @MainActor
+    private func openSearchResult(_ result: SearchResult) async {
+        let config = ServerConfig.load()
+
+        switch result.type {
+        case "task", "subtask":
+            switch await TodoService.fetchTodo(config: config, id: result.id) {
+            case .success(let todo):
+                path.append(todo)
+            case .failure:
+                openSearchResultInSafari(result)
+            }
+        case "timeentry":
+            switch await TimeTrackingService.fetchTimeEntry(config: config, id: result.id) {
+            case .success(let entry):
+                path.append(entry)
+            case .failure:
+                openSearchResultInSafari(result)
+            }
+        default:
+            openSearchResultInSafari(result)
+        }
+    }
+
+    private func openSearchResultInSafari(_ result: SearchResult) {
+        guard let base = ServerConfig.load().baseURL else { return }
+        let pathString = result.url.hasPrefix("/") ? String(result.url.dropFirst()) : result.url
+        guard let url = URL(string: pathString, relativeTo: base) else { return }
+        UIApplication.shared.open(url)
     }
 
 }
