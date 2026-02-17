@@ -1,2 +1,6 @@
 # Reference material — never commit
 References/
+
+# Xcode user-specific data
+xcuserdata/
+*.xcuserstate
