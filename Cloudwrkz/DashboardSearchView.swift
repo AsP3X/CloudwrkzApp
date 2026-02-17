@@ -14,11 +14,19 @@ struct DashboardSearchView: View {
     @State private var results: [SearchResult] = []
     @State private var total = 0
     @State private var isLoading = false
+    @State private var isLoadingMore = false
     @State private var searchTask: Task<Void, Never>?
     @FocusState private var isFieldFocused: Bool
 
     private let minQueryLength = 2
     private let debounceInterval: UInt64 = 300_000_000
+
+    /// ~6 cards fit on screen; initial fetch loads double that.
+    private let initialPageSize = 12
+    /// Subsequent pages loaded on scroll.
+    private let pageSize = 12
+
+    private var hasMore: Bool { results.count < total }
 
     var body: some View {
         ZStack {
@@ -98,6 +106,7 @@ struct DashboardSearchView: View {
                     query = ""
                     results = []
                     total = 0
+                    isLoadingMore = false
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .font(.system(size: 20))
@@ -167,28 +176,40 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
     }
 
     private var resultsList: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Text("\(total) result\(total == 1 ? "" : "s")")
-                    .font(.system(size: 13, weight: .semibold))
-                    .tracking(0.5)
-                    .foregroundStyle(CloudwrkzColors.neutral500)
-                Spacer()
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text("\(total) result\(total == 1 ? "" : "s")")
+                        .font(.system(size: 13, weight: .semibold))
+                        .tracking(0.5)
+                        .foregroundStyle(CloudwrkzColors.neutral500)
+                    Spacer()
+                }
+
+                ForEach(results) { result in
+                    SearchResultRow(result: result, onTap: { openResult(result) })
+                        .onAppear {
+                            loadMoreIfNeeded(currentResult: result)
+                        }
+                }
+
+                if isLoadingMore {
+                    HStack {
+                        Spacer()
+                        CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
+                            .scaleEffect(0.8)
+                        Text("Loading more…")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(CloudwrkzColors.neutral500)
+                        Spacer()
+                    }
+                    .padding(.vertical, 12)
+                }
             }
             .padding(.horizontal, 20)
-            .padding(.bottom, 12)
-
-            ScrollView {
-                LazyVStack(spacing: 10) {
-                    ForEach(results) { result in
-                        SearchResultRow(result: result, onTap: { openResult(result) })
-                    }
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 32)
-            }
-            .scrollDismissesKeyboard(.interactively)
+            .padding(.bottom, 32)
         }
+        .scrollDismissesKeyboard(.interactively)
     }
 
     private func runSearchDebounced(query: String) {
@@ -211,7 +232,7 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
         isLoading = true
         defer { isLoading = false }
         let config = ServerConfig.load()
-        switch await SearchService.search(config: config, query: query, limit: 20) {
+        switch await SearchService.search(config: config, query: query, limit: initialPageSize, offset: 0) {
         case .success(let response):
             results = response.results
             total = response.total
@@ -220,6 +241,32 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
         case .failure:
             results = []
             total = 0
+        }
+    }
+
+    private func loadMoreIfNeeded(currentResult: SearchResult) {
+        guard hasMore, !isLoadingMore else { return }
+        let thresholdIndex = max(results.count - 3, 0)
+        guard let index = results.firstIndex(where: { $0.id == currentResult.id }),
+              index >= thresholdIndex else { return }
+        Task { await loadMore() }
+    }
+
+    @MainActor
+    private func loadMore() async {
+        guard hasMore, !isLoadingMore else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+        let currentQuery = query.trimmingCharacters(in: .whitespaces)
+        let config = ServerConfig.load()
+        switch await SearchService.search(config: config, query: currentQuery, limit: pageSize, offset: results.count) {
+        case .success(let response):
+            results.append(contentsOf: response.results)
+            total = response.total
+        case .failure(.cancelled):
+            break
+        case .failure:
+            break
         }
     }
 
@@ -254,6 +301,12 @@ private struct SearchResultRow: View {
                             .foregroundStyle(CloudwrkzColors.neutral500)
                             .lineLimit(2)
                             .multilineTextAlignment(.leading)
+                    }
+                    if let context = result.context, !context.isEmpty {
+                        Text(context)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(CloudwrkzColors.primary400)
+                            .lineLimit(1)
                     }
                     typePill
                 }
@@ -295,6 +348,7 @@ private struct SearchResultRow: View {
         switch result.type {
         case "ticket": return "ticket"
         case "task": return "checklist"
+        case "subtask": return "list.bullet.indent"
         case "user": return "person.fill"
         case "comment": return "bubble.left.fill"
         case "timeentry": return "clock"
@@ -308,6 +362,7 @@ private struct SearchResultRow: View {
         switch result.type {
         case "ticket": return "Ticket"
         case "task": return "Task"
+        case "subtask": return "Subtask"
         case "user": return "User"
         case "comment": return "Comment"
         case "timeentry": return "Time entry"

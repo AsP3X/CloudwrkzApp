@@ -26,8 +26,8 @@ enum SearchService {
         return searchPath.split(separator: "/", omittingEmptySubsequences: true).map(String.init)
     }
 
-    /// GET /api/search?q=...&limit=20 (or /api/auth/search when using auth login path). Cancels previous request if still in flight.
-    static func search(config: ServerConfig, query: String, limit: Int = 20) async -> Result<SearchResponse, SearchServiceError> {
+    /// GET /api/search?q=...&limit=20&offset=0 (or /api/auth/search when using auth login path). Cancels previous request if still in flight.
+    static func search(config: ServerConfig, query: String, limit: Int = 20, offset: Int = 0) async -> Result<SearchResponse, SearchServiceError> {
         guard let base = config.baseURL else {
             return .failure(.noServerURL)
         }
@@ -46,6 +46,7 @@ enum SearchService {
         components.queryItems = [
             URLQueryItem(name: "q", value: query),
             URLQueryItem(name: "limit", value: String(limit)),
+            URLQueryItem(name: "offset", value: String(offset)),
         ]
         guard let finalURL = components.url else {
             return .failure(.noServerURL)
