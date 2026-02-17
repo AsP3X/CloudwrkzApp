@@ -343,6 +343,7 @@ private struct TicketInfoSidebarView: View {
             type: "SUPPORT",
             status: "IN_PROGRESS",
             priority: "HIGH",
+            archivedAt: nil,
             createdAt: Date(),
             updatedAt: Date(),
             createdBy: .init(id: "u1", name: "Jane Doe", email: "jane@example.com"),

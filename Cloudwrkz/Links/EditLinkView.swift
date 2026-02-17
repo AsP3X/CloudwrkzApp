@@ -805,6 +805,7 @@ struct EditLinkView: View {
             notes: "Some notes",
             isFavorite: false,
             rating: 3,
+            archivedAt: nil,
             createdAt: Date(),
             updatedAt: Date(),
             collections: nil

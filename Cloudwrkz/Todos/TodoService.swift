@@ -149,7 +149,7 @@ enum TodoService {
 
     /// PATCH .../todos/:id — update a todo (e.g. set status to COMPLETED, or unarchive with archivedAt: null).
     static func updateTodo(config: ServerConfig, id: String, status: String) async -> Result<Void, TodoServiceError> {
-        var body: [String: Any] = ["status": status]
+        let body: [String: Any] = ["status": status]
         return await patchTodo(config: config, id: id, body: body)
     }
 

@@ -629,6 +629,7 @@ struct LinkDetailView_Previews: PreviewProvider {
                 notes: nil,
                 isFavorite: true,
                 rating: 4,
+                archivedAt: nil,
                 createdAt: Date(),
                 updatedAt: Date(),
                 collections: [Link.LinkCollectionRef(collection: Link.LinkCollectionInfo(id: "c1", name: "Work", color: nil))]
