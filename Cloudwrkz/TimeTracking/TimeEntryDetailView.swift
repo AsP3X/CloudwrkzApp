@@ -13,6 +13,7 @@ struct TimeEntryDetailView: View {
     let entry: TimeEntry
     @State private var liveEntry: TimeEntry?
     @State private var showInfoSidebar = false
+    @State private var showEditSheet = false
     @State private var showDeleteConfirm = false
     @State private var isPerformingAction = false
     @State private var timerTick = Date()
@@ -51,10 +52,22 @@ struct TimeEntryDetailView: View {
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
+                Button { showEditSheet = true } label: {
+                    Image(systemName: "pencil")
+                        .font(.system(size: 20))
+                }
+            }
+            ToolbarItem(placement: .navigationBarTrailing) {
                 Button { showInfoSidebar = true } label: {
                     Image(systemName: "info.circle")
                         .font(.system(size: 20))
                 }
+            }
+        }
+        .sheet(isPresented: $showEditSheet) {
+            EditTimeEntrySheet(entry: current) {
+                showEditSheet = false
+                Task { await refreshEntry() }
             }
         }
         .sheet(isPresented: $showInfoSidebar) {
