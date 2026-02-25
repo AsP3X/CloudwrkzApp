@@ -20,7 +20,7 @@ final class AuthFlowController {
     /// Used for WhatsApp/Telegram-style push (forward) vs pop (back) transitions.
     var isGoingBack: Bool = false
 
-    private let pushPopAnimation = Animation.easeInOut(duration: 0.32)
+    private let pushPopAnimation = Animation.elasticSlide
 
     init(initialScreen: AuthScreen? = nil) {
         self.screen = initialScreen ?? (AuthTokenStorage.getToken() != nil ? .main : .splash)

@@ -9,6 +9,14 @@
 import os
 import SwiftUI
 
+// MARK: - View switch animations
+
+extension Animation {
+    /// Elastic slide used for view switches (auth flow, navigation push/pop).
+    /// Spring with visible overshoot/bounce (low damping) for an elastic feel.
+    static let elasticSlide = Animation.spring(response: 0.48, dampingFraction: 0.55)
+}
+
 // MARK: - Enterprise palette (adaptive dark/light)
 
 enum CloudwrkzColors {

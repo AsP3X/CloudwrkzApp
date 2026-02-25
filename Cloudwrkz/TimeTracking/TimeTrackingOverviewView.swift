@@ -834,7 +834,17 @@ private struct ActiveTimerRow: View {
                     }
                 }
                 Spacer(minLength: 8)
-                liveTimerDisplay
+                VStack(alignment: .trailing, spacing: 2) {
+                    liveTimerDisplay
+                    if let breaks = entry.breaks, !breaks.isEmpty {
+                        let breakSec = TimeTrackingUtils.calculateTotalBreakDuration(breaks)
+                        if breakSec > 0 {
+                            Text("−\(TimeTrackingUtils.formatDuration(breakSec)) breaks")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(CloudwrkzColors.warning400)
+                        }
+                    }
+                }
             }
 
             HStack(spacing: 10) {
@@ -978,7 +988,17 @@ private struct TimeEntryRow: View {
                     }
                 }
                 Spacer(minLength: 8)
-                durationDisplay
+                VStack(alignment: .trailing, spacing: 2) {
+                    durationDisplay
+                    if let breaks = entry.breaks, !breaks.isEmpty {
+                        let breakSec = TimeTrackingUtils.calculateTotalBreakDuration(breaks)
+                        if breakSec > 0 {
+                            Text("−\(TimeTrackingUtils.formatDuration(breakSec)) breaks")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(CloudwrkzColors.warning400)
+                        }
+                    }
+                }
             }
 
             HStack(spacing: 12) {

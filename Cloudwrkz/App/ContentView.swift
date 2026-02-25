@@ -206,6 +206,7 @@ struct ContentView: View {
             }
             .tint(CloudwrkzColors.primary400)
             .toolbarBackground(.hidden, for: .navigationBar)
+            .animation(Animation.elasticSlide, value: path)
         }
     }
 

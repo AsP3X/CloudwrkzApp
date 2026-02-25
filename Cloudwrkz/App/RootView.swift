@@ -23,7 +23,7 @@ struct RootView: View {
     @State private var isAppLocked = false
     @State private var isEvaluatingBiometric = false
 
-    private let pushPopAnimation = Animation.easeInOut(duration: 0.32)
+    private let pushPopAnimation = Animation.elasticSlide
 
     private func clearAllUserDataAndCache() {
         AuthTokenStorage.clear()

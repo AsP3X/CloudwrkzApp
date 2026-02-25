@@ -172,7 +172,6 @@ struct TimeEntryDetailView: View {
                 .foregroundStyle(timerColor)
                 .contentTransition(.numericText())
                 .animation(.easeInOut(duration: 0.3), value: elapsed)
-                .id(timerTick)
 
             Text("Total duration")
                 .font(.system(size: 13, weight: .medium))
