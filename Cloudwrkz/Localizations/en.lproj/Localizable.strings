@@ -864,6 +864,8 @@
 
 "search.title" = "Search";
 
+"search.enhanced_hint" = "Use \"> search \"text\"\" or \"> type: \"ticket\"\" for filters.";
+
 /* A button that toggles the selection state of a timer. */
 "Select" = "Select";
 

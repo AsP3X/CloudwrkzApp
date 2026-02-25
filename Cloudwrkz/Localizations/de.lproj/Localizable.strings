@@ -480,6 +480,8 @@
 
 "search.title" = "Suchen";
 
+"search.enhanced_hint" = "Nutze \"> search \"Text\"\" oder \"> type: \"ticket\"\" für Filter.";
+
 "server_config.active_endpoint" = "Aktiver Endpunkt";
 
 "server_config.connection_details" = "Verbindungsdetails";

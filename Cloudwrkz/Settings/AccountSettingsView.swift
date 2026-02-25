@@ -16,6 +16,7 @@ struct AccountSettingsView: View {
     @State private var showChangePassword = false
     @State private var showLanguagePicker = false
     @State private var showRestartAlert = false
+    @State private var pendingLanguageRestartAlert = false
 
     @State private var notificationsEnabled = AccountSettingsStorage.notificationsEnabled
     @State private var emailDigestEnabled = AccountSettingsStorage.emailDigestEnabled
@@ -86,18 +87,20 @@ struct AccountSettingsView: View {
             .sheet(isPresented: $showChangePassword) {
                 ChangePasswordView(onSuccess: nil)
             }
-            .sheet(isPresented: $showLanguagePicker) {
+            .sheet(isPresented: $showLanguagePicker, onDismiss: {
+                if pendingLanguageRestartAlert {
+                    showRestartAlert = true
+                }
+                pendingLanguageRestartAlert = false
+            }) {
                 DisplayLanguageSheet(
                     selection: $displayLanguageSelection,
                     initialSelection: displayLanguageSelection,
                     onDismiss: { didChange in
-                        showLanguagePicker = false
+                        pendingLanguageRestartAlert = didChange
                         if didChange {
                             AccountSettingsStorage.displayLanguage = displayLanguageSelection
-                            Task {
-                                await syncDisplayLanguageToServer(displayLanguageSelection)
-                                await MainActor.run { showRestartAlert = true }
-                            }
+                            Task { await syncDisplayLanguageToServer(displayLanguageSelection) }
                         }
                     }
                 )

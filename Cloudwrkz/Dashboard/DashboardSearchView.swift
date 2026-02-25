@@ -29,7 +29,12 @@ struct DashboardSearchView: View {
     /// Subsequent pages loaded on scroll.
     private let pageSize = 12
 
-    private var hasMore: Bool { results.count < total }
+    private var hasMore: Bool {
+        if SearchService.isEnhancedSearch(query: query.trimmingCharacters(in: .whitespaces)) {
+            return false
+        }
+        return results.count < total
+    }
 
     var body: some View {
         ZStack {
@@ -125,13 +130,26 @@ struct DashboardSearchView: View {
         .padding(.bottom, 16)
     }
 
+    private var trimmedQuery: String {
+        query.trimmingCharacters(in: .whitespaces)
+    }
+
+    private var canRunSearch: Bool {
+        let t = trimmedQuery
+        if t.isEmpty { return false }
+        if SearchService.isEnhancedSearch(query: t) { return t.count > 1 }
+        return t.count >= minQueryLength
+    }
+
     @ViewBuilder
     private var resultsContent: some View {
-        if query.trimmingCharacters(in: .whitespaces).count < minQueryLength {
+        if !canRunSearch {
             emptyState(
                 icon: "magnifyingglass",
                 title: "Start typing to search",
-                subtitle: "Find tickets, tasks, users, links and more across your workspace."
+                subtitle: SearchService.isEnhancedSearch(query: trimmedQuery)
+                    ? String(localized: "search.enhanced_hint")
+                    : "Find tickets, tasks, users, links and more across your workspace."
             )
         } else if isLoading {
             loadingState
@@ -218,7 +236,12 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
     private func runSearchDebounced(query: String) {
         searchTask?.cancel()
         let trimmed = query.trimmingCharacters(in: .whitespaces)
-        if trimmed.count < minQueryLength {
+        if trimmed.isEmpty {
+            results = []
+            total = 0
+            return
+        }
+        if !SearchService.isEnhancedSearch(query: trimmed) && trimmed.count < minQueryLength {
             results = []
             total = 0
             return
@@ -235,15 +258,28 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
         isLoading = true
         defer { isLoading = false }
         let config = appState.config
-        switch await SearchService.search(config: config, query: query, limit: initialPageSize, offset: 0) {
-        case .success(let response):
-            results = response.results
-            total = response.total
-        case .failure(.cancelled):
-            break
-        case .failure:
-            results = []
-            total = 0
+        if SearchService.isEnhancedSearch(query: query) {
+            switch await SearchService.enhancedSearch(config: config, query: query) {
+            case .success(let response):
+                results = response.results
+                total = response.total
+            case .failure(.cancelled):
+                break
+            case .failure:
+                results = []
+                total = 0
+            }
+        } else {
+            switch await SearchService.search(config: config, query: query, limit: initialPageSize, offset: 0) {
+            case .success(let response):
+                results = response.results
+                total = response.total
+            case .failure(.cancelled):
+                break
+            case .failure:
+                results = []
+                total = 0
+            }
         }
     }
 

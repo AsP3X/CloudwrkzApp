@@ -369,6 +369,9 @@
 "search.searching" = "Поиск…";
 "search.subtitle" = "Тикеты, задачи, люди и другое";
 "search.title" = "Поиск";
+
+"search.enhanced_hint" = "Используйте \"> search \"текст\"\" или \"> type: \"ticket\"\" для фильтров.";
+
 "Select" = "Выбрать";
 "Select All" = "Выбрать все";
 "server_config.active_endpoint" = "Активная конечная точка";
