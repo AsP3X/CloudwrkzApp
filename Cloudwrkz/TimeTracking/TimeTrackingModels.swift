@@ -135,14 +135,19 @@ enum TimeTrackingUtils {
         return "\(s)s"
     }
 
-    /// Calculate live elapsed time for a time entry
+    /// Calculate elapsed time in seconds for display (counter).
+    /// Uses server totalDuration as source of truth; for running timers adds device time since last resume/start.
+    /// All timestamps (startedAt, lastResumedAt, etc.) are decoded from API as UTC instants; duration math is timezone-independent.
     static func calculateElapsedTime(entry: TimeEntry) -> Int {
-        var baseDuration = entry.totalDuration
+        var baseDuration: Int
 
-        if entry.status == .running {
+        switch entry.status {
+        case .running:
             let referenceDate = entry.lastResumedAt ?? entry.startedAt
             let runningTime = Int(Date().timeIntervalSince(referenceDate))
             baseDuration = entry.totalDuration + max(0, runningTime)
+        case .paused, .stopped, .completed:
+            baseDuration = entry.totalDuration
         }
 
         if let breaks = entry.breaks, !breaks.isEmpty {

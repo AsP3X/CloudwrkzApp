@@ -186,6 +186,7 @@ struct TimeEntryDetailView: View {
         .padding(.vertical, 28)
         .padding(.horizontal, 20)
         .background(timerGlass)
+        .id("\(current.id)-\(current.totalDuration)-\(current.startedAt.timeIntervalSince1970)-\(current.stoppedAt?.timeIntervalSince1970 ?? 0)")
     }
 
     // MARK: - Action card

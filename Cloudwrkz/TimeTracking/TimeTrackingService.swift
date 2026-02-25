@@ -48,6 +48,7 @@ enum TimeTrackingService {
             let s = try c.decode(String.self)
             let formatter = ISO8601DateFormatter()
             formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            formatter.timeZone = TimeZone(identifier: "UTC")
             if let date = formatter.date(from: s) { return date }
             formatter.formatOptions = [.withInternetDateTime]
             if let date = formatter.date(from: s) { return date }
@@ -62,6 +63,7 @@ enum TimeTrackingService {
             var c = encoder.singleValueContainer()
             let formatter = ISO8601DateFormatter()
             formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            formatter.timeZone = TimeZone(identifier: "UTC")
             try c.encode(formatter.string(from: date))
         }
         return e

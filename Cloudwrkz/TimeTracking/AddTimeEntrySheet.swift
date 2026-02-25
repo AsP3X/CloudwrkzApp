@@ -144,11 +144,7 @@ struct AddTimeEntrySheet: View {
             }
 
             fieldGroup("Location") {
-                TextField("e.g. Office, Remote", text: $location)
-                    .font(.system(size: 15))
-                    .foregroundStyle(CloudwrkzColors.neutral100)
-                    .padding(14)
-                    .glassField()
+                LocationAutocompleteFieldView(text: $location, placeholder: "e.g. Office, Remote")
             }
 
             fieldGroup("Tags") {

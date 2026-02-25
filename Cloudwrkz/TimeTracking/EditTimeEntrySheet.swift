@@ -261,7 +261,9 @@ struct EditTimeEntrySheet: View {
     }
 
     private var durationSummary: some View {
-        HStack(spacing: 10) {
+        let seconds = max(0, Int(endDate.timeIntervalSince(startDate)))
+        let durationText = TimeTrackingUtils.formatDuration(seconds)
+        return HStack(spacing: 10) {
             Image(systemName: "clock.fill")
                 .font(.system(size: 16))
                 .foregroundStyle(CloudwrkzColors.primary400)
@@ -269,15 +271,12 @@ struct EditTimeEntrySheet: View {
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(CloudwrkzColors.neutral100)
             Spacer()
-            Text(computedDurationText)
+            Text(durationText)
                 .font(.system(size: 15, weight: .bold, design: .monospaced))
                 .foregroundStyle(CloudwrkzColors.primary400)
+                .contentTransition(.numericText())
         }
-    }
-
-    private var computedDurationText: String {
-        let seconds = max(0, Int(endDate.timeIntervalSince(startDate)))
-        return TimeTrackingUtils.formatDuration(seconds)
+        .id("\(startDate.timeIntervalSince1970)-\(endDate.timeIntervalSince1970)")
     }
 
     private var timingDivider: some View {
@@ -314,18 +313,7 @@ struct EditTimeEntrySheet: View {
     private var locationSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             sectionLabel("Location")
-            HStack(spacing: 10) {
-                Image(systemName: "mappin.and.ellipse")
-                    .font(.system(size: 16))
-                    .foregroundStyle(CloudwrkzColors.neutral400)
-                TextField("e.g. Office, Remote, Home", text: $location)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 16, weight: .regular))
-                    .foregroundStyle(CloudwrkzColors.neutral100)
-                    .focused($focusedField, equals: .location)
-            }
-            .padding(14)
-            .glassField(cornerRadius: 12)
+            LocationAutocompleteFieldView(text: $location, placeholder: "e.g. Office, Remote, Home")
         }
     }
 
