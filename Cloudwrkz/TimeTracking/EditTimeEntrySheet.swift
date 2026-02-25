@@ -28,7 +28,10 @@ struct EditTimeEntrySheet: View {
 
     // MARK: - UI state
 
+    @State private var currentEntry: TimeEntry
     @State private var isSaving = false
+    @State private var showAddBreakSheet = false
+    @State private var deletingBreakId: String?
     @State private var errorMessage: String?
     @State private var successMessage: String?
     @State private var hasChanges = false
@@ -43,6 +46,7 @@ struct EditTimeEntrySheet: View {
     init(entry: TimeEntry, onSaved: (() -> Void)? = nil) {
         self.entry = entry
         self.onSaved = onSaved
+        _currentEntry = State(initialValue: entry)
         _name = State(initialValue: entry.name)
         _descriptionText = State(initialValue: entry.description ?? "")
         _location = State(initialValue: entry.location ?? "")
@@ -76,6 +80,7 @@ struct EditTimeEntrySheet: View {
                         locationSection
                         tagsSection
                         billableSection
+                        breaksSection
                         infoSection
                     }
                     .padding(.horizontal, 20)
@@ -112,6 +117,11 @@ struct EditTimeEntrySheet: View {
             .onChange(of: startDate) { _, _ in trackChanges() }
             .onChange(of: endDate) { _, _ in trackChanges() }
             .onChange(of: hasEndDate) { _, _ in trackChanges() }
+            .sheet(isPresented: $showAddBreakSheet) {
+                AddBreakSheet(timeEntryId: entry.id) {
+                    Task { await refreshEntryForBreaks() }
+                }
+            }
         }
     }
 
@@ -412,6 +422,96 @@ struct EditTimeEntrySheet: View {
         .glassPanel(cornerRadius: 16, tint: CloudwrkzColors.primary500, tintOpacity: 0.04)
     }
 
+    // MARK: - Breaks
+
+    private var breaksSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionLabel("Breaks")
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 8) {
+                    Image(systemName: "cup.and.saucer.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(CloudwrkzColors.warning400)
+                    Text("Breaks")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(CloudwrkzColors.neutral100)
+                    Spacer()
+                    Button {
+                        showAddBreakSheet = true
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.system(size: 14))
+                            Text("Add break")
+                                .font(.system(size: 14, weight: .semibold))
+                        }
+                        .foregroundStyle(CloudwrkzColors.primary400)
+                    }
+                }
+
+                let breaks = currentEntry.breaks ?? []
+                if breaks.isEmpty {
+                    Text("No breaks recorded.")
+                        .font(.system(size: 14, weight: .regular))
+                        .foregroundStyle(CloudwrkzColors.neutral500)
+                        .padding(.vertical, 4)
+                } else {
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(breaks) { breakItem in
+                            HStack(spacing: 12) {
+                                Circle()
+                                    .fill(breakItem.endedAt == nil ? CloudwrkzColors.warning500 : CloudwrkzColors.neutral600)
+                                    .frame(width: 8, height: 8)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    if let desc = breakItem.description, !desc.isEmpty {
+                                        Text(desc)
+                                            .font(.system(size: 13, weight: .medium))
+                                            .foregroundStyle(CloudwrkzColors.neutral200)
+                                    }
+                                    Text(Self.shortDateFormatter.string(from: breakItem.startedAt))
+                                        .font(.system(size: 12, weight: .regular))
+                                        .foregroundStyle(CloudwrkzColors.neutral500)
+                                }
+                                Spacer()
+                                if let duration = breakItem.duration {
+                                    Text(TimeTrackingUtils.formatDuration(duration))
+                                        .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                                        .foregroundStyle(CloudwrkzColors.warning400)
+                                } else {
+                                    Text("Ongoing")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundStyle(CloudwrkzColors.warning500)
+                                }
+                                Button {
+                                    Task { await deleteBreak(breakId: breakItem.id) }
+                                } label: {
+                                    Image(systemName: "trash")
+                                        .font(.system(size: 14))
+                                        .foregroundStyle(CloudwrkzColors.neutral500)
+                                }
+                                .disabled(deletingBreakId == breakItem.id)
+                            }
+                            .padding(.vertical, 8)
+                            if breakItem.id != breaks.last?.id {
+                                infoDivider
+                            }
+                        }
+                        let totalBreak = TimeTrackingUtils.calculateTotalBreakDuration(breaks)
+                        HStack {
+                            Spacer()
+                            Text("Total: \(TimeTrackingUtils.formatDuration(totalBreak))")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(CloudwrkzColors.warning400)
+                        }
+                        .padding(.top, 4)
+                    }
+                }
+            }
+            .padding(20)
+            .glassPanel(cornerRadius: 20, tint: CloudwrkzColors.primary500, tintOpacity: 0.04)
+        }
+    }
+
     // MARK: - Read-only info
 
     private var infoSection: some View {
@@ -570,6 +670,24 @@ struct EditTimeEntrySheet: View {
             return "End time must be after start time."
         }
         return nil
+    }
+
+    // MARK: - Breaks API
+
+    private func refreshEntryForBreaks() async {
+        let result = await TimeTrackingService.fetchTimeEntry(config: appState.config, id: entry.id)
+        if case .success(let updated) = result {
+            await MainActor.run { currentEntry = updated }
+        }
+    }
+
+    private func deleteBreak(breakId: String) async {
+        await MainActor.run { deletingBreakId = breakId }
+        let result = await TimeTrackingService.deleteBreak(config: appState.config, timeEntryId: entry.id, breakId: breakId)
+        if case .success = result {
+            await refreshEntryForBreaks()
+        }
+        await MainActor.run { deletingBreakId = nil }
     }
 
     // MARK: - Network

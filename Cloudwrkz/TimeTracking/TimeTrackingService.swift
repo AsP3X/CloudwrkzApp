@@ -298,6 +298,74 @@ enum TimeTrackingService {
         return await postAction(config: config, id: id, action: "complete")
     }
 
+    // MARK: - POST /api/time-tracking/[id]/breaks
+
+    struct AddBreakBody: Encodable {
+        let startedAt: String?
+        let endedAt: String?
+        let description: String?
+    }
+
+    struct AddBreakResponse: Decodable {
+        let id: String
+    }
+
+    static func addBreak(
+        config: ServerConfig,
+        timeEntryId: String,
+        startedAt: Date? = nil,
+        endedAt: Date? = nil,
+        description: String? = nil
+    ) async -> Result<String, TimeTrackingServiceError> {
+        let id = timeEntryId.trimmingCharacters(in: .whitespaces)
+        guard !id.isEmpty else { return .failure(.notFound) }
+        guard let url = buildURL(config: config, extraSegments: [id, "breaks"]) else { return .failure(.noServerURL) }
+        guard let token = AuthTokenStorage.getToken(), !token.isEmpty else { return .failure(.noToken) }
+
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        formatter.timeZone = TimeZone(identifier: "UTC")
+        let body = AddBreakBody(
+            startedAt: startedAt.map { formatter.string(from: $0) },
+            endedAt: endedAt.map { formatter.string(from: $0) },
+            description: description
+        )
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = timeout
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        AppIdentity.apply(to: &request)
+        request.httpBody = try? JSONEncoder().encode(body)
+
+        return await execute(request: request, decode: { data in
+            let decoded = try dateDecoder.decode(AddBreakResponse.self, from: data)
+            return decoded.id
+        })
+    }
+
+    // MARK: - DELETE /api/time-tracking/[id]/breaks/[breakId]
+
+    static func deleteBreak(
+        config: ServerConfig,
+        timeEntryId: String,
+        breakId: String
+    ) async -> Result<Void, TimeTrackingServiceError> {
+        guard let url = buildURL(config: config, extraSegments: [timeEntryId, "breaks", breakId]) else { return .failure(.noServerURL) }
+        guard let token = AuthTokenStorage.getToken(), !token.isEmpty else { return .failure(.noToken) }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        request.timeoutInterval = timeout
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        AppIdentity.apply(to: &request)
+
+        return await executeVoid(request: request)
+    }
+
     // MARK: - Shared helpers
 
     private static func postAction(config: ServerConfig, id: String, action: String) async -> Result<Void, TimeTrackingServiceError> {

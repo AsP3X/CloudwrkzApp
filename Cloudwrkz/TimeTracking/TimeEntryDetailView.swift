@@ -15,7 +15,9 @@ struct TimeEntryDetailView: View {
     @State private var showInfoSidebar = false
     @State private var showEditSheet = false
     @State private var showDeleteConfirm = false
+    @State private var showAddBreakSheet = false
     @State private var isPerformingAction = false
+    @State private var deletingBreakId: String?
     @State private var timerTick = Date()
     @Environment(\.dismiss) private var dismiss
 
@@ -35,9 +37,7 @@ struct TimeEntryDetailView: View {
                         actionCard
                     }
                     detailsCard
-                    if let breaks = current.breaks, !breaks.isEmpty {
-                        breaksCard(breaks)
-                    }
+                    breaksSection
                     tagsCard
                     dangerZone
                 }
@@ -72,6 +72,11 @@ struct TimeEntryDetailView: View {
         }
         .sheet(isPresented: $showInfoSidebar) {
             TimeEntryInfoSidebar(entry: current)
+        }
+        .sheet(isPresented: $showAddBreakSheet) {
+            AddBreakSheet(timeEntryId: current.id) {
+                Task { await refreshEntry() }
+            }
         }
         .alert("Delete Time Entry", isPresented: $showDeleteConfirm) {
             Button("Cancel", role: .cancel) { }
@@ -292,7 +297,11 @@ struct TimeEntryDetailView: View {
 
     // MARK: - Breaks card
 
-    private func breaksCard(_ breaks: [TimeEntryBreak]) -> some View {
+    private var breaksSection: some View {
+        breaksCard(breaks: current.breaks ?? [])
+    }
+
+    private func breaksCard(breaks: [TimeEntryBreak]) -> some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 8) {
                 Image(systemName: "cup.and.saucer.fill")
@@ -302,53 +311,82 @@ struct TimeEntryDetailView: View {
                     .font(.system(size: 18, weight: .bold))
                     .foregroundStyle(CloudwrkzColors.neutral100)
                 Spacer()
-                Text("\(breaks.count)")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(CloudwrkzColors.neutral400)
+                if !breaks.isEmpty {
+                    Text("\(breaks.count)")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(CloudwrkzColors.neutral400)
+                }
+                Button {
+                    showAddBreakSheet = true
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 14))
+                        Text("Add break")
+                            .font(.system(size: 14, weight: .semibold))
+                    }
+                    .foregroundStyle(CloudwrkzColors.primary400)
+                }
             }
 
-            ForEach(breaks) { breakEntry in
-                HStack(spacing: 12) {
-                    Circle()
-                        .fill(breakEntry.endedAt == nil ? CloudwrkzColors.warning500 : CloudwrkzColors.neutral600)
-                        .frame(width: 8, height: 8)
+            if breaks.isEmpty {
+                Text("No breaks recorded.")
+                    .font(.system(size: 14, weight: .regular))
+                    .foregroundStyle(CloudwrkzColors.neutral500)
+                    .padding(.vertical, 4)
+            } else {
+                ForEach(breaks) { breakEntry in
+                    HStack(spacing: 12) {
+                        Circle()
+                            .fill(breakEntry.endedAt == nil ? CloudwrkzColors.warning500 : CloudwrkzColors.neutral600)
+                            .frame(width: 8, height: 8)
 
-                    VStack(alignment: .leading, spacing: 3) {
-                        if let desc = breakEntry.description, !desc.isEmpty {
-                            Text(desc)
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundStyle(CloudwrkzColors.neutral200)
+                        VStack(alignment: .leading, spacing: 3) {
+                            if let desc = breakEntry.description, !desc.isEmpty {
+                                Text(desc)
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundStyle(CloudwrkzColors.neutral200)
+                            }
+                            Text(formatted(breakEntry.startedAt))
+                                .font(.system(size: 12, weight: .regular))
+                                .foregroundStyle(CloudwrkzColors.neutral500)
                         }
-                        Text(formatted(breakEntry.startedAt))
-                            .font(.system(size: 12, weight: .regular))
-                            .foregroundStyle(CloudwrkzColors.neutral500)
-                    }
 
+                        Spacer()
+
+                        if let duration = breakEntry.duration {
+                            Text(TimeTrackingUtils.formatDuration(duration))
+                                .font(.system(size: 14, weight: .semibold, design: .monospaced))
+                                .foregroundStyle(CloudwrkzColors.warning400)
+                        } else {
+                            Text("Ongoing")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(CloudwrkzColors.warning500)
+                        }
+
+                        Button {
+                            Task { await deleteBreak(breakId: breakEntry.id) }
+                        } label: {
+                            Image(systemName: "trash")
+                                .font(.system(size: 14))
+                                .foregroundStyle(CloudwrkzColors.neutral500)
+                        }
+                        .disabled(deletingBreakId == breakEntry.id)
+                    }
+                    .padding(.vertical, 6)
+
+                    if breakEntry.id != breaks.last?.id {
+                        divider
+                    }
+                }
+
+                let totalBreak = TimeTrackingUtils.calculateTotalBreakDuration(breaks)
+                HStack {
                     Spacer()
-
-                    if let duration = breakEntry.duration {
-                        Text(TimeTrackingUtils.formatDuration(duration))
-                            .font(.system(size: 14, weight: .semibold, design: .monospaced))
-                            .foregroundStyle(CloudwrkzColors.warning400)
-                    } else {
-                        Text("Ongoing")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(CloudwrkzColors.warning500)
-                    }
+                    Text("Total: \(TimeTrackingUtils.formatDuration(totalBreak))")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(CloudwrkzColors.warning400)
                 }
-                .padding(.vertical, 6)
-
-                if breakEntry.id != breaks.last?.id {
-                    divider
-                }
-            }
-
-            let totalBreak = TimeTrackingUtils.calculateTotalBreakDuration(breaks)
-            HStack {
-                Spacer()
-                Text("Total: \(TimeTrackingUtils.formatDuration(totalBreak))")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(CloudwrkzColors.warning400)
             }
         }
         .padding(22)
@@ -568,6 +606,15 @@ struct TimeEntryDetailView: View {
         if case .success(let updated) = result {
             await MainActor.run { liveEntry = updated }
         }
+    }
+
+    private func deleteBreak(breakId: String) async {
+        await MainActor.run { deletingBreakId = breakId }
+        let result = await TimeTrackingService.deleteBreak(config: appState.config, timeEntryId: current.id, breakId: breakId)
+        if case .success = result {
+            await refreshEntry()
+        }
+        await MainActor.run { deletingBreakId = nil }
     }
 }
 
