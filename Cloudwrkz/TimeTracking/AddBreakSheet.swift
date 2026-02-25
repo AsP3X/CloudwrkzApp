@@ -23,9 +23,12 @@ struct AddBreakSheet: View {
     init(timeEntryId: String, onAdded: (() -> Void)? = nil) {
         self.timeEntryId = timeEntryId
         self.onAdded = onAdded
+        let cal = Calendar.current
         let now = Date()
-        _startDate = State(initialValue: now)
-        _endDate = State(initialValue: Calendar.current.date(byAdding: .minute, value: 15, to: now) ?? now)
+        let start = cal.date(bySettingHour: 12, minute: 0, second: 0, of: now) ?? now
+        let end = cal.date(bySettingHour: 12, minute: 30, second: 0, of: now) ?? now
+        _startDate = State(initialValue: start)
+        _endDate = State(initialValue: end)
     }
 
     private var durationSeconds: Int {
