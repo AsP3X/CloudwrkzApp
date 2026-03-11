@@ -181,6 +181,111 @@ struct TimeTrackingFilters: Equatable {
     var dateFrom: Date?
     var dateTo: Date?
 
+    /// Default initializer: status/sort/archive at defaults, date range from app settings (month / quarter / year / custom days).
+    init() {
+        self.status = .all
+        self.sort = .newestFirst
+        self.archive = .unarchived
+        let range = Self.defaultDateRangeFromSettings()
+        self.dateFrom = range.from
+        self.dateTo = range.to
+    }
+
+    /// Default date range from AccountSettingsStorage (used by overview and "Reset filters").
+    static func defaultDateRangeFromSettings() -> (from: Date, to: Date) {
+        let period = AccountSettingsStorage.timeTrackingDefaultPeriod
+        let customDays = AccountSettingsStorage.timeTrackingCustomDays
+        return defaultDateRange(period: period, customDays: customDays)
+    }
+
+    /// Compute (from, to) for the given period. Period: "week", "month", "quarter", "year", "custom".
+    static func defaultDateRange(period: String, customDays: Int) -> (from: Date, to: Date) {
+        switch period {
+        case "week": return currentWeekDateRange()
+        case "quarter": return currentQuarterDateRange()
+        case "year": return currentYearDateRange()
+        case "custom": return lastDaysDateRange(days: customDays)
+        default: return currentMonthDateRange()
+        }
+    }
+
+    /// Start and end of the current month (local calendar).
+    static func currentMonthDateRange() -> (from: Date, to: Date) {
+        let cal = Calendar.current
+        let now = Date()
+        guard let start = cal.date(from: cal.dateComponents([.year, .month], from: now)) else {
+            return (now, now)
+        }
+        guard let end = cal.date(byAdding: DateComponents(month: 1, second: -1), to: start) else {
+            return (start, start)
+        }
+        return (start, end)
+    }
+
+    /// Start and end of the current calendar week (respects Calendar.firstWeekday).
+    static func currentWeekDateRange() -> (from: Date, to: Date) {
+        let cal = Calendar.current
+        let now = Date()
+        guard let start = cal.date(from: cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)) else {
+            return currentMonthDateRange()
+        }
+        guard let end = cal.date(byAdding: DateComponents(day: 7, second: -1), to: start) else {
+            return (start, start)
+        }
+        return (start, end)
+    }
+
+    /// Start and end of the current calendar quarter (Q1–Q4).
+    static func currentQuarterDateRange() -> (from: Date, to: Date) {
+        let cal = Calendar.current
+        let now = Date()
+        let month = cal.component(.month, from: now)
+        let quarterStartMonth = ((month - 1) / 3) * 3 + 1
+        var comps = cal.dateComponents([.year], from: now)
+        comps.month = quarterStartMonth
+        comps.day = 1
+        guard let start = cal.date(from: comps) else { return currentMonthDateRange() }
+        guard let end = cal.date(byAdding: DateComponents(month: 3, second: -1), to: start) else {
+            return (start, start)
+        }
+        return (start, end)
+    }
+
+    /// Start and end of the current calendar year.
+    static func currentYearDateRange() -> (from: Date, to: Date) {
+        let cal = Calendar.current
+        let now = Date()
+        guard let start = cal.date(from: cal.dateComponents([.year], from: now)) else {
+            return currentMonthDateRange()
+        }
+        guard let end = cal.date(byAdding: DateComponents(year: 1, second: -1), to: start) else {
+            return (start, start)
+        }
+        return (start, end)
+    }
+
+    /// Last N days: from start of (today - N days) to end of today.
+    static func lastDaysDateRange(days: Int) -> (from: Date, to: Date) {
+        let cal = Calendar.current
+        let now = Date()
+        let startOfToday = cal.startOfDay(for: now)
+        guard let fromDate = cal.date(byAdding: .day, value: -days, to: startOfToday) else {
+            return currentMonthDateRange()
+        }
+        let start = cal.startOfDay(for: fromDate)
+        guard let end = cal.date(byAdding: DateComponents(day: 1, second: -1), to: startOfToday) else {
+            return (start, now)
+        }
+        return (start, end)
+    }
+
+    /// True when the date range matches the default from settings; used to avoid showing filter as "active".
+    var isDefaultDateRange: Bool {
+        guard let from = dateFrom, let to = dateTo else { return false }
+        let range = Self.defaultDateRangeFromSettings()
+        return from == range.from && to == range.to
+    }
+
     enum TimeTrackingArchiveFilter: String, CaseIterable, Identifiable {
         case unarchived = "unarchived"
         case archived = "archived"

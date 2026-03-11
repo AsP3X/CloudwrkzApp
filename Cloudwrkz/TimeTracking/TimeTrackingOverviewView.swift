@@ -19,8 +19,7 @@ struct TimeTrackingOverviewView: View {
     private var hasActiveFilters: Bool {
         filters.status != .all
             || filters.sort != .newestFirst
-            || filters.dateFrom != nil
-            || filters.dateTo != nil
+            || !filters.isDefaultDateRange
     }
     @State private var showStartTimer = false
     @State private var showAddEntry = false
@@ -126,7 +125,14 @@ struct TimeTrackingOverviewView: View {
             )
             .presentationDetents([.large])
         }
-        .onAppear { Task { await loadEntries() } }
+        .onAppear {
+            if filters.isDefaultDateRange {
+                let range = TimeTrackingFilters.defaultDateRangeFromSettings()
+                filters.dateFrom = range.from
+                filters.dateTo = range.to
+            }
+            Task { await loadEntries() }
+        }
         .onReceive(timer) { timerTick = $0 }
         .overlay {
             if showBulkDeleteConfirm {

@@ -13,6 +13,8 @@ struct AccountSettingsStorage {
     private static let appearanceKey = "cloudwrkz.account.appearance"
     private static let biometricLockKey = "cloudwrkz.account.biometricLock"
     private static let displayLanguageKey = "cloudwrkz.account.displayLanguage"
+    private static let timeTrackingDefaultPeriodKey = "cloudwrkz.account.timeTrackingDefaultPeriod"
+    private static let timeTrackingCustomDaysKey = "cloudwrkz.account.timeTrackingCustomDays"
 
     /// Master switch for push notifications.
     static var notificationsEnabled: Bool {
@@ -50,6 +52,21 @@ struct AccountSettingsStorage {
         set { UserDefaults.standard.set(newValue, forKey: displayLanguageKey) }
     }
 
+    /// Time tracking overview default period: "month", "quarter", "year", or "custom".
+    static var timeTrackingDefaultPeriod: String {
+        get { UserDefaults.standard.string(forKey: timeTrackingDefaultPeriodKey) ?? "month" }
+        set { UserDefaults.standard.set(newValue, forKey: timeTrackingDefaultPeriodKey) }
+    }
+
+    /// When timeTrackingDefaultPeriod is "custom", number of days to show (e.g. 30).
+    static var timeTrackingCustomDays: Int {
+        get {
+            let v = UserDefaults.standard.integer(forKey: timeTrackingCustomDaysKey)
+            return v > 0 ? v : 30
+        }
+        set { UserDefaults.standard.set(max(1, min(366, newValue)), forKey: timeTrackingCustomDaysKey) }
+    }
+
     /// Clears all account settings on logout so the next user gets defaults.
     static func clear() {
         UserDefaults.standard.removeObject(forKey: notificationsEnabledKey)
@@ -57,5 +74,7 @@ struct AccountSettingsStorage {
         UserDefaults.standard.removeObject(forKey: appearanceKey)
         UserDefaults.standard.removeObject(forKey: biometricLockKey)
         UserDefaults.standard.removeObject(forKey: displayLanguageKey)
+        UserDefaults.standard.removeObject(forKey: timeTrackingDefaultPeriodKey)
+        UserDefaults.standard.removeObject(forKey: timeTrackingCustomDaysKey)
     }
 }

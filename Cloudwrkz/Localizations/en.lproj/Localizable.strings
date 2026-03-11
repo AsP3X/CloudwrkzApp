@@ -114,6 +114,18 @@
 
 "account_settings.title" = "Account Settings";
 
+"account_settings.time_tracking" = "Time Tracking";
+"account_settings.time_tracking_default_range" = "Default date range";
+"account_settings.time_tracking_default_range_subtitle" = "Period shown in Time Tracking when you open it or reset filters.";
+"account_settings.time_tracking_period_month" = "1 month";
+"account_settings.time_tracking_period_week" = "Week";
+"account_settings.time_tracking_period_quarter" = "Quarter";
+"account_settings.time_tracking_period_year" = "Year";
+"account_settings.time_tracking_period_custom" = "Custom (days)";
+"account_settings.time_tracking_custom_days" = "Days";
+"account_settings.time_tracking_day" = "day";
+"account_settings.time_tracking_days" = "days";
+
 /* A label displayed above the list of currently active timers. */
 "ACTIVE TIMERS" = "ACTIVE TIMERS";
 

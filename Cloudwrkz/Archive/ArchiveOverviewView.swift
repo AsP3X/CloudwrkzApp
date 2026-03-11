@@ -392,65 +392,94 @@ struct ArchiveOverviewView: View {
     private func loadAll() async {
         errorMessage = nil
         isLoading = true
-        defer {
-            Task { @MainActor in
+        let config = appState.config
+
+        // Safety: if any request hangs, stop showing loading after 25 seconds
+        let timeoutTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 25_000_000_000)
+            if isLoading {
                 isLoading = false
+                if items.isEmpty && errorMessage == nil {
+                    errorMessage = "Request timed out. Pull down to retry."
+                }
             }
         }
 
-        var ticketItems: [ArchiveItem] = []
-        var todoItems: [ArchiveItem] = []
-        var timeItems: [ArchiveItem] = []
-        var linkItems: [ArchiveItem] = []
-        var firstError: String?
+        // Run all four fetches concurrently so we wait for the slowest, not the sum
+        async let ticketsResult = fetchTicketsArchive(config: config)
+        async let todosResult = fetchTodosArchive(config: config)
+        async let timeResult = fetchTimeArchive(config: config)
+        async let linksResult = fetchLinksArchive(config: config)
 
-        var ticketFilters = TicketFilters()
-        ticketFilters.status = .all
-        ticketFilters.archive = .archived
-        switch await TicketService.fetchTickets(config: appState.config, filters: ticketFilters) {
-        case .success(let list): ticketItems = list.compactMap { t in t.archivedAt != nil ? ArchiveItem.ticket(t) : nil }
-        case .failure(let e): if firstError == nil { firstError = messageFor(e) }
-        }
+        let (ticketItems, ticketErr) = await ticketsResult
+        let (todoItems, todoErr) = await todosResult
+        let (timeItems, timeErr) = await timeResult
+        let (linkItems, linkErr) = await linksResult
 
-        var todoFilters = TodoFilters()
-        todoFilters.status = .all
-        todoFilters.priority = .all
-        todoFilters.archive = .archived
-        todoFilters.includeSubtodos = true
-        switch await TodoService.fetchTodos(config: appState.config, filters: todoFilters) {
-        case .success(let list): todoItems = list.compactMap { t in t.archivedAt != nil ? ArchiveItem.todo(t) : nil }
-        case .failure(let e): if firstError == nil { firstError = messageForTodo(e) }
-        }
+        timeoutTask.cancel()
 
-        var timeFilters = TimeTrackingFilters()
-        timeFilters.status = .all
-        timeFilters.archive = .archived
-        switch await TimeTrackingService.fetchTimeEntries(config: appState.config, filters: timeFilters) {
-        case .success(let list): timeItems = list.compactMap { e in e.archivedAt != nil ? ArchiveItem.timeEntry(e) : nil }
-        case .failure(let e): if firstError == nil { firstError = messageForTime(e) }
-        }
-
-        var linkFilters = LinkFilters()
-        linkFilters.archived = true
-        var linkPage = 1
-        let linkPageSize = 100
-        while true {
-            switch await LinkService.fetchLinks(config: appState.config, filters: linkFilters, page: linkPage, limit: linkPageSize) {
-            case .success(let response):
-                let pageItems = response.links.compactMap { l in l.archivedAt != nil ? ArchiveItem.link(l) : nil }
-                linkItems.append(contentsOf: pageItems)
-                if response.links.count < linkPageSize || linkPage >= response.totalPages { break }
-                linkPage += 1
-            case .failure(let e):
-                if firstError == nil { firstError = messageForLink(e) }
-                break
-            }
-        }
-
+        let firstError = ticketErr ?? todoErr ?? timeErr ?? linkErr
         let all = ticketItems + todoItems + timeItems + linkItems
+
         await MainActor.run {
             items = all
             errorMessage = firstError
+            isLoading = false
+        }
+    }
+
+    private func fetchTicketsArchive(config: ServerConfig) async -> ([ArchiveItem], String?) {
+        var f = TicketFilters()
+        f.status = .all
+        f.archive = .archived
+        switch await TicketService.fetchTickets(config: config, filters: f) {
+        case .success(let list): return (list.compactMap { t in t.archivedAt != nil ? ArchiveItem.ticket(t) : nil }, nil)
+        case .failure(let e): return ([], messageFor(e))
+        }
+    }
+
+    private func fetchTodosArchive(config: ServerConfig) async -> ([ArchiveItem], String?) {
+        var f = TodoFilters()
+        f.status = .all
+        f.priority = .all
+        f.archive = .archived
+        f.includeSubtodos = true
+        switch await TodoService.fetchTodos(config: config, filters: f) {
+        case .success(let list): return (list.compactMap { t in t.archivedAt != nil ? ArchiveItem.todo(t) : nil }, nil)
+        case .failure(let e): return ([], messageForTodo(e))
+        }
+    }
+
+    private func fetchTimeArchive(config: ServerConfig) async -> ([ArchiveItem], String?) {
+        var f = TimeTrackingFilters()
+        f.status = .all
+        f.archive = .archived
+        switch await TimeTrackingService.fetchTimeEntries(config: config, filters: f) {
+        case .success(let list): return (list.compactMap { e in e.archivedAt != nil ? ArchiveItem.timeEntry(e) : nil }, nil)
+        case .failure(let e): return ([], messageForTime(e))
+        }
+    }
+
+    private func fetchLinksArchive(config: ServerConfig) async -> ([ArchiveItem], String?) {
+        var f = LinkFilters()
+        f.archived = true
+        var allItems: [ArchiveItem] = []
+        var firstError: String?
+        var page = 1
+        let pageSize = 100
+        while true {
+            switch await LinkService.fetchLinks(config: config, filters: f, page: page, limit: pageSize) {
+            case .success(let response):
+                let pageItems = response.links.compactMap { l in l.archivedAt != nil ? ArchiveItem.link(l) : nil }
+                allItems.append(contentsOf: pageItems)
+                if response.links.count < pageSize || page >= response.totalPages {
+                    return (allItems, firstError)
+                }
+                page += 1
+            case .failure(let e):
+                if firstError == nil { firstError = messageForLink(e) }
+                return (allItems, firstError)
+            }
         }
     }
 

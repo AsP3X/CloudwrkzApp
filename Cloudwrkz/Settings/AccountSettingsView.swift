@@ -23,6 +23,8 @@ struct AccountSettingsView: View {
     @State private var appearanceSelection = AccountSettingsStorage.appearance
     @State private var displayLanguageSelection = AccountSettingsStorage.displayLanguage
     @State private var biometricLockEnabled = AccountSettingsStorage.biometricLockEnabled
+    @State private var timeTrackingPeriod = AccountSettingsStorage.timeTrackingDefaultPeriod
+    @State private var timeTrackingCustomDays = AccountSettingsStorage.timeTrackingCustomDays
     @State private var cacheClearedFeedback = false
     @State private var showCacheConfirm = false
     @State private var cacheSizeDisplay: String = ""
@@ -43,6 +45,7 @@ struct AccountSettingsView: View {
                         notificationsSection
                         appearanceSection
                         languageSection
+                        timeTrackingSection
                         securitySection
                         serverSection
                         dataPrivacySection
@@ -78,6 +81,8 @@ struct AccountSettingsView: View {
                 AccountSettingsStorage.displayLanguage = v
                 Task { await syncDisplayLanguageToServer(v) }
             }
+            .onChange(of: timeTrackingPeriod) { _, v in AccountSettingsStorage.timeTrackingDefaultPeriod = v }
+            .onChange(of: timeTrackingCustomDays) { _, v in AccountSettingsStorage.timeTrackingCustomDays = v }
             .sheet(isPresented: $showServerConfig) {
                 ServerConfigView(config: Binding(
                     get: { appState.config },
@@ -135,6 +140,8 @@ struct AccountSettingsView: View {
         appearanceSelection = AccountSettingsStorage.appearance
         displayLanguageSelection = AccountSettingsStorage.displayLanguage
         biometricLockEnabled = AccountSettingsStorage.biometricLockEnabled
+        timeTrackingPeriod = AccountSettingsStorage.timeTrackingDefaultPeriod
+        timeTrackingCustomDays = AccountSettingsStorage.timeTrackingCustomDays
     }
 
     private func syncDisplayLanguageToServer(_ locale: String) async {
@@ -223,6 +230,117 @@ struct AccountSettingsView: View {
                 showLanguagePicker = true
             }
         }
+    }
+
+    // MARK: - Time tracking
+
+    private var timeTrackingSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionLabel(String(localized: "account_settings.time_tracking"))
+            VStack(alignment: .leading, spacing: 0) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "clock.fill")
+                            .font(.system(size: 14))
+                            .foregroundStyle(CloudwrkzColors.neutral500)
+                        Text("account_settings.time_tracking_default_range")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(CloudwrkzColors.neutral400)
+                    }
+                    Text("account_settings.time_tracking_default_range_subtitle")
+                        .font(.system(size: 12, weight: .regular))
+                        .foregroundStyle(CloudwrkzColors.neutral500)
+                        .padding(.leading, 22)
+                }
+                .padding(.bottom, 12)
+                timeTrackingPeriodRow(
+                    title: String(localized: "account_settings.time_tracking_period_month"),
+                    tag: "month",
+                    icon: "calendar"
+                )
+                settingsDivider
+                timeTrackingPeriodRow(
+                    title: String(localized: "account_settings.time_tracking_period_week"),
+                    tag: "week",
+                    icon: "calendar.day.timeline.left"
+                )
+                settingsDivider
+                timeTrackingPeriodRow(
+                    title: String(localized: "account_settings.time_tracking_period_quarter"),
+                    tag: "quarter",
+                    icon: "square.stack.3d.up.fill"
+                )
+                settingsDivider
+                timeTrackingPeriodRow(
+                    title: String(localized: "account_settings.time_tracking_period_year"),
+                    tag: "year",
+                    icon: "calendar.badge.clock"
+                )
+                settingsDivider
+                timeTrackingPeriodRow(
+                    title: String(localized: "account_settings.time_tracking_period_custom"),
+                    tag: "custom",
+                    icon: "slider.horizontal.3"
+                )
+                if timeTrackingPeriod == "custom" {
+                    settingsDivider
+                    timeTrackingCustomDaysRow
+                }
+            }
+            .padding(16)
+            .glassPanel(cornerRadius: 20, tint: CloudwrkzColors.primary500, tintOpacity: 0.04)
+        }
+    }
+
+    private func timeTrackingPeriodRow(title: String, tag: String, icon: String) -> some View {
+        Button {
+            timeTrackingPeriod = tag
+        } label: {
+            HStack(spacing: 14) {
+                Image(systemName: icon)
+                    .font(.system(size: 20))
+                    .foregroundStyle(CloudwrkzColors.primary400)
+                    .frame(width: 28, height: 28)
+                Text(title)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(CloudwrkzColors.neutral100)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                if timeTrackingPeriod == tag {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 20))
+                        .foregroundStyle(CloudwrkzColors.primary400)
+                }
+            }
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var timeTrackingCustomDaysRow: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "calendar")
+                .font(.system(size: 20))
+                .foregroundStyle(CloudwrkzColors.primary400)
+                .frame(width: 28, height: 28)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("account_settings.time_tracking_custom_days")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(CloudwrkzColors.neutral100)
+                Text("\(timeTrackingCustomDays) \(timeTrackingCustomDays == 1 ? String(localized: "account_settings.time_tracking_day") : String(localized: "account_settings.time_tracking_days"))")
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundStyle(CloudwrkzColors.neutral500)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            Stepper("", value: $timeTrackingCustomDays, in: 1...366)
+                .labelsHidden()
+                .tint(CloudwrkzColors.primary400)
+            Text("\(timeTrackingCustomDays)")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(CloudwrkzColors.neutral100)
+                .frame(minWidth: 28, alignment: .trailing)
+        }
+        .padding(.vertical, 12)
     }
 
     // MARK: - Security

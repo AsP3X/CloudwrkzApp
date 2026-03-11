@@ -52,8 +52,6 @@ struct AddTimeEntrySheet: View {
             }
             .navigationTitle("Add Time Entry")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarBackground(CloudwrkzColors.neutral950.opacity(0.95), for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") { dismiss() }
@@ -81,6 +79,8 @@ struct AddTimeEntrySheet: View {
                     .disabled(isSubmitting || name.trimmingCharacters(in: .whitespaces).isEmpty || totalSeconds == 0)
                 }
             }
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarBackground(CloudwrkzColors.neutral950, for: .navigationBar)
             .tint(CloudwrkzColors.primary400)
         }
     }

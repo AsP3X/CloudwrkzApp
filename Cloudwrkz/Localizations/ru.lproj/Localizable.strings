@@ -53,6 +53,17 @@
 "account_settings.theme_light" = "Светлая";
 "account_settings.theme_system" = "Системная";
 "account_settings.title" = "Настройки аккаунта";
+"account_settings.time_tracking" = "Учёт времени";
+"account_settings.time_tracking_default_range" = "Период по умолчанию";
+"account_settings.time_tracking_default_range_subtitle" = "Показывается в учёте времени при открытии или сбросе фильтров.";
+"account_settings.time_tracking_period_month" = "1 месяц";
+"account_settings.time_tracking_period_week" = "Неделя";
+"account_settings.time_tracking_period_quarter" = "Квартал";
+"account_settings.time_tracking_period_year" = "Год";
+"account_settings.time_tracking_period_custom" = "Свой (дней)";
+"account_settings.time_tracking_custom_days" = "Дней";
+"account_settings.time_tracking_day" = "день";
+"account_settings.time_tracking_days" = "дней";
 "ACTIVE TIMERS" = "АКТИВНЫЕ ТАЙМЕРЫ";
 "Add" = "Добавить";
 "Add a manual time entry" = "Добавить запись времени вручную";
