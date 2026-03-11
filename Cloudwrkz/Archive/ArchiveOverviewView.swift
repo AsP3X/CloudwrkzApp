@@ -392,6 +392,11 @@ struct ArchiveOverviewView: View {
     private func loadAll() async {
         errorMessage = nil
         isLoading = true
+        defer {
+            Task { @MainActor in
+                isLoading = false
+            }
+        }
 
         var ticketItems: [ArchiveItem] = []
         var todoItems: [ArchiveItem] = []
@@ -411,7 +416,7 @@ struct ArchiveOverviewView: View {
         todoFilters.status = .all
         todoFilters.priority = .all
         todoFilters.archive = .archived
-        todoFilters.includeSubtodos = true // include all archived todos (root + subtodos), matching web
+        todoFilters.includeSubtodos = true
         switch await TodoService.fetchTodos(config: appState.config, filters: todoFilters) {
         case .success(let list): todoItems = list.compactMap { t in t.archivedAt != nil ? ArchiveItem.todo(t) : nil }
         case .failure(let e): if firstError == nil { firstError = messageForTodo(e) }
@@ -427,7 +432,6 @@ struct ArchiveOverviewView: View {
 
         var linkFilters = LinkFilters()
         linkFilters.archived = true
-        // API caps limit at 100 per page; paginate to load all archived links so archive matches web.
         var linkPage = 1
         let linkPageSize = 100
         while true {
@@ -435,9 +439,7 @@ struct ArchiveOverviewView: View {
             case .success(let response):
                 let pageItems = response.links.compactMap { l in l.archivedAt != nil ? ArchiveItem.link(l) : nil }
                 linkItems.append(contentsOf: pageItems)
-                if response.links.count < linkPageSize || linkPage >= response.totalPages {
-                    break
-                }
+                if response.links.count < linkPageSize || linkPage >= response.totalPages { break }
                 linkPage += 1
             case .failure(let e):
                 if firstError == nil { firstError = messageForLink(e) }
@@ -449,7 +451,6 @@ struct ArchiveOverviewView: View {
         await MainActor.run {
             items = all
             errorMessage = firstError
-            isLoading = false
         }
     }
 
