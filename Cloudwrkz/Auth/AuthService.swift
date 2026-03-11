@@ -299,6 +299,39 @@ enum AuthService {
         }
     }
 
+    /// POST extend-session: if session is valid and has less than 7 days left, server extends to 7 days.
+    /// Path derived from login path (api/login → api/extend-session, api/auth/login → api/auth/extend-session).
+    /// Call when the user opens the app; does not notify on 401 (periodic validate will show session expired).
+    static func extendSession(config: ServerConfig) async -> Result<Void, AuthMeFailure> {
+        guard let base = config.baseURL else { return .failure(.noServerURL) }
+        guard let token = AuthTokenStorage.getToken(), !token.isEmpty else { return .failure(.noToken) }
+        let path = config.loginPath.trimmingCharacters(in: .whitespacesAndNewlines)
+        let extendPath = path.isEmpty ? "api/extend-session" : path.replacingOccurrences(of: "login", with: "extend-session", options: .caseInsensitive)
+        let pathSegments = extendPath.split(separator: "/", omittingEmptySubsequences: true).map(String.init)
+        guard !pathSegments.isEmpty else { return .failure(.noServerURL) }
+        var url = base
+        for segment in pathSegments { url = url.appending(path: segment) }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = timeout
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        AppIdentity.apply(to: &request)
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse else { return .failure(.serverError(message: "Invalid response")) }
+            switch http.statusCode {
+            case 200: return .success(())
+            case 401: return .failure(.unauthorized)
+            case 400...599: return .failure(.serverError(message: "Server error \(http.statusCode)"))
+            default: return .failure(.serverError(message: "Unexpected status \(http.statusCode)"))
+            }
+        } catch {
+            let description = (error as? URLError)?.localizedDescription ?? error.localizedDescription
+            return .failure(.networkError(description: description))
+        }
+    }
+
     /// Performs POST baseURL/api/register. On success the user account exists; caller typically navigates to login.
     static func register(name: String, email: String, password: String, confirmPassword: String, config: ServerConfig) async -> Result<Void, AuthRegisterFailure> {
         guard let base = config.baseURL else {

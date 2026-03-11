@@ -128,6 +128,7 @@ struct RootView: View {
                 isAppLocked = true
             }
             if newPhase == .active, authFlow.screen == .main {
+                Task { _ = await AuthService.extendSession(config: appState.config) }
                 sessionMonitor.validate(config: appState.config)
                 sessionMonitor.startTimer(config: appState.config)
             }
