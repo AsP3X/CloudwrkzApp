@@ -52,6 +52,7 @@ struct AddTimeEntrySheet: View {
             }
             .navigationTitle("Add Time Entry")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") { dismiss() }
@@ -69,18 +70,13 @@ struct AddTimeEntrySheet: View {
                             Image(systemName: "plus.circle.fill")
                                 .font(.system(size: 12))
                             Text("Add")
-                                .font(.system(size: 16, weight: .semibold))
+                                .font(.system(size: 17, weight: .semibold))
                         }
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .glassButtonPrimary(cornerRadius: 12)
                     }
+                    .foregroundStyle(CloudwrkzColors.primary400)
                     .disabled(isSubmitting || name.trimmingCharacters(in: .whitespaces).isEmpty || totalSeconds == 0)
                 }
             }
-            .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarBackground(CloudwrkzColors.neutral950, for: .navigationBar)
             .tint(CloudwrkzColors.primary400)
         }
     }
