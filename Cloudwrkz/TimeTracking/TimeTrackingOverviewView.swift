@@ -24,7 +24,6 @@ struct TimeTrackingOverviewView: View {
     @State private var showStartTimer = false
     @State private var showAddEntry = false
     @State private var showActionMenu = false
-    @State private var timerTick = Date()
     @State private var selectionMode = false
     @State private var selectedEntryIds: Set<String> = []
     @State private var pendingDeleteEntry: TimeEntry?
@@ -33,7 +32,6 @@ struct TimeTrackingOverviewView: View {
     @State private var bulkActionInProgress = false
 
     @Environment(\.appState) private var appState
-    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
         ZStack {
@@ -133,7 +131,6 @@ struct TimeTrackingOverviewView: View {
             }
             Task { await loadEntries() }
         }
-        .onReceive(timer) { timerTick = $0 }
         .overlay {
             if showBulkDeleteConfirm {
                 bulkDeleteConfirmationDialog
@@ -164,7 +161,7 @@ struct TimeTrackingOverviewView: View {
     private var mainContent: some View {
         ScrollView {
             LazyVStack(spacing: 16) {
-                statsSection
+                LiveStatsSection(entries: entries)
                 activeTimersSection
                 allEntriesSection
             }
@@ -179,21 +176,6 @@ struct TimeTrackingOverviewView: View {
                 bulkActionBar
             }
         }
-    }
-
-    // MARK: - Stats cards
-
-    private var statsSection: some View {
-        let activeCount = entries.filter { $0.status.isActive }.count
-        let totalEntries = entries.count
-        let totalSeconds = entries.reduce(0) { $0 + TimeTrackingUtils.calculateElapsedTime(entry: $1) }
-
-        return HStack(spacing: 12) {
-            StatCard(title: "Total", value: "\(totalEntries)", icon: "clock.fill", color: CloudwrkzColors.primary400)
-            StatCard(title: "Active", value: "\(activeCount)", icon: "play.fill", color: CloudwrkzColors.success500)
-            StatCard(title: "Time", value: TimeTrackingUtils.formatDurationHuman(totalSeconds), icon: "hourglass", color: CloudwrkzColors.warning400)
-        }
-        .id(timerTick)
     }
 
     // MARK: - Active timers section
@@ -218,7 +200,7 @@ struct TimeTrackingOverviewView: View {
                     let isSelected = selectedEntryIds.contains(entry.id)
                     Group {
                         if selectionMode {
-                            ActiveTimerRow(entry: entry, tick: timerTick, isSelected: isSelected, selectionMode: true, onPause: {
+                            ActiveTimerRow(entry: entry, isSelected: isSelected, selectionMode: true, onPause: {
                                 Task { await performAction(.pause, on: entry) }
                             }, onResume: {
                                 Task { await performAction(.resume, on: entry) }
@@ -228,7 +210,7 @@ struct TimeTrackingOverviewView: View {
                             .onTapGesture { toggleSelection(for: entry) }
                         } else {
                             NavigationLink(value: entry) {
-                                ActiveTimerRow(entry: entry, tick: timerTick, isSelected: false, selectionMode: false, onPause: {
+                                ActiveTimerRow(entry: entry, isSelected: false, selectionMode: false, onPause: {
                                     Task { await performAction(.pause, on: entry) }
                                 }, onResume: {
                                     Task { await performAction(.resume, on: entry) }
@@ -288,7 +270,7 @@ struct TimeTrackingOverviewView: View {
                         let isSelected = selectedEntryIds.contains(entry.id)
                         Group {
                             if selectionMode {
-                                TimeEntryRow(entry: entry, tick: timerTick, isSelected: isSelected, selectionMode: true, onPause: {
+                                TimeEntryRow(entry: entry, isSelected: isSelected, selectionMode: true, onPause: {
                                     Task { await performAction(.pause, on: entry) }
                                 }, onResume: {
                                     Task { await performAction(.resume, on: entry) }
@@ -298,7 +280,7 @@ struct TimeTrackingOverviewView: View {
                                 .onTapGesture { toggleSelection(for: entry) }
                             } else {
                                 NavigationLink(value: entry) {
-                                    TimeEntryRow(entry: entry, tick: timerTick, isSelected: false, selectionMode: false, onPause: {
+                                    TimeEntryRow(entry: entry, isSelected: false, selectionMode: false, onPause: {
                                         Task { await performAction(.pause, on: entry) }
                                     }, onResume: {
                                         Task { await performAction(.resume, on: entry) }
@@ -758,6 +740,61 @@ struct TimeTrackingOverviewView: View {
     }
 }
 
+// MARK: - Live duration text (own timer so row/context menu do not re-render)
+
+private struct LiveDurationText: View {
+    let entry: TimeEntry
+    var style: Style = .compact
+    @State private var timerTick = Date()
+    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+
+    enum Style {
+        case active
+        case compact
+    }
+
+    var body: some View {
+        let _ = timerTick
+        let elapsed = TimeTrackingUtils.calculateElapsedTime(entry: entry)
+        return Text(TimeTrackingUtils.formatDuration(elapsed))
+            .font(.system(size: style == .active ? 24 : 16, weight: .bold, design: .monospaced))
+            .foregroundStyle(textColor)
+            .contentTransition(.numericText())
+            .animation(.easeInOut(duration: 0.3), value: elapsed)
+            .onReceive(timer) { timerTick = $0 }
+    }
+
+    private var textColor: Color {
+        switch style {
+        case .active:
+            return entry.status == .running ? CloudwrkzColors.success400 : CloudwrkzColors.warning400
+        case .compact:
+            return entry.status.isActive ? CloudwrkzColors.success400 : CloudwrkzColors.neutral200
+        }
+    }
+}
+
+// MARK: - Live stats section (own timer so main view does not re-render)
+
+private struct LiveStatsSection: View {
+    let entries: [TimeEntry]
+    @State private var timerTick = Date()
+    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+
+    var body: some View {
+        let activeCount = entries.filter { $0.status.isActive }.count
+        let totalEntries = entries.count
+        let totalSeconds = entries.reduce(0) { $0 + TimeTrackingUtils.calculateElapsedTime(entry: $1) }
+        HStack(spacing: 12) {
+            StatCard(title: "Total", value: "\(totalEntries)", icon: "clock.fill", color: CloudwrkzColors.primary400)
+            StatCard(title: "Active", value: "\(activeCount)", icon: "play.fill", color: CloudwrkzColors.success500)
+            StatCard(title: "Time", value: TimeTrackingUtils.formatDurationHuman(totalSeconds), icon: "hourglass", color: CloudwrkzColors.warning400)
+        }
+        .id(timerTick)
+        .onReceive(timer) { timerTick = $0 }
+    }
+}
+
 // MARK: - Stat card
 
 private struct StatCard: View {
@@ -811,7 +848,6 @@ private struct StatCard: View {
 
 private struct ActiveTimerRow: View {
     let entry: TimeEntry
-    let tick: Date
     var isSelected: Bool = false
     var selectionMode: Bool = false
     var onPause: () -> Void
@@ -884,12 +920,7 @@ private struct ActiveTimerRow: View {
     }
 
     private var liveTimerDisplay: some View {
-        let elapsed = TimeTrackingUtils.calculateElapsedTime(entry: entry)
-        return Text(TimeTrackingUtils.formatDuration(elapsed))
-            .font(.system(size: 24, weight: .bold, design: .monospaced))
-            .foregroundStyle(entry.status == .running ? CloudwrkzColors.success400 : CloudwrkzColors.warning400)
-            .contentTransition(.numericText())
-            .animation(.easeInOut(duration: 0.3), value: elapsed)
+        LiveDurationText(entry: entry, style: .active)
     }
 
     private var actionButtons: some View {
@@ -956,7 +987,6 @@ private struct ActiveTimerRow: View {
 
 private struct TimeEntryRow: View {
     let entry: TimeEntry
-    let tick: Date
     var isSelected: Bool = false
     var selectionMode: Bool = false
     var onPause: () -> Void
@@ -1047,11 +1077,7 @@ private struct TimeEntryRow: View {
     }
 
     private var durationDisplay: some View {
-        let elapsed = TimeTrackingUtils.calculateElapsedTime(entry: entry)
-        return Text(TimeTrackingUtils.formatDuration(elapsed))
-            .font(.system(size: 16, weight: .bold, design: .monospaced))
-            .foregroundStyle(entry.status.isActive ? CloudwrkzColors.success400 : CloudwrkzColors.neutral200)
-            .contentTransition(.numericText())
+        LiveDurationText(entry: entry, style: .compact)
     }
 
     private var compactActions: some View {

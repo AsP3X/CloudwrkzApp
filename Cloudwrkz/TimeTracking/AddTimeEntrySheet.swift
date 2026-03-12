@@ -74,7 +74,7 @@ struct AddTimeEntrySheet: View {
                         }
                     }
                     .foregroundStyle(CloudwrkzColors.primary400)
-                    .disabled(isSubmitting || name.trimmingCharacters(in: .whitespaces).isEmpty || totalSeconds == 0)
+                    .disabled(isSubmitting || totalSeconds == 0)
                 }
             }
             .tint(CloudwrkzColors.primary400)
@@ -108,8 +108,8 @@ struct AddTimeEntrySheet: View {
 
     private var formSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            fieldGroup("Name *") {
-                TextField("e.g. Client meeting", text: $name)
+            fieldGroup("Name") {
+                TextField("e.g. Client meeting (optional, auto-generated if empty)", text: $name)
                     .font(.system(size: 15))
                     .foregroundStyle(CloudwrkzColors.neutral100)
                     .padding(14)

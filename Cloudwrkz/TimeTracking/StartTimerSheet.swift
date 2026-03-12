@@ -66,13 +66,10 @@ struct StartTimerSheet: View {
                             Image(systemName: "play.fill")
                                 .font(.system(size: 12))
                             Text("Start")
-                                .font(.system(size: 16, weight: .semibold))
+                                .font(.system(size: 17, weight: .semibold))
                         }
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .glassButtonPrimary(cornerRadius: 12)
                     }
+                    .foregroundStyle(CloudwrkzColors.primary400)
                     .disabled(isSubmitting)
                 }
             }
