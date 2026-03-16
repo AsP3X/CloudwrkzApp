@@ -406,6 +406,7 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Cloudwrkz uses the camera to scan the QR code on the website to sign you in.";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Cloudwrkz uses Face ID to unlock the app when biometric lock is enabled.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Cloudwrkz uses your photo library so you can select a profile photo.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -448,6 +449,7 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Cloudwrkz uses the camera to scan the QR code on the website to sign you in.";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Cloudwrkz uses Face ID to unlock the app when biometric lock is enabled.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Cloudwrkz uses your photo library so you can select a profile photo.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
