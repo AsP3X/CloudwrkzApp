@@ -13,6 +13,8 @@ struct TicketsOverviewView: View {
     @State private var errorMessage: String?
     @State private var filters = TicketFilters()
     @State private var showFilters = false
+    @State private var pendingArchiveTicket: Ticket?
+    @State private var pendingDeleteTicket: Ticket?
 
     private var hasActiveFilters: Bool {
         filters.status != .unresolved
@@ -58,6 +60,13 @@ struct TicketsOverviewView: View {
                 .onDisappear { Task { await loadTickets() } }
         }
         .onAppear { Task { await loadTickets() } }
+        .overlay {
+            if let ticket = pendingArchiveTicket {
+                archiveConfirmationDialog(for: ticket)
+            } else if let ticket = pendingDeleteTicket {
+                deleteConfirmationDialog(for: ticket)
+            }
+        }
     }
 
     private var background: some View {
@@ -126,6 +135,18 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
                         TicketRowView(ticket: ticket)
                     }
                     .buttonStyle(.plain)
+                    .contextMenu {
+                        Button {
+                            pendingArchiveTicket = ticket
+                        } label: {
+                            Label(String(localized: "ticket.archive"), systemImage: "archivebox")
+                        }
+                        Button(role: .destructive) {
+                            pendingDeleteTicket = ticket
+                        } label: {
+                            Label(String(localized: "ticket.delete"), systemImage: "trash")
+                        }
+                    }
                 }
             }
             .padding(.horizontal, 20)
@@ -163,6 +184,204 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
         case .unauthorized: return String(localized: "todo.session_expired")
         case .serverError(let m): return m
         case .networkError: return String(localized: "auth.could_not_reach_server")
+        }
+    }
+
+    private func performArchive(_ ticket: Ticket) async {
+        _ = await TicketService.archiveTicket(config: appState.config, id: ticket.id)
+        await loadTickets()
+    }
+
+    private func performDelete(_ ticket: Ticket) async {
+        _ = await TicketService.deleteTicket(config: appState.config, id: ticket.id)
+        await loadTickets()
+    }
+
+    @ViewBuilder
+    private func archiveConfirmationDialog(for ticket: Ticket) -> some View {
+        ZStack {
+            Color.black.opacity(0.4)
+                .ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                VStack(spacing: 12) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "archivebox")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundStyle(CloudwrkzColors.warning500)
+                        Text("ticket.archive_ticket")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundStyle(CloudwrkzColors.neutral100)
+                    }
+                    Text(String(format: String(localized: "ticket.archive_ticket_message"), ticket.title))
+                        .font(.system(size: 14, weight: .regular))
+                        .foregroundStyle(CloudwrkzColors.neutral400)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(3)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                HStack(spacing: 12) {
+                    Button {
+                        pendingArchiveTicket = nil
+                    } label: {
+                        Text("common.cancel")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundStyle(CloudwrkzColors.neutral100)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                    }
+                    .background(
+                        Group {
+                            if #available(iOS 26.0, *) {
+                                RoundedRectangle(cornerRadius: 14)
+                                    .fill(.clear)
+                                    .glassEffect(.regular.tint(CloudwrkzColors.glassFillSubtle), in: RoundedRectangle(cornerRadius: 14))
+                            } else {
+                                Color.clear
+                                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
+                            }
+                        }
+                    )
+
+                    Button {
+                        let t = ticket
+                        pendingArchiveTicket = nil
+                        Task { await performArchive(t) }
+                    } label: {
+                        Text("ticket.archive")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(CloudwrkzColors.neutral950)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                    }
+                    .background(
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(CloudwrkzColors.warning500)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(CloudwrkzColors.glassStroke, lineWidth: 1)
+                            )
+                    )
+                }
+            }
+            .padding(20)
+            .frame(maxWidth: 360)
+            .background(
+                Group {
+                    if #available(iOS 26.0, *) {
+                        RoundedRectangle(cornerRadius: 22)
+                            .fill(.clear)
+                            .glassEffect(.regular.tint(CloudwrkzColors.glassFillHighlight), in: RoundedRectangle(cornerRadius: 22))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 22)
+                                    .stroke(CloudwrkzColors.glassStrokeSubtle, lineWidth: 1)
+                            )
+                    } else {
+                        Color.clear
+                            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 22))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 22)
+                                    .stroke(CloudwrkzColors.glassStrokeSubtle, lineWidth: 1)
+                            )
+                    }
+                }
+            )
+            .padding(.horizontal, 24)
+        }
+    }
+
+    @ViewBuilder
+    private func deleteConfirmationDialog(for ticket: Ticket) -> some View {
+        ZStack {
+            Color.black.opacity(0.4)
+                .ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                VStack(spacing: 12) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundStyle(CloudwrkzColors.error500)
+                        Text("ticket.delete_ticket")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundStyle(CloudwrkzColors.neutral100)
+                    }
+                    Text(String(format: String(localized: "ticket.delete_ticket_message"), ticket.title))
+                        .font(.system(size: 14, weight: .regular))
+                        .foregroundStyle(CloudwrkzColors.neutral400)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(3)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                HStack(spacing: 12) {
+                    Button {
+                        pendingDeleteTicket = nil
+                    } label: {
+                        Text("common.cancel")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundStyle(CloudwrkzColors.neutral100)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                    }
+                    .background(
+                        Group {
+                            if #available(iOS 26.0, *) {
+                                RoundedRectangle(cornerRadius: 14)
+                                    .fill(.clear)
+                                    .glassEffect(.regular.tint(CloudwrkzColors.glassFillSubtle), in: RoundedRectangle(cornerRadius: 14))
+                            } else {
+                                Color.clear
+                                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
+                            }
+                        }
+                    )
+
+                    Button {
+                        let t = ticket
+                        pendingDeleteTicket = nil
+                        Task { await performDelete(t) }
+                    } label: {
+                        Text("ticket.delete")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(CloudwrkzColors.neutral950)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                    }
+                    .background(
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(CloudwrkzColors.error500)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(CloudwrkzColors.glassStroke, lineWidth: 1)
+                            )
+                    )
+                }
+            }
+            .padding(20)
+            .frame(maxWidth: 360)
+            .background(
+                Group {
+                    if #available(iOS 26.0, *) {
+                        RoundedRectangle(cornerRadius: 22)
+                            .fill(.clear)
+                            .glassEffect(.regular.tint(CloudwrkzColors.glassFillHighlight), in: RoundedRectangle(cornerRadius: 22))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 22)
+                                    .stroke(CloudwrkzColors.glassStrokeSubtle, lineWidth: 1)
+                            )
+                    } else {
+                        Color.clear
+                            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 22))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 22)
+                                    .stroke(CloudwrkzColors.glassStrokeSubtle, lineWidth: 1)
+                            )
+                    }
+                }
+            )
+            .padding(.horizontal, 24)
         }
     }
 }

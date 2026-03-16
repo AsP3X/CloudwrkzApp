@@ -32,6 +32,8 @@ struct TodosOverviewView: View {
     @State private var showFilters = false
     @State private var showAddTodo = false
     @AppStorage("todoOverviewViewStyle") private var viewStyleRaw: String = TodoOverviewViewStyle.card.rawValue
+    @State private var pendingArchiveTodo: Todo?
+    @State private var pendingDeleteTodo: Todo?
 
     private var viewStyle: TodoOverviewViewStyle {
         TodoOverviewViewStyle(rawValue: viewStyleRaw) ?? .card
@@ -113,6 +115,13 @@ struct TodosOverviewView: View {
             )
         }
         .onAppear { Task { await loadTodos() } }
+        .overlay {
+            if let todo = pendingArchiveTodo {
+                archiveConfirmationDialog(for: todo)
+            } else if let todo = pendingDeleteTodo {
+                deleteConfirmationDialog(for: todo)
+            }
+        }
     }
 
     /// Floating add-todo button, bottom right. Liquid glass style (matches Links).
@@ -202,6 +211,32 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
                         TodoRowView(todo: todo)
                     }
                     .buttonStyle(.plain)
+                    .contextMenu {
+                        if todo.status == "COMPLETED" {
+                            Button {
+                                Task { await uncompleteTodo(todo.id) }
+                            } label: {
+                                Label(String(localized: "todo.context_uncomplete"), systemImage: "arrow.uturn.backward.circle")
+                            }
+                        } else {
+                            Button {
+                                Task { await completeTodo(todo.id) }
+                            } label: {
+                                Label(String(localized: "todo.context_complete"), systemImage: "checkmark.circle")
+                            }
+                        }
+                        Divider()
+                        Button {
+                            pendingArchiveTodo = todo
+                        } label: {
+                            Label(String(localized: "todo.archive"), systemImage: "archivebox")
+                        }
+                        Button(role: .destructive) {
+                            pendingDeleteTodo = todo
+                        } label: {
+                            Label(String(localized: "todo.delete"), systemImage: "trash")
+                        }
+                    }
                 }
             }
             .padding(.horizontal, 20)
@@ -252,9 +287,27 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
                         .listRowBackground(Color.clear)
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             Button(role: .destructive) {
-                                Task { await deleteTodo(todo.id) }
+                                pendingDeleteTodo = todo
                             } label: { Image(systemName: "trash") }
                             .tint(.red)
+                        }
+                        .contextMenu {
+                            Button {
+                                Task { await uncompleteTodo(todo.id) }
+                            } label: {
+                                Label(String(localized: "todo.context_uncomplete"), systemImage: "arrow.uturn.backward.circle")
+                            }
+                            Divider()
+                            Button {
+                                pendingArchiveTodo = todo
+                            } label: {
+                                Label(String(localized: "todo.archive"), systemImage: "archivebox")
+                            }
+                            Button(role: .destructive) {
+                                pendingDeleteTodo = todo
+                            } label: {
+                                Label(String(localized: "todo.delete"), systemImage: "trash")
+                            }
                         }
                     } else {
                         NavigationLink(value: todo) {
@@ -266,13 +319,31 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
                         .listRowBackground(Color.clear)
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             Button(role: .destructive) {
-                                Task { await deleteTodo(todo.id) }
+                                pendingDeleteTodo = todo
                             } label: { Image(systemName: "trash") }
                             .tint(.red)
                             Button {
                                 Task { await completeTodo(todo.id) }
                             } label: { Image(systemName: "checkmark") }
                             .tint(CloudwrkzColors.success500)
+                        }
+                        .contextMenu {
+                            Button {
+                                Task { await completeTodo(todo.id) }
+                            } label: {
+                                Label(String(localized: "todo.context_complete"), systemImage: "checkmark.circle")
+                            }
+                            Divider()
+                            Button {
+                                pendingArchiveTodo = todo
+                            } label: {
+                                Label(String(localized: "todo.archive"), systemImage: "archivebox")
+                            }
+                            Button(role: .destructive) {
+                                pendingDeleteTodo = todo
+                            } label: {
+                                Label(String(localized: "todo.delete"), systemImage: "trash")
+                            }
                         }
                     }
                 }
@@ -388,6 +459,204 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
         case .unauthorized: return String(localized: "todo.session_expired")
         case .serverError(let m): return m
         case .networkError: return String(localized: "auth.could_not_reach_server")
+        }
+    }
+
+    private func performArchive(_ todo: Todo) async {
+        _ = await TodoService.archiveTodo(config: appState.config, id: todo.id)
+        await loadTodos()
+    }
+
+    private func performDelete(_ todo: Todo) async {
+        _ = await TodoService.deleteTodo(config: appState.config, id: todo.id)
+        await loadTodos()
+    }
+
+    @ViewBuilder
+    private func archiveConfirmationDialog(for todo: Todo) -> some View {
+        ZStack {
+            Color.black.opacity(0.4)
+                .ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                VStack(spacing: 12) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "archivebox")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundStyle(CloudwrkzColors.warning500)
+                        Text("todo.archive_todo")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundStyle(CloudwrkzColors.neutral100)
+                    }
+                    Text(String(format: String(localized: "todo.archive_todo_message"), todo.title))
+                        .font(.system(size: 14, weight: .regular))
+                        .foregroundStyle(CloudwrkzColors.neutral400)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(3)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                HStack(spacing: 12) {
+                    Button {
+                        pendingArchiveTodo = nil
+                    } label: {
+                        Text("common.cancel")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundStyle(CloudwrkzColors.neutral100)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                    }
+                    .background(
+                        Group {
+                            if #available(iOS 26.0, *) {
+                                RoundedRectangle(cornerRadius: 14)
+                                    .fill(.clear)
+                                    .glassEffect(.regular.tint(CloudwrkzColors.glassFillSubtle), in: RoundedRectangle(cornerRadius: 14))
+                            } else {
+                                Color.clear
+                                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
+                            }
+                        }
+                    )
+
+                    Button {
+                        let t = todo
+                        pendingArchiveTodo = nil
+                        Task { await performArchive(t) }
+                    } label: {
+                        Text("todo.archive")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(CloudwrkzColors.neutral950)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                    }
+                    .background(
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(CloudwrkzColors.warning500)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(CloudwrkzColors.glassStroke, lineWidth: 1)
+                            )
+                    )
+                }
+            }
+            .padding(20)
+            .frame(maxWidth: 360)
+            .background(
+                Group {
+                    if #available(iOS 26.0, *) {
+                        RoundedRectangle(cornerRadius: 22)
+                            .fill(.clear)
+                            .glassEffect(.regular.tint(CloudwrkzColors.glassFillHighlight), in: RoundedRectangle(cornerRadius: 22))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 22)
+                                    .stroke(CloudwrkzColors.glassStrokeSubtle, lineWidth: 1)
+                            )
+                    } else {
+                        Color.clear
+                            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 22))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 22)
+                                    .stroke(CloudwrkzColors.glassStrokeSubtle, lineWidth: 1)
+                            )
+                    }
+                }
+            )
+            .padding(.horizontal, 24)
+        }
+    }
+
+    @ViewBuilder
+    private func deleteConfirmationDialog(for todo: Todo) -> some View {
+        ZStack {
+            Color.black.opacity(0.4)
+                .ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                VStack(spacing: 12) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundStyle(CloudwrkzColors.error500)
+                        Text("todo.delete_todo")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundStyle(CloudwrkzColors.neutral100)
+                    }
+                    Text(String(format: String(localized: "todo.delete_todo_message"), todo.title))
+                        .font(.system(size: 14, weight: .regular))
+                        .foregroundStyle(CloudwrkzColors.neutral400)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(3)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                HStack(spacing: 12) {
+                    Button {
+                        pendingDeleteTodo = nil
+                    } label: {
+                        Text("common.cancel")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundStyle(CloudwrkzColors.neutral100)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                    }
+                    .background(
+                        Group {
+                            if #available(iOS 26.0, *) {
+                                RoundedRectangle(cornerRadius: 14)
+                                    .fill(.clear)
+                                    .glassEffect(.regular.tint(CloudwrkzColors.glassFillSubtle), in: RoundedRectangle(cornerRadius: 14))
+                            } else {
+                                Color.clear
+                                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
+                            }
+                        }
+                    )
+
+                    Button {
+                        let t = todo
+                        pendingDeleteTodo = nil
+                        Task { await performDelete(t) }
+                    } label: {
+                        Text("todo.delete")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(CloudwrkzColors.neutral950)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                    }
+                    .background(
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(CloudwrkzColors.error500)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(CloudwrkzColors.glassStroke, lineWidth: 1)
+                            )
+                    )
+                }
+            }
+            .padding(20)
+            .frame(maxWidth: 360)
+            .background(
+                Group {
+                    if #available(iOS 26.0, *) {
+                        RoundedRectangle(cornerRadius: 22)
+                            .fill(.clear)
+                            .glassEffect(.regular.tint(CloudwrkzColors.glassFillHighlight), in: RoundedRectangle(cornerRadius: 22))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 22)
+                                    .stroke(CloudwrkzColors.glassStrokeSubtle, lineWidth: 1)
+                            )
+                    } else {
+                        Color.clear
+                            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 22))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 22)
+                                    .stroke(CloudwrkzColors.glassStrokeSubtle, lineWidth: 1)
+                            )
+                    }
+                }
+            )
+            .padding(.horizontal, 24)
         }
     }
 }

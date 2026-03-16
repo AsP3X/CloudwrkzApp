@@ -1008,6 +1008,18 @@
 /* A message in an alert that appears when the user confirms deleting a time entry. The text inside the message is dynamically generated based on the name of the time entry that the user is trying to delete. */
 "This will permanently delete \"%@\". This action cannot be undone." = "This will permanently delete \"%@\". This action cannot be undone.";
 
+"ticket.archive" = "Archive";
+
+"ticket.archive_ticket" = "Archive ticket?";
+
+"ticket.archive_ticket_message" = ""%@" will be moved to the archive. You can restore it later.";
+
+"ticket.delete" = "Delete";
+
+"ticket.delete_ticket" = "Delete ticket?";
+
+"ticket.delete_ticket_message" = ""%@" will be permanently removed. This action can't be undone.";
+
 "ticket.empty_hint" = "Change filters or create a ticket in the web app.";
 
 "ticket.group" = "Group";
@@ -1035,13 +1047,29 @@
 /* A label for the title text field in the "Add Link" view. */
 "Title" = "Title";
 
+"todo.archive" = "Archive";
+
+"todo.archive_todo" = "Archive todo?";
+
+"todo.archive_todo_message" = ""%@" will be moved to the archive. You can restore it later.";
+
 "todo.assigned" = "Assigned";
 
 "todo.card_view" = "Card view";
 
 "todo.completed_header" = "COMPLETED";
 
+"todo.context_complete" = "Mark as Complete";
+
+"todo.context_uncomplete" = "Mark as Incomplete";
+
 "todo.created" = "Created";
+
+"todo.delete" = "Delete";
+
+"todo.delete_todo" = "Delete todo?";
+
+"todo.delete_todo_message" = ""%@" will be permanently removed. This action can't be undone.";
 
 "todo.empty_hint" = "Change filters or tap + to add a todo.";
 

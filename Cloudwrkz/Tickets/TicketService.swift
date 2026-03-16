@@ -126,6 +126,35 @@ enum TicketService {
         return url
     }
 
+    /// PATCH .../tickets/:id — archive (archivedAt: current date).
+    static func archiveTicket(config: ServerConfig, id: String) async -> Result<Void, TicketServiceError> {
+        guard let requestURL = ticketURL(config: config, id: id) else { return .failure(.noServerURL) }
+        guard let token = AuthTokenStorage.getToken(), !token.isEmpty else { return .failure(.noToken) }
+        var request = URLRequest(url: requestURL)
+        request.httpMethod = "PATCH"
+        request.timeoutInterval = timeout
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        AppIdentity.apply(to: &request)
+        let body: [String: Any] = ["archivedAt": isoDate(Date())]
+        request.httpBody = (try? JSONSerialization.data(withJSONObject: body))
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse else { return .failure(.serverError(message: "Invalid response")) }
+            switch http.statusCode {
+            case 200: return .success(())
+            case 401: SessionExpiredNotifier.notify(); return .failure(.unauthorized)
+            case 403, 404, 400...599:
+                let message = (try? JSONDecoder().decode(MessageResponse.self, from: data))?.message ?? "Server error (\(http.statusCode))"
+                return .failure(.serverError(message: message))
+            default: return .failure(.serverError(message: "Unexpected status \(http.statusCode)"))
+            }
+        } catch {
+            return .failure(.networkError(description: (error as? URLError)?.localizedDescription ?? error.localizedDescription))
+        }
+    }
+
     /// PATCH .../tickets/:id — unarchive (archivedAt: null).
     static func unarchiveTicket(config: ServerConfig, id: String) async -> Result<Void, TicketServiceError> {
         guard let requestURL = ticketURL(config: config, id: id) else { return .failure(.noServerURL) }
