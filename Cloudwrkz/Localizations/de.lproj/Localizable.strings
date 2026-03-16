@@ -507,11 +507,6 @@
 "register.please_enter_email" = "Bitte gib deine E-Mail-Adresse ein.";
 
 "register.please_enter_name" = "Bitte gib deinen Namen ein.";
-"register.consent_prefix" = "Mit der Registrierung stimmst du unserer";
-"register.privacy_policy_link" = "Datenschutzrichtlinie";
-"register.consent_and" = "und unseren";
-"register.terms_link" = "Nutzungsbedingungen";
-"register.consent_required" = "Bitte stimme der Datenschutzrichtlinie und den Nutzungsbedingungen zu.";
 
 "search.loading_more" = "Weitere werden geladen…";
 
@@ -647,11 +642,11 @@
 
 "privacy_policy.data_retention_title" = "Datenaufbewahrung";
 
-"privacy_policy.data_retention_body" = "• Lokale Daten: Werden sofort beim Abmelden oder bei Nutzung von „Lokalen Cache leeren" gelöscht.\n• Serverdaten: Werden solange aufbewahrt, wie Ihr Konto aktiv ist. Nach Kontolöschung werden alle personenbezogenen Daten innerhalb von 30 Tagen entfernt.\n• Backups: Server-Backups mit Ihren Daten werden innerhalb von 90 Tagen nach Kontolöschung bereinigt.";
+"privacy_policy.data_retention_body" = "• Lokale Daten: Werden sofort beim Abmelden oder bei Nutzung von „Lokalen Cache leeren“ gelöscht.\n• Serverdaten: Werden solange aufbewahrt, wie Ihr Konto aktiv ist. Nach Kontolöschung werden alle personenbezogenen Daten innerhalb von 30 Tagen entfernt.\n• Backups: Server-Backups mit Ihren Daten werden innerhalb von 90 Tagen nach Kontolöschung bereinigt.";
 
 "privacy_policy.your_rights_title" = "Ihre Rechte (DSGVO Art. 15–22)";
 
-"privacy_policy.your_rights_body" = "Nach der DSGVO haben Sie folgende Rechte:\n\n• Auskunftsrecht (Art. 15): Auskunft über die von uns verarbeiteten personenbezogenen Daten anfordern.\n• Recht auf Berichtigung (Art. 16): Unrichtige Daten über Ihre Profileinstellungen korrigieren.\n• Recht auf Löschung (Art. 17): Löschung Ihres Kontos und aller zugehörigen Daten anfordern.\n• Recht auf Einschränkung (Art. 18): Einschränkung der Verarbeitung unter bestimmten Bedingungen anfordern.\n• Recht auf Datenübertragbarkeit (Art. 20): Ihre Daten in einem strukturierten, maschinenlesbaren Format erhalten.\n• Widerspruchsrecht (Art. 21): Der Verarbeitung aufgrund berechtigter Interessen widersprechen.\n• Recht bei automatisierten Entscheidungen (Art. 22): Wir treffen keine automatisierten Entscheidungen oder Profiling mit rechtlicher Wirkung.\n\nSie können Ihre Rechte über den Bereich „Daten & Datenschutz" in den Kontoeinstellungen ausüben oder uns unter privacy@cloudwrkz.com kontaktieren.\n\nSie haben außerdem das Recht, Beschwerde bei einer Aufsichtsbehörde einzulegen (Art. 77).";
+"privacy_policy.your_rights_body" = "Nach der DSGVO haben Sie folgende Rechte:\n\n• Auskunftsrecht (Art. 15): Auskunft über die von uns verarbeiteten personenbezogenen Daten anfordern.\n• Recht auf Berichtigung (Art. 16): Unrichtige Daten über Ihre Profileinstellungen korrigieren.\n• Recht auf Löschung (Art. 17): Löschung Ihres Kontos und aller zugehörigen Daten anfordern.\n• Recht auf Einschränkung (Art. 18): Einschränkung der Verarbeitung unter bestimmten Bedingungen anfordern.\n• Recht auf Datenübertragbarkeit (Art. 20): Ihre Daten in einem strukturierten, maschinenlesbaren Format erhalten.\n• Widerspruchsrecht (Art. 21): Der Verarbeitung aufgrund berechtigter Interessen widersprechen.\n• Recht bei automatisierten Entscheidungen (Art. 22): Wir treffen keine automatisierten Entscheidungen oder Profiling mit rechtlicher Wirkung.\n\nSie können Ihre Rechte über den Bereich „Daten & Datenschutz“ in den Kontoeinstellungen ausüben oder uns unter privacy@cloudwrkz.com kontaktieren.\n\nSie haben außerdem das Recht, Beschwerde bei einer Aufsichtsbehörde einzulegen (Art. 77).";
 
 "privacy_policy.security_title" = "Sicherheitsmaßnahmen";
 
