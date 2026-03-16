@@ -404,6 +404,9 @@
 
 "dashboard.welcome_back" = "Welcome back. Choose a section from the menu or use the shortcuts below.";
 
+"dashboard.no_modules.title" = "No modules available";
+"dashboard.no_modules.message" = "No modules are available due to a lack of permissions or because the modules are disabled. Contact your administrator if you need access.";
+
 /* A button that deletes an archive item permanently. */
 "Delete" = "Delete";
 

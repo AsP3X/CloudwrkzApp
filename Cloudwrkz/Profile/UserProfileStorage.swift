@@ -64,19 +64,18 @@ struct UserProfileStorage {
         set { UserDefaults.standard.set(newValue?.timeIntervalSince1970 ?? 0, forKey: lastSignedInAtKey) }
     }
 
-    /// Module IDs the user is allowed to access (e.g. from /api/me). Nil or empty = all modules allowed.
+    /// Module IDs the user is allowed to access (e.g. from /api/me). Nil = not yet loaded; [] = no modules; non-empty = those modules.
     static var allowedModuleIds: [String]? {
         get {
             guard let data = UserDefaults.standard.data(forKey: allowedModuleIdsKey),
                   let ids = try? JSONDecoder().decode([String].self, from: data) else { return nil }
-            return ids.isEmpty ? nil : ids
+            return ids
         }
         set {
-            if let ids = newValue, !ids.isEmpty,
-               let data = try? JSONEncoder().encode(ids) {
-                UserDefaults.standard.set(data, forKey: allowedModuleIdsKey)
-            } else {
+            if newValue == nil {
                 UserDefaults.standard.removeObject(forKey: allowedModuleIdsKey)
+            } else if let data = try? JSONEncoder().encode(newValue) {
+                UserDefaults.standard.set(data, forKey: allowedModuleIdsKey)
             }
         }
     }

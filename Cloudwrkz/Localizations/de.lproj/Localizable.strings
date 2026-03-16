@@ -271,6 +271,9 @@
 
 "dashboard.welcome_back" = "Willkommen zur?ck. W?hle einen Bereich im Men? oder nutze die Verkn?pfungen unten.";
 
+"dashboard.no_modules.title" = "Keine Module verf?gbar";
+"dashboard.no_modules.message" = "Es sind keine Module verf?gbar ? entweder fehlen Berechtigungen oder die Module sind deaktiviert. Wenden Sie sich an Ihren Administrator, wenn Sie Zugriff ben?tigen.";
+
 "filter_archive.active" = "Aktiv";
 
 "filter_archive.archived" = "Archiviert";

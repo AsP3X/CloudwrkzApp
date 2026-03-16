@@ -50,6 +50,9 @@ struct ContentView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
+                        if noModulesAvailable {
+                            noModulesWarning
+                        }
                         welcomeSection
                         menuSection
                     }
@@ -209,6 +212,37 @@ struct ContentView: View {
             .toolbarBackground(.hidden, for: .navigationBar)
             .animation(Animation.elasticSlide, value: path)
         }
+    }
+
+    /// True when profile has been loaded and the user has no modules (permissions or modules disabled).
+    private var noModulesAvailable: Bool {
+        guard let ids = UserProfileStorage.allowedModuleIds else { return false }
+        return ids.isEmpty
+    }
+
+    private var noModulesWarning: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 20))
+                .foregroundStyle(CloudwrkzColors.warning500)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("dashboard.no_modules.title")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(CloudwrkzColors.neutral100)
+                Text("dashboard.no_modules.message")
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundStyle(CloudwrkzColors.neutral400)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(CloudwrkzColors.warning500.opacity(0.15))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(CloudwrkzColors.warning500.opacity(0.5), lineWidth: 1)
+        )
     }
 
     private var welcomeSection: some View {

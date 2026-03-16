@@ -186,6 +186,10 @@
 "dashboard.section.todos" = "Задачи";
 "dashboard.title" = "Панель";
 "dashboard.welcome_back" = "С возвращением. Выберите раздел в меню или используйте ярлыки ниже.";
+
+"dashboard.no_modules.title" = "Нет доступных модулей";
+"dashboard.no_modules.message" = "Нет доступных модулей из-за отсутствия прав или отключения модулей. Обратитесь к администратору, если вам нужен доступ.";
+
 "Delete" = "Удалить";
 "Delete %lld entries?" = "Удалить %lld записей?";
 "Delete Entry" = "Удалить запись";
