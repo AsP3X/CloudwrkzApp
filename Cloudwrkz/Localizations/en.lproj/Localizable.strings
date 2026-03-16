@@ -841,6 +841,11 @@
 "register.please_enter_email" = "Please enter your email.";
 
 "register.please_enter_name" = "Please enter your name.";
+"register.consent_prefix" = "By creating an account, you agree to our";
+"register.privacy_policy_link" = "Privacy Policy";
+"register.consent_and" = "and";
+"register.terms_link" = "Terms of Service";
+"register.consent_required" = "Please agree to the Privacy Policy and Terms of Service to continue.";
 
 /* A button label that allows users to remove a previously-set favicon. */
 "Remove" = "Remove";

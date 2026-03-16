@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct AccountSettingsView: View {
     @Environment(\.dismiss) private var dismiss
@@ -409,7 +410,7 @@ struct AccountSettingsView: View {
                     title: String(localized: "account_settings.privacy_policy"),
                     subtitle: String(localized: "account_settings.privacy_subtitle")
                 ) {
-                    // Placeholder: open URL
+                    openPrivacyPolicy()
                 }
             }
             .padding(16)
@@ -493,6 +494,13 @@ struct AccountSettingsView: View {
                 showCacheConfirm = true
             }
         }
+    }
+
+    /// Opens the privacy policy URL in the system browser. Uses server base URL + /privacy (e.g. https://cloudwrkz.com/privacy).
+    private func openPrivacyPolicy() {
+        let url = appState.config.baseURL?.appending(path: "privacy")
+        guard let url else { return }
+        UIApplication.shared.open(url)
     }
 
     private func refreshCacheSize() {
