@@ -47,7 +47,7 @@ struct DashboardHomeView: View {
                 .foregroundStyle(CloudwrkzColors.neutral500)
 
             VStack(spacing: 10) {
-                ForEach(DashboardSection.allCases.filter { $0 != .home }) { section in
+                ForEach(DashboardSection.visibleMenuSections(allowedModuleIds: UserProfileStorage.allowedModuleIds)) { section in
                     Button {
                         onSelectSection?(section)
                     } label: {

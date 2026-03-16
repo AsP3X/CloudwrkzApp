@@ -97,13 +97,14 @@ struct ContentView: View {
                 if AuthTokenStorage.getToken() != nil {
                     Task { @MainActor in
                         switch await AuthService.fetchCurrentUser(config: appState.config) {
-                        case .success((let name, let email)):
+                        case .success((let name, let email, let modules)):
                             if let n = name?.trimmingCharacters(in: .whitespaces), !n.isEmpty {
                                 UserProfileStorage.username = n
                             }
                             if let e = email?.trimmingCharacters(in: .whitespaces), !e.isEmpty {
                                 UserProfileStorage.email = e
                             }
+                            UserProfileStorage.allowedModuleIds = modules
                             refreshProfileFromStorage()
                         case .failure:
                             break
@@ -225,7 +226,7 @@ struct ContentView: View {
                 .foregroundStyle(CloudwrkzColors.neutral500)
 
             VStack(spacing: 10) {
-                ForEach(DashboardSection.allCases.filter { $0 != .home }) { section in
+                ForEach(DashboardSection.visibleMenuSections(allowedModuleIds: UserProfileStorage.allowedModuleIds)) { section in
                     NavigationLink(value: section) {
                         HStack(spacing: 16) {
                             Image(systemName: section.iconName)

@@ -108,6 +108,8 @@ enum AuthChangePasswordFailure: Equatable, Error {
 private struct MeResponse: Decodable {
     let name: String?
     let email: String?
+    /// Module IDs the user is allowed to access (e.g. ["tickets", "todos", "links", "time_tracking", "archive"]). Omitted = all modules.
+    let modules: [String]?
 }
 
 enum AuthService {
@@ -251,7 +253,8 @@ enum AuthService {
     private static let registerPathSegments = ["api", "register"]
 
     /// GET current user with Bearer token. Path derived from login path (api/login → api/me, api/auth/login → api/auth/me).
-    static func fetchCurrentUser(config: ServerConfig) async -> Result<(name: String?, email: String?), AuthMeFailure> {
+    /// Returns name, email, and optional modules (allowed module IDs). When modules is nil or empty from API, caller may treat as "all modules allowed".
+    static func fetchCurrentUser(config: ServerConfig) async -> Result<(name: String?, email: String?, modules: [String]?), AuthMeFailure> {
         guard let base = config.baseURL else {
             return .failure(.noServerURL)
         }
@@ -283,7 +286,7 @@ enum AuthService {
             switch http.statusCode {
             case 200:
                 let decoded = try JSONDecoder().decode(MeResponse.self, from: data)
-                return .success((name: decoded.name, email: decoded.email))
+                return .success((name: decoded.name, email: decoded.email, modules: decoded.modules))
             case 401:
                 SessionExpiredNotifier.notify()
                 return .failure(.unauthorized)

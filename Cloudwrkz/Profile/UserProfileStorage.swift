@@ -16,6 +16,7 @@ struct UserProfileStorage {
     private static let profileImageKey = "cloudwrkz.userProfile.imageData"
     private static let firstLoginAtKey = "cloudwrkz.userProfile.firstLoginAt"
     private static let lastSignedInAtKey = "cloudwrkz.userProfile.lastSignedInAt"
+    private static let allowedModuleIdsKey = "cloudwrkz.userProfile.allowedModuleIds"
 
     static var firstName: String? {
         get { UserDefaults.standard.string(forKey: firstNameKey) }
@@ -63,6 +64,23 @@ struct UserProfileStorage {
         set { UserDefaults.standard.set(newValue?.timeIntervalSince1970 ?? 0, forKey: lastSignedInAtKey) }
     }
 
+    /// Module IDs the user is allowed to access (e.g. from /api/me). Nil or empty = all modules allowed.
+    static var allowedModuleIds: [String]? {
+        get {
+            guard let data = UserDefaults.standard.data(forKey: allowedModuleIdsKey),
+                  let ids = try? JSONDecoder().decode([String].self, from: data) else { return nil }
+            return ids.isEmpty ? nil : ids
+        }
+        set {
+            if let ids = newValue, !ids.isEmpty,
+               let data = try? JSONEncoder().encode(ids) {
+                UserDefaults.standard.set(data, forKey: allowedModuleIdsKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: allowedModuleIdsKey)
+            }
+        }
+    }
+
     /// Clears profile when user logs out so the next account doesn’t show previous avatar.
     static func clear() {
         firstName = nil
@@ -72,6 +90,7 @@ struct UserProfileStorage {
         profileImageData = nil
         firstLoginAt = nil
         lastSignedInAt = nil
+        allowedModuleIds = nil
     }
 }
 

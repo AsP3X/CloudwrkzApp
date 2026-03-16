@@ -18,6 +18,32 @@ enum DashboardSection: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    /// Module identifier used for permission checks (e.g. from API /api/me modules).
+    var moduleId: String {
+        switch self {
+        case .home: return "home"
+        case .tickets: return "tickets"
+        case .todos: return "todos"
+        case .links: return "links"
+        case .timeTracking: return "time_tracking"
+        case .archive: return "archive"
+        }
+    }
+
+    /// Sections that can appear as menu options (excludes home).
+    static var menuSections: [DashboardSection] {
+        allCases.filter { $0 != .home }
+    }
+
+    /// Returns menu sections the user is allowed to see. If `allowedModuleIds` is nil or empty, all modules are shown.
+    static func visibleMenuSections(allowedModuleIds: [String]?) -> [DashboardSection] {
+        guard let ids = allowedModuleIds, !ids.isEmpty else {
+            return menuSections
+        }
+        let normalized = Set(ids.map { $0.lowercased().trimmingCharacters(in: .whitespaces) })
+        return menuSections.filter { normalized.contains($0.moduleId) }
+    }
+
     var title: String {
         switch self {
         case .home: return String(localized: "dashboard.section.home")
