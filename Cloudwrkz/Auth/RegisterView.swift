@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import UIKit
 
 struct RegisterView: View {
     @Environment(\.appState) private var appState
@@ -14,9 +13,10 @@ struct RegisterView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var confirmPassword = ""
-    @State private var agreedToTerms = false
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @State private var privacyAccepted = false
+    @State private var showPrivacyPolicy = false
     @FocusState private var focusedField: Field?
 
     var onSuccess: () -> Void = {}
@@ -61,6 +61,7 @@ struct RegisterView: View {
                 Spacer(minLength: 0)
 
                 VStack(spacing: 14) {
+                    privacyConsentRow
                     Button(action: submit) {
                         Group {
                             if isLoading {
@@ -81,7 +82,40 @@ struct RegisterView: View {
                 .padding(.bottom, 48)
                 .padding(.top, 24)
             }
+            .sheet(isPresented: $showPrivacyPolicy) {
+                PrivacyPolicyView()
+            }
         }
+    }
+
+    private var privacyConsentRow: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Button {
+                privacyAccepted.toggle()
+            } label: {
+                Image(systemName: privacyAccepted ? "checkmark.square.fill" : "square")
+                    .font(.system(size: 20))
+                    .foregroundStyle(privacyAccepted ? CloudwrkzColors.primary400 : CloudwrkzColors.neutral500)
+            }
+            .buttonStyle(.plain)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("register.privacy_consent")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(CloudwrkzColors.neutral300)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button {
+                    showPrivacyPolicy = true
+                } label: {
+                    Text("register.view_privacy_policy")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(CloudwrkzColors.primary400)
+                        .underline()
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var isFormValid: Bool {
@@ -89,7 +123,7 @@ struct RegisterView: View {
             && !email.isEmpty
             && !password.isEmpty
             && !confirmPassword.isEmpty
-            && agreedToTerms
+            && privacyAccepted
     }
 
     @ViewBuilder
@@ -155,9 +189,6 @@ struct RegisterView: View {
                     .glassField(cornerRadius: 10)
             }
 
-            // DSGVO/Apple: Explicit consent to Privacy Policy and Terms before registration
-            consentCheckbox
-
             if let error = errorMessage {
                 HStack(spacing: 8) {
                     Image(systemName: "exclamationmark.circle.fill")
@@ -208,7 +239,7 @@ struct RegisterView: View {
             errorMessage = String(localized: "register.password_min_length")
             return
         }
-        if !agreedToTerms {
+        if !privacyAccepted {
             errorMessage = String(localized: "register.consent_required")
             return
         }
@@ -239,60 +270,6 @@ struct RegisterView: View {
                 errorMessage = message(for: failure)
             }
         }
-    }
-
-    private var consentCheckbox: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Button {
-                agreedToTerms.toggle()
-            } label: {
-                Image(systemName: agreedToTerms ? "checkmark.square.fill" : "square")
-                    .font(.system(size: 22))
-                    .foregroundStyle(agreedToTerms ? CloudwrkzColors.primary400 : CloudwrkzColors.neutral500)
-            }
-            .buttonStyle(.plain)
-            VStack(alignment: .leading, spacing: 4) {
-                Text("register.consent_prefix")
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundStyle(CloudwrkzColors.neutral300)
-                HStack(spacing: 4) {
-                    Button {
-                        openPrivacyPolicy()
-                    } label: {
-                        Text("register.privacy_policy_link")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(CloudwrkzColors.primary400)
-                            .underline()
-                    }
-                    .buttonStyle(.plain)
-                    Text("register.consent_and")
-                        .font(.system(size: 13, weight: .regular))
-                        .foregroundStyle(CloudwrkzColors.neutral300)
-                    Button {
-                        openTerms()
-                    } label: {
-                        Text("register.terms_link")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(CloudwrkzColors.primary400)
-                            .underline()
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .padding(12)
-        .background(CloudwrkzColors.neutral900.opacity(0.5), in: RoundedRectangle(cornerRadius: 10))
-    }
-
-    private func openPrivacyPolicy() {
-        guard let url = appState.config.baseURL?.appending(path: "privacy") else { return }
-        UIApplication.shared.open(url)
-    }
-
-    private func openTerms() {
-        guard let url = appState.config.baseURL?.appending(path: "terms") else { return }
-        UIApplication.shared.open(url)
     }
 
     private func message(for failure: AuthRegisterFailure) -> String {

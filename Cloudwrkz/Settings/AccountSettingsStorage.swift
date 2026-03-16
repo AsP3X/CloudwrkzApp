@@ -15,6 +15,7 @@ struct AccountSettingsStorage {
     private static let displayLanguageKey = "cloudwrkz.account.displayLanguage"
     private static let timeTrackingDefaultPeriodKey = "cloudwrkz.account.timeTrackingDefaultPeriod"
     private static let timeTrackingCustomDaysKey = "cloudwrkz.account.timeTrackingCustomDays"
+    private static let thirdPartyLocationSuggestionsEnabledKey = "cloudwrkz.account.thirdPartyLocationSuggestionsEnabled"
 
     /// Master switch for push notifications.
     static var notificationsEnabled: Bool {
@@ -67,6 +68,18 @@ struct AccountSettingsStorage {
         set { UserDefaults.standard.set(max(1, min(366, newValue)), forKey: timeTrackingCustomDaysKey) }
     }
 
+    /// Allows sending typed location queries to OpenStreetMap (Nominatim) for address autocomplete.
+    /// Disabled by default (privacy by default).
+    static var thirdPartyLocationSuggestionsEnabled: Bool {
+        get {
+            if UserDefaults.standard.object(forKey: thirdPartyLocationSuggestionsEnabledKey) == nil {
+                return false
+            }
+            return UserDefaults.standard.bool(forKey: thirdPartyLocationSuggestionsEnabledKey)
+        }
+        set { UserDefaults.standard.set(newValue, forKey: thirdPartyLocationSuggestionsEnabledKey) }
+    }
+
     /// Clears all account settings on logout so the next user gets defaults.
     static func clear() {
         UserDefaults.standard.removeObject(forKey: notificationsEnabledKey)
@@ -76,5 +89,6 @@ struct AccountSettingsStorage {
         UserDefaults.standard.removeObject(forKey: displayLanguageKey)
         UserDefaults.standard.removeObject(forKey: timeTrackingDefaultPeriodKey)
         UserDefaults.standard.removeObject(forKey: timeTrackingCustomDaysKey)
+        UserDefaults.standard.removeObject(forKey: thirdPartyLocationSuggestionsEnabledKey)
     }
 }
