@@ -400,7 +400,7 @@
 "search.subtitle" = "Тикеты, задачи, люди и другое";
 "search.title" = "Поиск";
 
-"search.enhanced_hint" = "Используйте \"> search \"текст\"\" или \"> type: \"ticket\"\" для фильтров.";
+"search.enhanced_hint" = "Используйте \"> search text\" или \"> type: ticket\" для фильтров.";
 
 "Select" = "Выбрать";
 "Select All" = "Выбрать все";

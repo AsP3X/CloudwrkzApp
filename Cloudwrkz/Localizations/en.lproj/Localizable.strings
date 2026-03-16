@@ -907,7 +907,7 @@
 
 "search.title" = "Search";
 
-"search.enhanced_hint" = "Use \"> search \"text\"\" or \"> type: \"ticket\"\" for filters.";
+"search.enhanced_hint" = "Use \"> search text\" or \"> type: ticket\" for filters.";
 
 /* A button that toggles the selection state of a timer. */
 "Select" = "Select";
@@ -1012,13 +1012,13 @@
 
 "ticket.archive_ticket" = "Archive ticket?";
 
-"ticket.archive_ticket_message" = ""%@" will be moved to the archive. You can restore it later.";
+"ticket.archive_ticket_message" = "\"%@\" will be moved to the archive. You can restore it later.";
 
 "ticket.delete" = "Delete";
 
 "ticket.delete_ticket" = "Delete ticket?";
 
-"ticket.delete_ticket_message" = ""%@" will be permanently removed. This action can't be undone.";
+"ticket.delete_ticket_message" = "\"%@\" will be permanently removed. This action can't be undone.";
 
 "ticket.empty_hint" = "Change filters or create a ticket in the web app.";
 
@@ -1051,7 +1051,7 @@
 
 "todo.archive_todo" = "Archive todo?";
 
-"todo.archive_todo_message" = ""%@" will be moved to the archive. You can restore it later.";
+"todo.archive_todo_message" = "\"%@\" will be moved to the archive. You can restore it later.";
 
 "todo.assigned" = "Assigned";
 
@@ -1069,7 +1069,7 @@
 
 "todo.delete_todo" = "Delete todo?";
 
-"todo.delete_todo_message" = ""%@" will be permanently removed. This action can't be undone.";
+"todo.delete_todo_message" = "\"%@\" will be permanently removed. This action can't be undone.";
 
 "todo.empty_hint" = "Change filters or tap + to add a todo.";
 

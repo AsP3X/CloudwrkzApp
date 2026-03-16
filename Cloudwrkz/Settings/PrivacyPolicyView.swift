@@ -202,7 +202,7 @@ struct PrivacyPolicyView: View {
     private func policyText(_ key: LocalizedStringKey) -> some View {
         Text(key)
             .font(.system(size: 14, weight: .regular))
-            .foregroundStyle(CloudwrkzColors.neutral300)
+            .foregroundStyle(CloudwrkzColors.neutral400)
             .fixedSize(horizontal: false, vertical: true)
     }
 }

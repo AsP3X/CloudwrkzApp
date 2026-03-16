@@ -102,7 +102,7 @@ struct RegisterView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("register.privacy_consent")
                     .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(CloudwrkzColors.neutral300)
+                    .foregroundStyle(CloudwrkzColors.neutral400)
                     .fixedSize(horizontal: false, vertical: true)
                 Button {
                     showPrivacyPolicy = true
