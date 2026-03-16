@@ -507,6 +507,11 @@
 "register.please_enter_email" = "Bitte gib deine E-Mail-Adresse ein.";
 
 "register.please_enter_name" = "Bitte gib deinen Namen ein.";
+"register.consent_prefix" = "Mit der Registrierung stimmst du unserer";
+"register.privacy_policy_link" = "Datenschutzrichtlinie";
+"register.consent_and" = "und unseren";
+"register.terms_link" = "Nutzungsbedingungen";
+"register.consent_required" = "Bitte stimme der Datenschutzrichtlinie und den Nutzungsbedingungen zu.";
 
 "search.loading_more" = "Weitere werden geladen…";
 

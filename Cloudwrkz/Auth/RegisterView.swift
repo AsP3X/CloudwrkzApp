@@ -239,6 +239,10 @@ struct RegisterView: View {
             errorMessage = String(localized: "register.password_min_length")
             return
         }
+        if !privacyAccepted {
+            errorMessage = String(localized: "register.consent_required")
+            return
+        }
 
         if appState.config.baseURL == nil {
             errorMessage = String(localized: "auth.configure_server")

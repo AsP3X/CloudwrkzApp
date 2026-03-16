@@ -11,7 +11,6 @@ import SwiftUI
 struct AccountSettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.appState) private var appState
-    @Environment(\.openURL) private var openURL
 
     @State private var showServerConfig = false
     @State private var showChangePassword = false
@@ -581,18 +580,6 @@ struct AccountSettingsView: View {
                 cacheSizeDisplay = formatBytes(bytes)
             }
         }
-    }
-
-    private var privacyPolicyURL: URL? {
-        if let base = appState.config.baseURL {
-            return base.appending(path: "privacy-policy")
-        }
-        return URL(string: "https://cloudwrkz.com/privacy")
-    }
-
-    private func openPrivacyPolicy() {
-        guard let url = privacyPolicyURL else { return }
-        openURL(url)
     }
 
     private func formatBytes(_ bytes: Int64) -> String {

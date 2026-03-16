@@ -381,6 +381,11 @@
 "register.please_choose_password" = "Придумайте пароль.";
 "register.please_enter_email" = "Введите ваш email.";
 "register.please_enter_name" = "Введите ваше имя.";
+"register.consent_prefix" = "Создавая аккаунт, вы соглашаетесь с";
+"register.privacy_policy_link" = "Политикой конфиденциальности";
+"register.consent_and" = "и";
+"register.terms_link" = "Условиями использования";
+"register.consent_required" = "Пожалуйста, согласитесь с Политикой конфиденциальности и Условиями использования.";
 "Remove" = "Удалить";
 "REPOSITORY" = "РЕПОЗИТОРИЙ";
 "Reset all filters" = "Сбросить все фильтры";
