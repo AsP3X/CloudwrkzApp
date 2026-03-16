@@ -30,6 +30,7 @@ struct TimeTrackingOverviewView: View {
     @State private var editingEntry: TimeEntry?
     @State private var showBulkDeleteConfirm = false
     @State private var bulkActionInProgress = false
+    @State private var refreshErrorMessage: String?
 
     @Environment(\.appState) private var appState
 
@@ -45,6 +46,11 @@ struct TimeTrackingOverviewView: View {
                 emptyView
             } else {
                 mainContent
+                    .safeAreaInset(edge: .top, spacing: 0) {
+                        if let refreshErr = refreshErrorMessage {
+                            refreshErrorBanner(message: refreshErr)
+                        }
+                    }
             }
         }
         .navigationTitle("Time Tracking")
@@ -103,14 +109,14 @@ struct TimeTrackingOverviewView: View {
         .tint(CloudwrkzColors.primary400)
         .sheet(isPresented: $showFilters) {
             TimeTrackingFilterView(filters: $filters)
-                .onDisappear { Task { await loadEntries() } }
+                .onDisappear { Task { await loadEntries(isRefresh: true) } }
         }
         .sheet(isPresented: $showStartTimer) {
-            StartTimerSheet(onCreated: { Task { await loadEntries() } })
+            StartTimerSheet(onCreated: { Task { await loadEntries(isRefresh: true) } })
                 .presentationDetents([.medium])
         }
         .sheet(isPresented: $showAddEntry) {
-            AddTimeEntrySheet(onCreated: { Task { await loadEntries() } })
+            AddTimeEntrySheet(onCreated: { Task { await loadEntries(isRefresh: true) } })
                 .presentationDetents([.large])
         }
         .sheet(item: $editingEntry) { entry in
@@ -118,7 +124,7 @@ struct TimeTrackingOverviewView: View {
                 entry: entry,
                 onSaved: {
                     editingEntry = nil
-                    Task { await loadEntries() }
+                    Task { await loadEntries(isRefresh: true) }
                 }
             )
             .presentationDetents([.large])
@@ -169,7 +175,10 @@ struct TimeTrackingOverviewView: View {
             .padding(.top, 12)
             .padding(.bottom, selectionMode ? 100 : 32)
         }
-        .refreshable { await loadEntries() }
+        .refreshable {
+            refreshErrorMessage = nil
+            await loadEntries(isRefresh: true)
+        }
         .scrollContentBackground(.hidden)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if selectionMode {
@@ -336,7 +345,7 @@ struct TimeTrackingOverviewView: View {
                 .foregroundStyle(CloudwrkzColors.neutral400)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
-            Button("Retry") { Task { await loadEntries() } }
+            Button("Retry") { Task { await loadEntries(isRefresh: false) } }
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(CloudwrkzColors.primary400)
                 .padding(.top, 8)
@@ -411,24 +420,52 @@ struct TimeTrackingOverviewView: View {
 
         switch result {
         case .success:
-            await loadEntries()
+            await loadEntries(isRefresh: true)
         case .failure:
             break
         }
     }
 
-    private func loadEntries() async {
-        errorMessage = nil
-        isLoading = true
+    private func refreshErrorBanner(message: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "exclamationmark.circle.fill")
+                .foregroundStyle(CloudwrkzColors.warning500)
+            Text(message)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(CloudwrkzColors.neutral100)
+            Spacer()
+            Button(String(localized: "links.dismiss")) {
+                refreshErrorMessage = nil
+            }
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(CloudwrkzColors.primary400)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(CloudwrkzColors.neutral800.opacity(0.95))
+    }
+
+    private func loadEntries(isRefresh: Bool = false) async {
+        let hadEntries = !entries.isEmpty
+        if !isRefresh {
+            errorMessage = nil
+            isLoading = true
+        }
         let result = await TimeTrackingService.fetchTimeEntries(config: appState.config, filters: filters)
         await MainActor.run {
             switch result {
             case .success(let list):
                 entries = list
                 errorMessage = nil
+                refreshErrorMessage = nil
             case .failure(let err):
-                entries = []
-                errorMessage = message(for: err)
+                let errText = message(for: err)
+                if isRefresh && hadEntries {
+                    refreshErrorMessage = errText
+                } else {
+                    entries = []
+                    errorMessage = errText
+                }
             }
             isLoading = false
         }
@@ -503,7 +540,7 @@ struct TimeTrackingOverviewView: View {
             selectionMode = false
             bulkActionInProgress = false
         }
-        await loadEntries()
+        await loadEntries(isRefresh: true)
     }
 
     // MARK: - Bulk action bar

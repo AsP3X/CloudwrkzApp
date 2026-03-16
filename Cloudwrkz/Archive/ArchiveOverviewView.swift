@@ -24,6 +24,7 @@ struct ArchiveOverviewView: View {
     @State private var showFilters = false
     @State private var itemToDelete: ArchiveItem?
     @State private var isWorking = false
+    @State private var refreshErrorMessage: String?
     @AppStorage("archiveOverviewViewStyle") private var viewStyleRaw: String = ArchiveOverviewViewStyle.card.rawValue
 
     private var viewStyle: ArchiveOverviewViewStyle {
@@ -87,6 +88,9 @@ struct ArchiveOverviewView: View {
                 emptyView
             } else {
                 VStack(spacing: 0) {
+                    if let refreshErr = refreshErrorMessage {
+                        refreshErrorBanner(message: refreshErr)
+                    }
                     typeFilterBar
                     switch viewStyle {
                     case .card: archiveCardView
@@ -130,8 +134,11 @@ struct ArchiveOverviewView: View {
         .sheet(isPresented: $showFilters) {
             ArchiveFiltersView(filters: $filters)
         }
-        .onAppear { Task { await loadAll() } }
-        .refreshable { await loadAll() }
+        .onAppear { Task { await loadAll(isRefresh: false) } }
+        .refreshable {
+            refreshErrorMessage = nil
+            await loadAll(isRefresh: true)
+        }
         .tint(CloudwrkzColors.primary400)
         .confirmationDialog("Delete permanently?", isPresented: Binding(get: { itemToDelete != nil }, set: { if !$0 { itemToDelete = nil } }), titleVisibility: .visible) {
             Button("Cancel", role: .cancel) { itemToDelete = nil }
@@ -203,7 +210,10 @@ struct ArchiveOverviewView: View {
                     .padding(.bottom, 32)
                 }
                 .scrollContentBackground(.hidden)
-                .refreshable { await loadAll() }
+                .refreshable {
+                    refreshErrorMessage = nil
+                    await loadAll(isRefresh: true)
+                }
             }
         }
     }
@@ -223,7 +233,10 @@ struct ArchiveOverviewView: View {
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
-                .refreshable { await loadAll() }
+                .refreshable {
+                    refreshErrorMessage = nil
+                    await loadAll(isRefresh: true)
+                }
             }
         }
     }
@@ -299,7 +312,7 @@ struct ArchiveOverviewView: View {
         case .timeEntry(let e):
             if case .success = await TimeTrackingService.unarchiveTimeEntry(config: appState.config, id: e.id) { success = true }
         }
-        if success { await loadAll() }
+        if success { await loadAll(isRefresh: true) }
     }
 
     private func deleteItem(_ item: ArchiveItem) async {
@@ -317,7 +330,7 @@ struct ArchiveOverviewView: View {
         case .timeEntry(let e):
             if case .success = await TimeTrackingService.deleteTimeEntry(config: appState.config, id: e.id) { success = true }
         }
-        if success { await loadAll() }
+        if success { await loadAll(isRefresh: true) }
     }
 
     private var loadingView: some View {
@@ -344,7 +357,7 @@ struct ArchiveOverviewView: View {
                 .foregroundStyle(CloudwrkzColors.neutral400)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
-            Button("Retry") { Task { await loadAll() } }
+            Button("Retry") { Task { await loadAll(isRefresh: false) } }
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(CloudwrkzColors.primary400)
                 .padding(.top, 8)
@@ -389,9 +402,31 @@ struct ArchiveOverviewView: View {
         .padding(.top, 40)
     }
 
-    private func loadAll() async {
-        errorMessage = nil
-        isLoading = true
+    private func refreshErrorBanner(message: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "exclamationmark.circle.fill")
+                .foregroundStyle(CloudwrkzColors.warning500)
+            Text(message)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(CloudwrkzColors.neutral100)
+            Spacer()
+            Button(String(localized: "links.dismiss")) {
+                refreshErrorMessage = nil
+            }
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(CloudwrkzColors.primary400)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(CloudwrkzColors.neutral800.opacity(0.95))
+    }
+
+    private func loadAll(isRefresh: Bool = false) async {
+        let hadItems = !items.isEmpty
+        if !isRefresh {
+            errorMessage = nil
+            isLoading = true
+        }
         let config = appState.config
 
         // Safety: if any request hangs, stop showing loading after 25 seconds
@@ -422,8 +457,18 @@ struct ArchiveOverviewView: View {
         let all = ticketItems + todoItems + timeItems + linkItems
 
         await MainActor.run {
-            items = all
-            errorMessage = firstError
+            if let err = firstError {
+                if isRefresh && hadItems {
+                    refreshErrorMessage = err
+                } else {
+                    errorMessage = err
+                    items = []
+                }
+            } else {
+                items = all
+                errorMessage = nil
+                refreshErrorMessage = nil
+            }
             isLoading = false
         }
     }

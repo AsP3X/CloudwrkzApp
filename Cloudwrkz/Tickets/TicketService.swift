@@ -195,13 +195,14 @@ enum TicketService {
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         AppIdentity.apply(to: &request)
         do {
-            let (_, response) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await URLSession.shared.data(for: request)
             guard let http = response as? HTTPURLResponse else { return .failure(.serverError(message: "Invalid response")) }
             switch http.statusCode {
-            case 200: return .success(())
+            case 200, 204: return .success(())
             case 401: SessionExpiredNotifier.notify(); return .failure(.unauthorized)
             case 403, 404, 400...599:
-                return .failure(.serverError(message: "Server error (\(http.statusCode))"))
+                let message = (try? JSONDecoder().decode(MessageResponse.self, from: data))?.message ?? "Server error (\(http.statusCode))"
+                return .failure(.serverError(message: message))
             default: return .failure(.serverError(message: "Unexpected status \(http.statusCode)"))
             }
         } catch {

@@ -34,6 +34,7 @@ struct TodosOverviewView: View {
     @AppStorage("todoOverviewViewStyle") private var viewStyleRaw: String = TodoOverviewViewStyle.card.rawValue
     @State private var pendingArchiveTodo: Todo?
     @State private var pendingDeleteTodo: Todo?
+    @State private var refreshErrorMessage: String?
 
     private var viewStyle: TodoOverviewViewStyle {
         TodoOverviewViewStyle(rawValue: viewStyleRaw) ?? .card
@@ -59,9 +60,16 @@ struct TodosOverviewView: View {
             } else if todos.isEmpty {
                 emptyView
             } else {
-                switch viewStyle {
-                case .card: cardView
-                case .list: listView
+                Group {
+                    switch viewStyle {
+                    case .card: cardView
+                    case .list: listView
+                    }
+                }
+                .safeAreaInset(edge: .top, spacing: 0) {
+                    if let refreshErr = refreshErrorMessage {
+                        refreshErrorBanner(message: refreshErr)
+                    }
                 }
             }
         }
@@ -178,7 +186,7 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
                 .foregroundStyle(CloudwrkzColors.neutral400)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
-            Button("todo.retry") { Task { await loadTodos() } }
+            Button("todo.retry") { Task { await loadTodos(isRefresh: false) } }
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(CloudwrkzColors.primary400)
                 .padding(.top, 8)
@@ -244,9 +252,29 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
             .padding(.bottom, 32)
         }
         .refreshable {
-            await loadTodos()
+            refreshErrorMessage = nil
+            await loadTodos(isRefresh: true)
         }
         .scrollContentBackground(.hidden)
+    }
+
+    private func refreshErrorBanner(message: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "exclamationmark.circle.fill")
+                .foregroundStyle(CloudwrkzColors.warning500)
+            Text(message)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(CloudwrkzColors.neutral100)
+            Spacer()
+            Button(String(localized: "links.dismiss")) {
+                refreshErrorMessage = nil
+            }
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(CloudwrkzColors.primary400)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(CloudwrkzColors.neutral800.opacity(0.95))
     }
 
     private var activeTodos: [Todo] {
@@ -352,7 +380,8 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .refreshable {
-            await loadTodos()
+            refreshErrorMessage = nil
+            await loadTodos(isRefresh: true)
         }
         .animation(.easeInOut(duration: 0.25), value: todoListRowItems.map(\.id))
     }
@@ -431,22 +460,31 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
 
     private func deleteTodo(_ id: String) async {
         _ = await TodoService.deleteTodo(config: appState.config, id: id)
-        await loadTodos()
+        await loadTodos(isRefresh: true)
     }
 
-    /// Load todos; supports pull-to-refresh (async) and onAppear. Keeps refresh indicator visible until load finishes.
-    private func loadTodos() async {
-        errorMessage = nil
-        isLoading = true
+    /// Load todos; when isRefresh and we already have todos, failure shows a banner instead of full-screen error.
+    private func loadTodos(isRefresh: Bool = false) async {
+        let hadTodos = !todos.isEmpty
+        if !isRefresh {
+            errorMessage = nil
+            isLoading = true
+        }
         let result = await TodoService.fetchTodos(config: appState.config, filters: filters)
         await MainActor.run {
             switch result {
             case .success(let list):
                 todos = list
                 errorMessage = nil
+                refreshErrorMessage = nil
             case .failure(let err):
-                todos = []
-                errorMessage = message(for: err)
+                let errText = message(for: err)
+                if isRefresh && hadTodos {
+                    refreshErrorMessage = errText
+                } else {
+                    todos = []
+                    errorMessage = errText
+                }
             }
             isLoading = false
         }
@@ -464,12 +502,12 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
 
     private func performArchive(_ todo: Todo) async {
         _ = await TodoService.archiveTodo(config: appState.config, id: todo.id)
-        await loadTodos()
+        await loadTodos(isRefresh: true)
     }
 
     private func performDelete(_ todo: Todo) async {
         _ = await TodoService.deleteTodo(config: appState.config, id: todo.id)
-        await loadTodos()
+        await loadTodos(isRefresh: true)
     }
 
     @ViewBuilder

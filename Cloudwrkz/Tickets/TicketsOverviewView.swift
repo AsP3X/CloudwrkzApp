@@ -15,6 +15,8 @@ struct TicketsOverviewView: View {
     @State private var showFilters = false
     @State private var pendingArchiveTicket: Ticket?
     @State private var pendingDeleteTicket: Ticket?
+    /// Shown as banner when refresh or post-action refetch fails but we keep the current list.
+    @State private var refreshErrorMessage: String?
 
     private var hasActiveFilters: Bool {
         filters.status != .unresolved
@@ -38,6 +40,11 @@ struct TicketsOverviewView: View {
                 emptyView
             } else {
                 ticketList
+                    .safeAreaInset(edge: .top, spacing: 0) {
+                        if let refreshErr = refreshErrorMessage {
+                            refreshErrorBanner(message: refreshErr)
+                        }
+                    }
             }
         }
         .navigationTitle("ticket.nav_title")
@@ -137,12 +144,14 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
                     .buttonStyle(.plain)
                     .contextMenu {
                         Button {
-                            pendingArchiveTicket = ticket
+                            let t = ticket
+                            DispatchQueue.main.async { pendingArchiveTicket = t }
                         } label: {
                             Label(String(localized: "ticket.archive"), systemImage: "archivebox")
                         }
                         Button(role: .destructive) {
-                            pendingDeleteTicket = ticket
+                            let t = ticket
+                            DispatchQueue.main.async { pendingDeleteTicket = t }
                         } label: {
                             Label(String(localized: "ticket.delete"), systemImage: "trash")
                         }
@@ -154,24 +163,53 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
             .padding(.bottom, 32)
         }
         .refreshable {
-            await loadTickets()
+            refreshErrorMessage = nil
+            await loadTickets(isRefresh: true)
         }
         .scrollContentBackground(.hidden)
     }
 
-    /// Load tickets; supports pull-to-refresh (async) and onAppear. Keeps refresh indicator visible until load finishes.
-    private func loadTickets() async {
-        errorMessage = nil
-        isLoading = true
+    private func refreshErrorBanner(message: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "exclamationmark.circle.fill")
+                .foregroundStyle(CloudwrkzColors.warning500)
+            Text(message)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(CloudwrkzColors.neutral100)
+            Spacer()
+            Button(String(localized: "links.dismiss")) {
+                refreshErrorMessage = nil
+            }
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(CloudwrkzColors.primary400)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(CloudwrkzColors.neutral800.opacity(0.95))
+    }
+
+    /// Load tickets; supports pull-to-refresh (async) and onAppear. When isRefresh and we already have tickets, failure shows a banner instead of full-screen error.
+    private func loadTickets(isRefresh: Bool = false) async {
+        let hadTickets = !tickets.isEmpty
+        if !isRefresh {
+            errorMessage = nil
+            isLoading = true
+        }
         let result = await TicketService.fetchTickets(config: appState.config, filters: filters)
         await MainActor.run {
             switch result {
             case .success(let list):
                 tickets = list
                 errorMessage = nil
+                refreshErrorMessage = nil
             case .failure(let err):
-                tickets = []
-                errorMessage = message(for: err)
+                let errText = message(for: err)
+                if isRefresh && hadTickets {
+                    refreshErrorMessage = errText
+                } else {
+                    tickets = []
+                    errorMessage = errText
+                }
             }
             isLoading = false
         }
@@ -188,13 +226,33 @@ CloudwrkzSpinner(tint: CloudwrkzColors.primary400)
     }
 
     private func performArchive(_ ticket: Ticket) async {
-        _ = await TicketService.archiveTicket(config: appState.config, id: ticket.id)
-        await loadTickets()
+        let result = await TicketService.archiveTicket(config: appState.config, id: ticket.id)
+        await MainActor.run {
+            switch result {
+            case .success:
+                errorMessage = nil
+            case .failure(let err):
+                errorMessage = message(for: err)
+            }
+        }
+        if case .success = result {
+            await loadTickets(isRefresh: true)
+        }
     }
 
     private func performDelete(_ ticket: Ticket) async {
-        _ = await TicketService.deleteTicket(config: appState.config, id: ticket.id)
-        await loadTickets()
+        let result = await TicketService.deleteTicket(config: appState.config, id: ticket.id)
+        await MainActor.run {
+            switch result {
+            case .success:
+                errorMessage = nil
+            case .failure(let err):
+                errorMessage = message(for: err)
+            }
+        }
+        if case .success = result {
+            await loadTickets(isRefresh: true)
+        }
     }
 
     @ViewBuilder
