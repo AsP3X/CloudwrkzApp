@@ -11,6 +11,7 @@ import SwiftUI
 struct AccountSettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.appState) private var appState
+    @Environment(\.openURL) private var openURL
 
     @State private var showServerConfig = false
     @State private var showChangePassword = false
@@ -25,6 +26,7 @@ struct AccountSettingsView: View {
     @State private var biometricLockEnabled = AccountSettingsStorage.biometricLockEnabled
     @State private var timeTrackingPeriod = AccountSettingsStorage.timeTrackingDefaultPeriod
     @State private var timeTrackingCustomDays = AccountSettingsStorage.timeTrackingCustomDays
+    @State private var thirdPartyLocationSuggestionsEnabled = AccountSettingsStorage.thirdPartyLocationSuggestionsEnabled
     @State private var cacheClearedFeedback = false
     @State private var showCacheConfirm = false
     @State private var cacheSizeDisplay: String = ""
@@ -83,6 +85,9 @@ struct AccountSettingsView: View {
             }
             .onChange(of: timeTrackingPeriod) { _, v in AccountSettingsStorage.timeTrackingDefaultPeriod = v }
             .onChange(of: timeTrackingCustomDays) { _, v in AccountSettingsStorage.timeTrackingCustomDays = v }
+            .onChange(of: thirdPartyLocationSuggestionsEnabled) { _, v in
+                AccountSettingsStorage.thirdPartyLocationSuggestionsEnabled = v
+            }
             .sheet(isPresented: $showServerConfig) {
                 ServerConfigView(config: Binding(
                     get: { appState.config },
@@ -142,6 +147,7 @@ struct AccountSettingsView: View {
         biometricLockEnabled = AccountSettingsStorage.biometricLockEnabled
         timeTrackingPeriod = AccountSettingsStorage.timeTrackingDefaultPeriod
         timeTrackingCustomDays = AccountSettingsStorage.timeTrackingCustomDays
+        thirdPartyLocationSuggestionsEnabled = AccountSettingsStorage.thirdPartyLocationSuggestionsEnabled
     }
 
     private func syncDisplayLanguageToServer(_ locale: String) async {
@@ -394,6 +400,16 @@ struct AccountSettingsView: View {
         VStack(alignment: .leading, spacing: 12) {
             sectionLabel(String(localized: "account_settings.data_privacy"))
             VStack(spacing: 0) {
+                settingsToggleRow(
+                    icon: "location.magnifyingglass",
+                    title: String(localized: "account_settings.third_party_location_suggestions"),
+                    subtitle: String(localized: "account_settings.third_party_location_suggestions_subtitle")
+                ) {
+                    Toggle("", isOn: $thirdPartyLocationSuggestionsEnabled)
+                        .labelsHidden()
+                        .tint(CloudwrkzColors.primary400)
+                }
+                settingsDivider
                 settingsActionRow(
                     icon: "trash",
                     title: String(localized: "account_settings.clear_cache"),
@@ -409,7 +425,7 @@ struct AccountSettingsView: View {
                     title: String(localized: "account_settings.privacy_policy"),
                     subtitle: String(localized: "account_settings.privacy_subtitle")
                 ) {
-                    // Placeholder: open URL
+                    openPrivacyPolicy()
                 }
             }
             .padding(16)
@@ -502,6 +518,18 @@ struct AccountSettingsView: View {
                 cacheSizeDisplay = formatBytes(bytes)
             }
         }
+    }
+
+    private var privacyPolicyURL: URL? {
+        if let base = appState.config.baseURL {
+            return base.appending(path: "privacy-policy")
+        }
+        return URL(string: "https://cloudwrkz.com/privacy")
+    }
+
+    private func openPrivacyPolicy() {
+        guard let url = privacyPolicyURL else { return }
+        openURL(url)
     }
 
     private func formatBytes(_ bytes: Int64) -> String {

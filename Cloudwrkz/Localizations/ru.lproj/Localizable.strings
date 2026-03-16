@@ -64,6 +64,8 @@
 "account_settings.time_tracking_custom_days" = "Дней";
 "account_settings.time_tracking_day" = "день";
 "account_settings.time_tracking_days" = "дней";
+"account_settings.third_party_location_suggestions" = "Внешние подсказки адресов";
+"account_settings.third_party_location_suggestions_subtitle" = "Отправлять введённые запросы местоположения в OpenStreetMap (Nominatim).";
 "ACTIVE TIMERS" = "АКТИВНЫЕ ТАЙМЕРЫ";
 "Add" = "Добавить";
 "Add a manual time entry" = "Добавить запись времени вручную";

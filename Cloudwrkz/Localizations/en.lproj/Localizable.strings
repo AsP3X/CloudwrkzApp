@@ -125,6 +125,8 @@
 "account_settings.time_tracking_custom_days" = "Days";
 "account_settings.time_tracking_day" = "day";
 "account_settings.time_tracking_days" = "days";
+"account_settings.third_party_location_suggestions" = "External address suggestions";
+"account_settings.third_party_location_suggestions_subtitle" = "Send typed location queries to OpenStreetMap (Nominatim).";
 
 /* A label displayed above the list of currently active timers. */
 "ACTIVE TIMERS" = "ACTIVE TIMERS";

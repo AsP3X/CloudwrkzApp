@@ -93,7 +93,12 @@ struct LocationAutocompleteFieldView: View {
         isLoading = true
         defer { isLoading = false }
         let config = appState.config
-        let result = await LocationAutocompleteService.fetchSuggestions(config: config, query: query)
+        let includeThirdPartySuggestions = AccountSettingsStorage.thirdPartyLocationSuggestionsEnabled
+        let result = await LocationAutocompleteService.fetchSuggestions(
+            config: config,
+            query: query,
+            includeThirdPartySuggestions: includeThirdPartySuggestions
+        )
         guard !Task.isCancelled else { return }
         suggestions = result
         showSuggestions = !result.isEmpty

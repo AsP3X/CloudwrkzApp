@@ -101,6 +101,8 @@
 "account_settings.time_tracking_custom_days" = "Tage";
 "account_settings.time_tracking_day" = "Tag";
 "account_settings.time_tracking_days" = "Tage";
+"account_settings.third_party_location_suggestions" = "Externe Adressvorschläge";
+"account_settings.third_party_location_suggestions_subtitle" = "Eingegebene Ortsanfragen an OpenStreetMap (Nominatim) senden.";
 
 "add_todo.cancel" = "Abbrechen";
 

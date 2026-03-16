@@ -62,15 +62,19 @@ enum LocationAutocompleteService {
         return displayName ?? ""
     }
 
-    /// Fetch combined suggestions: Nominatim + location history (Bearer). Deduplicated by display label.
-    static func fetchSuggestions(config: ServerConfig, query: String) async -> [LocationSuggestion] {
+    /// Fetch combined suggestions: optional Nominatim + location history (Bearer). Deduplicated by display label.
+    static func fetchSuggestions(config: ServerConfig, query: String, includeThirdPartySuggestions: Bool) async -> [LocationSuggestion] {
         let trimmed = query.trimmingCharacters(in: .whitespaces)
         guard trimmed.count >= minQueryLength else { return [] }
 
-        async let nominatim = fetchNominatim(query: trimmed)
         async let history = fetchLocationHistory(config: config, query: trimmed)
-
-        let (nominatimResults, historyResults) = await (nominatim, history)
+        let nominatimResults: [LocationSuggestion]
+        if includeThirdPartySuggestions {
+            nominatimResults = await fetchNominatim(query: trimmed)
+        } else {
+            nominatimResults = []
+        }
+        let historyResults = await history
         var combined: [LocationSuggestion] = []
         var seen = Set<String>()
 
