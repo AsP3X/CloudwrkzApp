@@ -153,6 +153,12 @@ enum TodoService {
         return await patchTodo(config: config, id: id, body: body)
     }
 
+    /// Archive a todo (PATCH with archivedAt: current date).
+    static func archiveTodo(config: ServerConfig, id: String) async -> Result<Void, TodoServiceError> {
+        let body: [String: Any] = ["archivedAt": isoDate(Date())]
+        return await patchTodo(config: config, id: id, body: body)
+    }
+
     /// Unarchive a todo (PATCH with archivedAt: null).
     static func unarchiveTodo(config: ServerConfig, id: String) async -> Result<Void, TodoServiceError> {
         let body: [String: Any?] = ["archivedAt": NSNull()]

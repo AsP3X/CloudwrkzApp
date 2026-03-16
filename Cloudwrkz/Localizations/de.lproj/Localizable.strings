@@ -572,6 +572,18 @@
 
 "tenant_status.unreachable" = "Nicht erreichbar";
 
+"ticket.archive" = "Archivieren";
+
+"ticket.archive_ticket" = "Ticket archivieren?";
+
+"ticket.archive_ticket_message" = "„%@" wird ins Archiv verschoben. Du kannst es später wiederherstellen.";
+
+"ticket.delete" = "Löschen";
+
+"ticket.delete_ticket" = "Ticket löschen?";
+
+"ticket.delete_ticket_message" = "„%@" wird dauerhaft entfernt. Diese Aktion kann nicht rückgängig gemacht werden.";
+
 "ticket.empty_hint" = "Filter ändern oder ein Ticket in der Web-App erstellen.";
 
 "ticket.group" = "Gruppe";
@@ -584,13 +596,29 @@
 
 "ticket.no_tickets" = "Keine Tickets";
 
+"todo.archive" = "Archivieren";
+
+"todo.archive_todo" = "Aufgabe archivieren?";
+
+"todo.archive_todo_message" = "„%@" wird ins Archiv verschoben. Du kannst es später wiederherstellen.";
+
 "todo.assigned" = "Zugewiesen";
 
 "todo.card_view" = "Kartenansicht";
 
 "todo.completed_header" = "ABGESCHLOSSEN";
 
+"todo.context_complete" = "Als erledigt markieren";
+
+"todo.context_uncomplete" = "Als nicht erledigt markieren";
+
 "todo.created" = "Erstellt";
+
+"todo.delete" = "Löschen";
+
+"todo.delete_todo" = "Aufgabe löschen?";
+
+"todo.delete_todo_message" = "„%@" wird dauerhaft entfernt. Diese Aktion kann nicht rückgängig gemacht werden.";
 
 "todo.empty_hint" = "Filter ändern oder auf + tippen, um eine Aufgabe hinzuzufügen.";
 
