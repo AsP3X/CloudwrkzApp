@@ -15,6 +15,8 @@ struct RegisterView: View {
     @State private var confirmPassword = ""
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @State private var privacyAccepted = false
+    @State private var showPrivacyPolicy = false
     @FocusState private var focusedField: Field?
 
     var onSuccess: () -> Void = {}
@@ -59,6 +61,7 @@ struct RegisterView: View {
                 Spacer(minLength: 0)
 
                 VStack(spacing: 14) {
+                    privacyConsentRow
                     Button(action: submit) {
                         Group {
                             if isLoading {
@@ -79,7 +82,40 @@ struct RegisterView: View {
                 .padding(.bottom, 48)
                 .padding(.top, 24)
             }
+            .sheet(isPresented: $showPrivacyPolicy) {
+                PrivacyPolicyView()
+            }
         }
+    }
+
+    private var privacyConsentRow: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Button {
+                privacyAccepted.toggle()
+            } label: {
+                Image(systemName: privacyAccepted ? "checkmark.square.fill" : "square")
+                    .font(.system(size: 20))
+                    .foregroundStyle(privacyAccepted ? CloudwrkzColors.primary400 : CloudwrkzColors.neutral500)
+            }
+            .buttonStyle(.plain)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("register.privacy_consent")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(CloudwrkzColors.neutral300)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button {
+                    showPrivacyPolicy = true
+                } label: {
+                    Text("register.view_privacy_policy")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(CloudwrkzColors.primary400)
+                        .underline()
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var isFormValid: Bool {
@@ -87,6 +123,7 @@ struct RegisterView: View {
             && !email.isEmpty
             && !password.isEmpty
             && !confirmPassword.isEmpty
+            && privacyAccepted
     }
 
     @ViewBuilder
