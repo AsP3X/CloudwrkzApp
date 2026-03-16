@@ -92,6 +92,26 @@
 
 "account_settings.privacy_subtitle" = "How we handle your data";
 
+"account_settings.export_data" = "Export my data";
+
+"account_settings.export_data_subtitle" = "Request a copy of your data (GDPR Art. 20)";
+
+"account_settings.export_data_sent" = "Export request sent";
+
+"account_settings.delete_account" = "Delete account";
+
+"account_settings.delete_account_subtitle" = "Permanently remove your account and data";
+
+"account_settings.delete_account_alert_title" = "Delete account?";
+
+"account_settings.delete_account_alert_message" = "This will permanently delete your account and all associated data. This action cannot be undone.";
+
+"account_settings.delete_account_confirm" = "Delete my account";
+
+"account_settings.delete_account_requested_title" = "Deletion requested";
+
+"account_settings.delete_account_requested_message" = "Your account deletion request has been submitted. You will receive a confirmation email. Your data will be deleted within 30 days as required by GDPR.";
+
 "account_settings.push_notifications" = "Push notifications";
 
 "account_settings.push_subtitle" = "Alerts and updates";
@@ -822,6 +842,10 @@
 /* A button label that triggers the refresh of a link's metadata. */
 "Refresh Metadata" = "Refresh Metadata";
 
+"register.privacy_consent" = "I agree to the processing of my personal data in accordance with the privacy policy.";
+
+"register.view_privacy_policy" = "View privacy policy";
+
 "register.choose_password_placeholder" = "Choose a password";
 
 "register.confirm_password_label" = "CONFIRM PASSWORD";
@@ -1074,3 +1098,53 @@
 
 /* A message displayed after a successful QR code login. */
 "You're signed in" = "You're signed in";
+
+/* Privacy Policy */
+
+"privacy_policy.title" = "Privacy Policy";
+
+"privacy_policy.last_updated" = "Last updated: March 2026";
+
+"privacy_policy.controller_title" = "Data Controller";
+
+"privacy_policy.controller_body" = "The data controller for the Cloudwrkz app is the operator of your Cloudwrkz instance. If you are using the official Cloudwrkz service (cloudwrkz.com), the controller is Cloudwrkz GmbH. For self-hosted or on-premises deployments, the controller is your organization.\n\nFor questions regarding data protection, contact your administrator or privacy@cloudwrkz.com.";
+
+"privacy_policy.data_collection_title" = "Data We Collect";
+
+"privacy_policy.data_collection_body" = "We collect and process the following categories of personal data:\n\n• Account data: Name, email address, and password (encrypted) for authentication.\n• Profile data: First name, last name, and optional profile photo.\n• Device metadata: Device type (mobile/tablet), operating system version, and app version — sent during login for session management.\n• Usage data: Tickets, todos, time entries (including text-based location descriptions), links, and other content you create.\n• Technical data: Authentication tokens stored securely in the iOS Keychain; app preferences stored locally on your device.\n\nWe do NOT collect:\n• GPS or precise location data\n• Contacts, calendars, or health data\n• Advertising identifiers or tracking data\n• Data from third-party analytics SDKs";
+
+"privacy_policy.legal_basis_title" = "Legal Basis for Processing";
+
+"privacy_policy.legal_basis_body" = "We process your data on the following legal bases (GDPR Art. 6):\n\n• Contract performance (Art. 6(1)(b)): Processing necessary for providing the Cloudwrkz service, including authentication, data storage, and feature functionality.\n• Legitimate interests (Art. 6(1)(f)): Device metadata for session security and fraud prevention.\n• Consent (Art. 6(1)(a)): Optional features such as profile photo upload and biometric lock. You may withdraw consent at any time.";
+
+"privacy_policy.third_party_title" = "Third-Party Services";
+
+"privacy_policy.third_party_body" = "The app connects to the following third-party services:\n\n• OpenStreetMap Nominatim: Used for text-based address suggestions in time tracking. Your search queries are sent to nominatim.openstreetmap.org. No personal identifiers are included. Nominatim's privacy policy: https://osmfoundation.org/wiki/Privacy_Policy\n• YouTube (img.youtube.com): Used to load thumbnail images for links containing YouTube URLs. Only the video ID is transmitted.\n\nWe do not share your personal data with advertising networks, data brokers, or analytics providers.";
+
+"privacy_policy.data_storage_title" = "Data Storage & Security";
+
+"privacy_policy.data_storage_body" = "• Authentication token: Stored in the iOS Keychain (hardware-encrypted).\n• App preferences and profile data: Stored in local device storage (UserDefaults).\n• All data in transit: Transmitted via HTTPS/TLS encryption.\n• Server-side data: Stored on your Cloudwrkz server instance. For the official service, servers are located in the EU.\n\nOn logout, all local data (token, profile, preferences, caches) is cleared from the device.";
+
+"privacy_policy.data_retention_title" = "Data Retention";
+
+"privacy_policy.data_retention_body" = "• Local data: Cleared immediately upon logout or when you use \"Clear local cache\".\n• Server data: Retained for as long as your account is active. After account deletion, all personal data is removed within 30 days.\n• Backups: Server backups containing your data are purged within 90 days of account deletion.";
+
+"privacy_policy.your_rights_title" = "Your Rights (GDPR Art. 15–22)";
+
+"privacy_policy.your_rights_body" = "Under the GDPR/DSGVO, you have the following rights:\n\n• Right of access (Art. 15): Request information about the personal data we process.\n• Right to rectification (Art. 16): Correct inaccurate data via your profile settings.\n• Right to erasure (Art. 17): Request deletion of your account and all associated data.\n• Right to restriction (Art. 18): Request restriction of processing under certain conditions.\n• Right to data portability (Art. 20): Receive your data in a structured, machine-readable format.\n• Right to object (Art. 21): Object to processing based on legitimate interests.\n• Right regarding automated decisions (Art. 22): We do not make automated decisions or profiling that produce legal effects.\n\nYou can exercise your rights through the \"Data & Privacy\" section in Account Settings, or by contacting privacy@cloudwrkz.com.\n\nYou also have the right to lodge a complaint with a supervisory authority (Art. 77).";
+
+"privacy_policy.security_title" = "Security Measures";
+
+"privacy_policy.security_body" = "We implement appropriate technical and organizational measures (GDPR Art. 32):\n\n• End-to-end encryption for data in transit (TLS/HTTPS)\n• Hardware-encrypted Keychain storage for authentication tokens\n• Biometric authentication option (Face ID/Touch ID)\n• Session monitoring with automatic expiration\n• No third-party analytics or tracking SDKs\n• Minimal data collection principle";
+
+"privacy_policy.children_title" = "Children's Privacy";
+
+"privacy_policy.children_body" = "Cloudwrkz is a workplace productivity tool not intended for use by children under 16. We do not knowingly collect personal data from children. If you believe a child has provided us with personal data, please contact us at privacy@cloudwrkz.com.";
+
+"privacy_policy.changes_title" = "Changes to This Policy";
+
+"privacy_policy.changes_body" = "We may update this privacy policy from time to time. Material changes will be communicated through the app or via email. Continued use of the app after changes constitutes acceptance of the updated policy.";
+
+"privacy_policy.contact_title" = "Contact";
+
+"privacy_policy.contact_body" = "For privacy-related inquiries:\n\nEmail: privacy@cloudwrkz.com\n\nFor self-hosted instances, contact your organization's data protection officer.";

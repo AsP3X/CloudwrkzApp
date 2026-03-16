@@ -31,6 +31,10 @@ struct AccountSettingsView: View {
     @State private var showCacheConfirm = false
     @State private var cacheSizeDisplay: String = ""
     @State private var isComputingCacheSize = false
+    @State private var showPrivacyPolicy = false
+    @State private var showDeleteAccountConfirm = false
+    @State private var showDeleteAccountSent = false
+    @State private var showExportDataSent = false
 
     var body: some View {
         NavigationStack {
@@ -135,6 +139,22 @@ struct AccountSettingsView: View {
                 }
             } message: {
                 Text(String(localized: "account_settings.language_restart_message"))
+            }
+            .sheet(isPresented: $showPrivacyPolicy) {
+                PrivacyPolicyView()
+            }
+            .alert(String(localized: "account_settings.delete_account_alert_title"), isPresented: $showDeleteAccountConfirm) {
+                Button(String(localized: "common.cancel"), role: .cancel) { }
+                Button(String(localized: "account_settings.delete_account_confirm"), role: .destructive) {
+                    handleDeleteAccount()
+                }
+            } message: {
+                Text(String(localized: "account_settings.delete_account_alert_message"))
+            }
+            .alert(String(localized: "account_settings.delete_account_requested_title"), isPresented: $showDeleteAccountSent) {
+                Button("OK") { }
+            } message: {
+                Text(String(localized: "account_settings.delete_account_requested_message"))
             }
         }
     }
@@ -425,7 +445,25 @@ struct AccountSettingsView: View {
                     title: String(localized: "account_settings.privacy_policy"),
                     subtitle: String(localized: "account_settings.privacy_subtitle")
                 ) {
-                    openPrivacyPolicy()
+                    showPrivacyPolicy = true
+                }
+                settingsDivider
+                settingsActionRow(
+                    icon: "arrow.down.doc.fill",
+                    title: String(localized: "account_settings.export_data"),
+                    subtitle: showExportDataSent
+                        ? String(localized: "account_settings.export_data_sent")
+                        : String(localized: "account_settings.export_data_subtitle")
+                ) {
+                    handleExportData()
+                }
+                settingsDivider
+                settingsActionRow(
+                    icon: "person.crop.circle.badge.minus",
+                    title: String(localized: "account_settings.delete_account"),
+                    subtitle: String(localized: "account_settings.delete_account_subtitle")
+                ) {
+                    showDeleteAccountConfirm = true
                 }
             }
             .padding(16)
@@ -494,6 +532,31 @@ struct AccountSettingsView: View {
             trailing()
         }
         .padding(.vertical, 12)
+    }
+
+    // MARK: - Data rights helpers (DSGVO Art. 17, Art. 20)
+
+    private func handleExportData() {
+        Task {
+            let success = await DataRightsService.requestDataExport(config: appState.config)
+            await MainActor.run {
+                if success {
+                    showExportDataSent = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                        showExportDataSent = false
+                    }
+                }
+            }
+        }
+    }
+
+    private func handleDeleteAccount() {
+        Task {
+            let success = await DataRightsService.requestAccountDeletion(config: appState.config)
+            await MainActor.run {
+                showDeleteAccountSent = success
+            }
+        }
     }
 
     // MARK: - Cache helpers

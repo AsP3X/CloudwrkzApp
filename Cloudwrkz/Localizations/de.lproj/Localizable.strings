@@ -68,6 +68,26 @@
 
 "account_settings.privacy_subtitle" = "Umgang mit deinen Daten";
 
+"account_settings.export_data" = "Meine Daten exportieren";
+
+"account_settings.export_data_subtitle" = "Kopie deiner Daten anfordern (DSGVO Art. 20)";
+
+"account_settings.export_data_sent" = "Exportanfrage gesendet";
+
+"account_settings.delete_account" = "Konto löschen";
+
+"account_settings.delete_account_subtitle" = "Konto und Daten dauerhaft entfernen";
+
+"account_settings.delete_account_alert_title" = "Konto löschen?";
+
+"account_settings.delete_account_alert_message" = "Dein Konto und alle zugehörigen Daten werden dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.";
+
+"account_settings.delete_account_confirm" = "Mein Konto löschen";
+
+"account_settings.delete_account_requested_title" = "Löschung angefragt";
+
+"account_settings.delete_account_requested_message" = "Deine Kontolöschungsanfrage wurde eingereicht. Du erhältst eine Bestätigungs-E-Mail. Deine Daten werden innerhalb von 30 Tagen gemäß DSGVO gelöscht.";
+
 "account_settings.push_notifications" = "Push-Benachrichtigungen";
 
 "account_settings.push_subtitle" = "Hinweise und Aktualisierungen";
@@ -462,6 +482,10 @@
 
 "qr_login.validating_final" = "Wird geprüft…";
 
+"register.privacy_consent" = "Ich stimme der Verarbeitung meiner personenbezogenen Daten gemäß der Datenschutzrichtlinie zu.";
+
+"register.view_privacy_policy" = "Datenschutzrichtlinie anzeigen";
+
 "register.choose_password_placeholder" = "Passwort wählen";
 
 "register.confirm_password_label" = "PASSWORT BESTÄTIGEN";
@@ -589,3 +613,53 @@
 "todo.session_expired" = "Sitzung abgelaufen. Bitte erneut anmelden.";
 
 "todo.unassigned" = "Nicht zugewiesen";
+
+/* Datenschutzrichtlinie */
+
+"privacy_policy.title" = "Datenschutzrichtlinie";
+
+"privacy_policy.last_updated" = "Zuletzt aktualisiert: März 2026";
+
+"privacy_policy.controller_title" = "Verantwortlicher";
+
+"privacy_policy.controller_body" = "Verantwortlicher für die Datenverarbeitung in der Cloudwrkz-App ist der Betreiber Ihrer Cloudwrkz-Instanz. Bei Nutzung des offiziellen Cloudwrkz-Dienstes (cloudwrkz.com) ist der Verantwortliche die Cloudwrkz GmbH. Bei selbst gehosteten Installationen ist Ihre Organisation verantwortlich.\n\nFür Fragen zum Datenschutz wenden Sie sich an Ihren Administrator oder an privacy@cloudwrkz.com.";
+
+"privacy_policy.data_collection_title" = "Welche Daten wir erheben";
+
+"privacy_policy.data_collection_body" = "Wir erheben und verarbeiten folgende Kategorien personenbezogener Daten:\n\n• Kontodaten: Name, E-Mail-Adresse und Passwort (verschlüsselt) zur Authentifizierung.\n• Profildaten: Vorname, Nachname und optionales Profilbild.\n• Gerätemetadaten: Gerätetyp (Mobiltelefon/Tablet), Betriebssystemversion und App-Version – werden bei der Anmeldung zur Sitzungsverwaltung übermittelt.\n• Nutzungsdaten: Tickets, Aufgaben, Zeiteinträge (einschließlich textbasierter Ortsbeschreibungen), Links und andere von Ihnen erstellte Inhalte.\n• Technische Daten: Authentifizierungstoken sicher im iOS-Schlüsselbund gespeichert; App-Einstellungen lokal auf Ihrem Gerät gespeichert.\n\nWir erheben NICHT:\n• GPS- oder präzise Standortdaten\n• Kontakte, Kalender oder Gesundheitsdaten\n• Werbeidentifikatoren oder Tracking-Daten\n• Daten von Drittanbieter-Analyse-SDKs";
+
+"privacy_policy.legal_basis_title" = "Rechtsgrundlage der Verarbeitung";
+
+"privacy_policy.legal_basis_body" = "Wir verarbeiten Ihre Daten auf folgenden Rechtsgrundlagen (DSGVO Art. 6):\n\n• Vertragserfüllung (Art. 6 Abs. 1 lit. b): Verarbeitung, die für die Bereitstellung des Cloudwrkz-Dienstes erforderlich ist, einschließlich Authentifizierung, Datenspeicherung und Funktionalität.\n• Berechtigte Interessen (Art. 6 Abs. 1 lit. f): Gerätemetadaten für Sitzungssicherheit und Betrugsprävention.\n• Einwilligung (Art. 6 Abs. 1 lit. a): Optionale Funktionen wie Profilbild-Upload und biometrische Sperre. Sie können Ihre Einwilligung jederzeit widerrufen.";
+
+"privacy_policy.third_party_title" = "Drittanbieterdienste";
+
+"privacy_policy.third_party_body" = "Die App verbindet sich mit folgenden Drittanbieterdiensten:\n\n• OpenStreetMap Nominatim: Wird für textbasierte Adressvorschläge in der Zeiterfassung verwendet. Ihre Suchanfragen werden an nominatim.openstreetmap.org gesendet. Es werden keine persönlichen Identifikatoren übermittelt. Datenschutzrichtlinie von Nominatim: https://osmfoundation.org/wiki/Privacy_Policy\n• YouTube (img.youtube.com): Wird zum Laden von Vorschaubildern für Links mit YouTube-URLs verwendet. Es wird nur die Video-ID übertragen.\n\nWir geben Ihre personenbezogenen Daten nicht an Werbenetzwerke, Datenhändler oder Analyseanbieter weiter.";
+
+"privacy_policy.data_storage_title" = "Datenspeicherung & Sicherheit";
+
+"privacy_policy.data_storage_body" = "• Authentifizierungstoken: Im iOS-Schlüsselbund gespeichert (hardwareverschlüsselt).\n• App-Einstellungen und Profildaten: Im lokalen Gerätespeicher (UserDefaults) gespeichert.\n• Alle Daten bei der Übertragung: Über HTTPS/TLS-Verschlüsselung übermittelt.\n• Serverseitige Daten: Auf Ihrer Cloudwrkz-Serverinstanz gespeichert. Beim offiziellen Dienst befinden sich die Server in der EU.\n\nBeim Abmelden werden alle lokalen Daten (Token, Profil, Einstellungen, Caches) vom Gerät gelöscht.";
+
+"privacy_policy.data_retention_title" = "Datenaufbewahrung";
+
+"privacy_policy.data_retention_body" = "• Lokale Daten: Werden sofort beim Abmelden oder bei Nutzung von „Lokalen Cache leeren" gelöscht.\n• Serverdaten: Werden solange aufbewahrt, wie Ihr Konto aktiv ist. Nach Kontolöschung werden alle personenbezogenen Daten innerhalb von 30 Tagen entfernt.\n• Backups: Server-Backups mit Ihren Daten werden innerhalb von 90 Tagen nach Kontolöschung bereinigt.";
+
+"privacy_policy.your_rights_title" = "Ihre Rechte (DSGVO Art. 15–22)";
+
+"privacy_policy.your_rights_body" = "Nach der DSGVO haben Sie folgende Rechte:\n\n• Auskunftsrecht (Art. 15): Auskunft über die von uns verarbeiteten personenbezogenen Daten anfordern.\n• Recht auf Berichtigung (Art. 16): Unrichtige Daten über Ihre Profileinstellungen korrigieren.\n• Recht auf Löschung (Art. 17): Löschung Ihres Kontos und aller zugehörigen Daten anfordern.\n• Recht auf Einschränkung (Art. 18): Einschränkung der Verarbeitung unter bestimmten Bedingungen anfordern.\n• Recht auf Datenübertragbarkeit (Art. 20): Ihre Daten in einem strukturierten, maschinenlesbaren Format erhalten.\n• Widerspruchsrecht (Art. 21): Der Verarbeitung aufgrund berechtigter Interessen widersprechen.\n• Recht bei automatisierten Entscheidungen (Art. 22): Wir treffen keine automatisierten Entscheidungen oder Profiling mit rechtlicher Wirkung.\n\nSie können Ihre Rechte über den Bereich „Daten & Datenschutz" in den Kontoeinstellungen ausüben oder uns unter privacy@cloudwrkz.com kontaktieren.\n\nSie haben außerdem das Recht, Beschwerde bei einer Aufsichtsbehörde einzulegen (Art. 77).";
+
+"privacy_policy.security_title" = "Sicherheitsmaßnahmen";
+
+"privacy_policy.security_body" = "Wir setzen angemessene technische und organisatorische Maßnahmen um (DSGVO Art. 32):\n\n• Ende-zu-Ende-Verschlüsselung bei der Datenübertragung (TLS/HTTPS)\n• Hardwareverschlüsselte Schlüsselbundspeicherung für Authentifizierungstoken\n• Biometrische Authentifizierungsoption (Face ID/Touch ID)\n• Sitzungsüberwachung mit automatischem Ablauf\n• Keine Drittanbieter-Analyse- oder Tracking-SDKs\n• Prinzip der Datenminimierung";
+
+"privacy_policy.children_title" = "Datenschutz für Kinder";
+
+"privacy_policy.children_body" = "Cloudwrkz ist ein Produktivitätswerkzeug für den Arbeitsplatz und nicht für die Nutzung durch Kinder unter 16 Jahren bestimmt. Wir erheben wissentlich keine personenbezogenen Daten von Kindern. Wenn Sie glauben, dass ein Kind uns personenbezogene Daten übermittelt hat, kontaktieren Sie uns bitte unter privacy@cloudwrkz.com.";
+
+"privacy_policy.changes_title" = "Änderungen dieser Richtlinie";
+
+"privacy_policy.changes_body" = "Wir können diese Datenschutzrichtlinie von Zeit zu Zeit aktualisieren. Wesentliche Änderungen werden über die App oder per E-Mail mitgeteilt. Die weitere Nutzung der App nach Änderungen gilt als Annahme der aktualisierten Richtlinie.";
+
+"privacy_policy.contact_title" = "Kontakt";
+
+"privacy_policy.contact_body" = "Für datenschutzbezogene Anfragen:\n\nE-Mail: privacy@cloudwrkz.com\n\nBei selbst gehosteten Instanzen wenden Sie sich an den Datenschutzbeauftragten Ihrer Organisation.";
