@@ -18,11 +18,9 @@ struct TimeEntryDetailView: View {
     @State private var showAddBreakSheet = false
     @State private var isPerformingAction = false
     @State private var deletingBreakId: String?
-    @State private var timerTick = Date()
     @Environment(\.dismiss) private var dismiss
 
     @Environment(\.appState) private var appState
-    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     private var current: TimeEntry { liveEntry ?? entry }
 
@@ -88,7 +86,6 @@ struct TimeEntryDetailView: View {
         }
         .tint(CloudwrkzColors.primary400)
         .onAppear { Task { await refreshEntry() } }
-        .onReceive(timer) { timerTick = $0 }
     }
 
     // MARK: - Background
@@ -152,8 +149,6 @@ struct TimeEntryDetailView: View {
     // MARK: - Timer card (live updating)
 
     private var timerCard: some View {
-        let elapsed = TimeTrackingUtils.calculateElapsedTime(entry: current)
-
         return VStack(spacing: 12) {
             if current.status.isActive {
                 HStack(spacing: 8) {
@@ -167,11 +162,7 @@ struct TimeEntryDetailView: View {
                 }
             }
 
-            Text(TimeTrackingUtils.formatDuration(elapsed))
-                .font(.system(size: 48, weight: .bold, design: .monospaced))
-                .foregroundStyle(timerColor)
-                .contentTransition(.numericText())
-                .animation(.easeInOut(duration: 0.3), value: elapsed)
+            LiveDetailTimerText(entry: current)
 
             Text("Total duration")
                 .font(.system(size: 13, weight: .medium))
@@ -820,6 +811,34 @@ private struct FlowLayout: Layout {
         }
 
         return (offsets, CGSize(width: maxX, height: y + rowHeight))
+    }
+}
+
+// MARK: - Live timer text (isolated sub-view so only the digits re-render each second)
+
+private struct LiveDetailTimerText: View {
+    let entry: TimeEntry
+    @State private var timerTick = Date()
+    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+
+    var body: some View {
+        let _ = timerTick
+        let elapsed = TimeTrackingUtils.calculateElapsedTime(entry: entry)
+        return Text(TimeTrackingUtils.formatDuration(elapsed))
+            .font(.system(size: 48, weight: .bold, design: .monospaced))
+            .foregroundStyle(timerColor)
+            .contentTransition(.numericText())
+            .animation(.easeInOut(duration: 0.3), value: elapsed)
+            .onReceive(timer) { timerTick = $0 }
+    }
+
+    private var timerColor: Color {
+        switch entry.status {
+        case .running: return CloudwrkzColors.success400
+        case .paused: return CloudwrkzColors.warning400
+        case .stopped: return CloudwrkzColors.neutral200
+        case .completed: return CloudwrkzColors.primary400
+        }
     }
 }
 
